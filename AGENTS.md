@@ -9,15 +9,16 @@
 - `ConfigManager` 启动时加载配置并保持内存缓存；普通配置通过 `get(key, defaultValue)` 读取，系统配置通过 `getSysConfig().get(key)` 读取，写入时同步更新数据库和缓存。`config.enabled` 控制普通配置是否生效，`sys_config` 没有启用字段。
 - 普通配置的管理接口位于 `/api/v1/configs`，支持列表、新增、更新（含键改名）、删除。管理页以文本值编辑；服务端通过 `ConfigManager` 写库并立即刷新缓存。配置内容不写入请求日志。
 - 请求日志中间件独立于认证：SQLite 记录模式为 `off`、`all`、`white_list`，默认关闭；控制台输出默认开启。白名单规则存在 `sys_config`，只记录匹配路径。日志内容需对密码、密钥、Token 等敏感字段脱敏并限制长度。
-- 请求日志查询通过鉴权接口 `GET /api/v1/request-logs`，支持分页及方法、路径、状态码筛选；日志表未创建时返回空列表，查询不触发建表。管理端请求日志页只提供筛选、查看详情，不修改原始日志。
-- 站点设置保存在 `sys_config`：后台与前台分别有网站标签名称、系统名称和图标元数据。公开 `GET /api/v1/site-settings` 供登录页及未来 `client` 读取；写入接口需要管理员 JWT。图标以原始图片上传，验证文件头后保存在 `server/data/site-icons/`，后台与前台各一个固定文件，最大 2 MiB，不接收 SVG。
+- 请求日志查询通过鉴权接口 `GET /api/v1/request-logs`，支持分页及方法、路径、状态码筛选；日志表未创建时返回空列表，查询不触发建表。日志中间件不将日志查询接口自身写入 SQLite。管理端请求日志页只提供筛选、查看详情，不修改原始日志。
+- 文件库由 `file` 表保存元数据，原文件存于 `server/data/uploads/`；列表、上传、归档需管理员鉴权，稳定文件链接公开访问。归档后文件不再出现在选择器，但旧链接继续可用。管理端的文件选择弹窗支持单选、多选、预览和现场上传；站点图标从文件库选择。
+- 站点设置保存在 `sys_config`：后台与前台分别有网站标签名称、系统名称和图标元数据。公开 `GET /api/v1/site-settings` 供登录页及未来 `client` 读取；写入接口需要管理员 JWT。图标入口使用文件选择弹窗，支持 PNG、JPEG、WebP、ICO，最大 2 MiB，不接收 SVG；旧版固定图标仍可读取。
 - 代码按 API/Controller 边界、Service 业务层、Repository 数据访问层分层；鉴权、校验和安全能力分别放在中间件或独立模块。业务项目自行扩展业务表和 API。
 - 接口、环境变量与启动方式见 `server/README.md`；改动服务端接口时需同步管理端契约。
 
 ## admin 模块
 
 - admin 使用 React 18、TypeScript、React Router v6、Ant Design v5，采用 Vite 构建独立 SPA。
-- 只做单管理员后台通用流程：初始化向导（`/setup`）、登录（`/login`）、自适应管理端布局、首页占位、系统管理（`/system-config`）、配置管理（`/configs`）、请求日志（`/request-logs`）、修改密码、退出登录和 404 兜底页。业务菜单与页面留给复制后的项目添加。
+- 只做单管理员后台通用流程：初始化向导（`/setup`）、登录（`/login`）、自适应管理端布局、首页占位、系统管理（`/system-config`）、配置管理（`/configs`）、请求日志（`/request-logs`）、文件管理（`/files`）、修改密码、退出登录和 404 兜底页。业务菜单与页面留给复制后的项目添加。
 - 代码按页面（`pages`）、布局（`layouts`）、复用组件（`components`）、API 请求（`api`）、认证状态（`auth`）与路由守卫（`router`）分层。
 - 认证状态集中在 `src/auth/` 独立管理，Token 存放于 `sessionStorage`；页面与组件不直接发原始 fetch 请求或拼接 Authorization 头。
 - 严格遵循 `/api/v1` 基础路径和 `{code, msg, data, success}` 契约。服务端 JSON 先按 `unknown` 处理并在请求层收窄，不使用 `any`。

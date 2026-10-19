@@ -70,6 +70,7 @@ export interface RequestOptions {
   rawBody?: BodyInit;
   contentType?: string;
   requiresAuth?: boolean;
+  headers?: Record<string, string>;
 }
 
 export async function request<TData>(
@@ -78,8 +79,8 @@ export async function request<TData>(
   options: RequestOptions = {},
 ): Promise<ApiResponse<TData>> {
   const { method = 'GET', body, rawBody, contentType, requiresAuth = true } = options;
-  const headers: Record<string, string> = { Accept: 'application/json' };
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  const headers: Record<string, string> = { Accept: 'application/json', ...options.headers };
+  if (body !== undefined && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
   if (contentType) headers['Content-Type'] = contentType;
   if (requiresAuth) {
     const token = getToken();

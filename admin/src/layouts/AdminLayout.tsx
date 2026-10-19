@@ -22,6 +22,7 @@ import {
   Settings2,
   List,
   FileText,
+  FolderOpen,
 } from 'lucide-react';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../auth';
@@ -127,6 +128,11 @@ export const AdminLayout: React.FC = () => {
       label: <Link to="/request-logs">请求日志</Link>,
     },
     {
+      key: '/files',
+      icon: <FolderOpen size={18} />,
+      label: <Link to="/files">文件管理</Link>,
+    },
+    {
       key: 'pwd-action',
       icon: <KeyRound size={18} />,
       label: '修改密码',
@@ -150,6 +156,9 @@ export const AdminLayout: React.FC = () => {
     }
     if (location.pathname === '/request-logs') {
       return [{ title: '管理后台' }, { title: '请求日志' }];
+    }
+    if (location.pathname === '/files') {
+      return [{ title: '管理后台' }, { title: '文件管理' }];
     }
     return [{ title: '管理后台' }, { title: '当前页面' }];
   };

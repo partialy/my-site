@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Button, Card, Col, Flex, Input, Popconfirm, Row, Space, Typography, message } from 'antd';
 import { Globe2, ImageUp, Save, Trash2 } from 'lucide-react';
-import { deleteSiteIcon, updateSiteSettings, uploadSiteIcon } from '../../api/siteSettings';
+import { deleteSiteIcon, selectSiteIcon, updateSiteSettings } from '../../api/siteSettings';
 import type { SiteSettingsInput, SiteTarget } from '../../api/siteSettings';
 import { SiteIcon } from '../../components/SiteIcon';
+import { FilePickerModal } from '../../components/file-picker/FilePickerModal';
+import type { FileItem } from '../../api/files';
 import { useSiteSettings } from '../../site-settings/SiteSettingsContext';
 
 const { Text, Title } = Typography;
@@ -17,13 +19,12 @@ interface SiteIdentityFieldsProps {
   iconUrl: string | null;
   busy: boolean;
   onFieldChange: (target: SiteTarget, field: 'siteTitle' | 'systemName', value: string) => void;
-  onUpload: (target: SiteTarget, file: File) => void;
+  onSelect: (target: SiteTarget) => void;
   onDelete: (target: SiteTarget) => void;
 }
 
 function SiteIdentityFields(props: SiteIdentityFieldsProps) {
-  const fileInput = useRef<HTMLInputElement>(null);
-  const { target, title, description, siteTitle, systemName, iconUrl, busy, onFieldChange, onUpload, onDelete } = props;
+  const { target, title, description, siteTitle, systemName, iconUrl, busy, onFieldChange, onSelect, onDelete } = props;
 
   return (
     <div className="site-identity-panel">
@@ -47,8 +48,8 @@ function SiteIdentityFields(props: SiteIdentityFieldsProps) {
           <Flex align="center" gap={14} wrap="wrap" style={{ marginTop: 10 }}>
             <div className="site-identity-icon"><SiteIcon url={iconUrl} size={32} /></div>
             <Space size={8}>
-              <Button icon={<ImageUp size={15} />} loading={busy} onClick={() => fileInput.current?.click()}>
-                {iconUrl ? '更换图标' : '上传图标'}
+              <Button icon={<ImageUp size={15} />} loading={busy} onClick={() => onSelect(target)}>
+                {iconUrl ? '更换图标' : '选择图标'}
               </Button>
               {iconUrl && (
                 <Popconfirm title="移除系统图标？" okText="移除" cancelText="取消" onConfirm={() => onDelete(target)}>
@@ -56,19 +57,8 @@ function SiteIdentityFields(props: SiteIdentityFieldsProps) {
                 </Popconfirm>
               )}
             </Space>
-            <input
-              ref={fileInput}
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/x-icon,.ico"
-              hidden
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) onUpload(target, file);
-                event.target.value = '';
-              }}
-            />
           </Flex>
-          <Text type="secondary" style={{ fontSize: 12 }}>支持 PNG、JPG、WebP、ICO，最大 2 MB；每侧仅保留一张。</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>从文件管理器选择，也可在选择窗口上传。支持 PNG、JPG、WebP、ICO，最大 2 MB。</Text>
         </div>
       </div>
     </div>
@@ -83,6 +73,7 @@ export function SiteIdentitySection() {
   });
   const [saving, setSaving] = useState(false);
   const [busyTarget, setBusyTarget] = useState<SiteTarget | null>(null);
+  const [pickerTarget, setPickerTarget] = useState<SiteTarget | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -124,12 +115,8 @@ export function SiteIdentitySection() {
     }
   };
 
-  const upload = async (target: SiteTarget, file: File) => {
-    const allowed = ['image/png', 'image/jpeg', 'image/webp', 'image/x-icon', 'image/vnd.microsoft.icon'];
-    if (!allowed.includes(file.type) && !file.name.toLowerCase().endsWith('.ico')) {
-      message.error('请选择 PNG、JPG、WebP 或 ICO 图标');
-      return;
-    }
+  const selectIcon = async (target: SiteTarget, file: FileItem) => {
+    setPickerTarget(null);
     if (file.size > 2 * 1024 * 1024) {
       message.error('图标不能超过 2 MB');
       return;
@@ -137,12 +124,12 @@ export function SiteIdentitySection() {
     setBusyTarget(target);
     setError(null);
     try {
-      const result = await uploadSiteIcon(target, file);
+      const result = await selectSiteIcon(target, file.id);
       if (!result.success) throw new Error(result.msg);
       setSettings(result.data);
-      message.success('图标已上传');
+      message.success('图标已更新');
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '图标上传失败');
+      setError(cause instanceof Error ? cause.message : '更新图标失败');
     } finally {
       setBusyTarget(null);
     }
@@ -175,12 +162,21 @@ export function SiteIdentitySection() {
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} />}
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
-          <SiteIdentityFields target="admin" title="管理后台" description="用于登录页、后台侧栏和浏览器标签" {...draft.admin} iconUrl={settings.admin.iconUrl} busy={busyTarget === 'admin'} onFieldChange={changeField} onUpload={upload} onDelete={(target) => void remove(target)} />
+          <SiteIdentityFields target="admin" title="管理后台" description="用于登录页、后台侧栏和浏览器标签" {...draft.admin} iconUrl={settings.admin.iconUrl} busy={busyTarget === 'admin'} onFieldChange={changeField} onSelect={setPickerTarget} onDelete={(target) => void remove(target)} />
         </Col>
         <Col xs={24} lg={12}>
-          <SiteIdentityFields target="client" title="前台项目" description="保留给后续 client 项目读取与展示" {...draft.client} iconUrl={settings.client.iconUrl} busy={busyTarget === 'client'} onFieldChange={changeField} onUpload={upload} onDelete={(target) => void remove(target)} />
+          <SiteIdentityFields target="client" title="前台项目" description="保留给后续 client 项目读取与展示" {...draft.client} iconUrl={settings.client.iconUrl} busy={busyTarget === 'client'} onFieldChange={changeField} onSelect={setPickerTarget} onDelete={(target) => void remove(target)} />
         </Col>
       </Row>
+      <FilePickerModal
+        open={pickerTarget !== null}
+        multiple={false}
+        accept={['image/png', 'image/jpeg', 'image/webp', 'image/x-icon']}
+        onCancel={() => setPickerTarget(null)}
+        onConfirm={(files) => {
+          if (pickerTarget && files[0]) void selectIcon(pickerTarget, files[0]);
+        }}
+      />
     </Card>
   );
 }

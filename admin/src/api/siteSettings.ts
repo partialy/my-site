@@ -65,6 +65,12 @@ export function uploadSiteIcon(target: SiteTarget, file: File): Promise<ApiRespo
   });
 }
 
+export function selectSiteIcon(target: SiteTarget, fileId: string): Promise<ApiResponse<SiteSettings>> {
+  return request(`/site-settings/${target}/icon-file`, parseSettings, {
+    method: 'PUT', body: { fileId },
+  });
+}
+
 export function deleteSiteIcon(target: SiteTarget): Promise<ApiResponse<SiteSettings>> {
   return request(`/site-settings/${target}/icon`, parseSettings, { method: 'DELETE' });
 }

@@ -6,3 +6,4 @@ export * from './systemConfig';
 export * from './configs';
 export * from './requestLogs';
 export * from './siteSettings';
+export * from './files';
