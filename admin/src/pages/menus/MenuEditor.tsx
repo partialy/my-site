@@ -2,6 +2,8 @@ import { Form, Input, Modal, Select, Switch } from 'antd';
 import { useEffect } from 'react';
 import type { MenuItem } from '../../api/menus';
 import { MenuIconPicker } from './MenuIconPicker';
+import { MenuPagePicker } from './MenuPagePicker';
+import type { PageRecord } from '../../router/pageRegistry';
 
 interface Props {
   open: boolean;
@@ -18,6 +20,15 @@ export function MenuEditor({ open, editing, items, onClose, onConfirm }: Props) 
   const [form] = Form.useForm<FormValues>();
   const type = Form.useWatch('type', form) ?? 'route';
   const hasChildren = Boolean(editing && items.some((item) => item.parentKey === editing.key));
+
+  const fillPageDefaults = (page: PageRecord) => {
+    const values = form.getFieldsValue();
+    form.setFieldsValue({
+      key: !editing && !values.key?.trim() ? page.defaultKey : values.key,
+      label: !values.label?.trim() ? page.name : values.label,
+      icon: !values.icon ? page.defaultIcon : values.icon,
+    });
+  };
 
   useEffect(() => {
     if (open) {
@@ -65,9 +76,8 @@ export function MenuEditor({ open, editing, items, onClose, onConfirm }: Props) 
           .filter((item) => item.type === 'group' && item.key !== editing?.key)
           .map((item) => ({ value: item.key, label: item.label }))]} />
       </Form.Item>}
-      {type === 'route' && <Form.Item name="path" label="路由路径" rules={[{ required: true, message: '请输入路由路径' },
-        { pattern: /^\/(?!\/)[^?#\\]*$/, message: '请输入不含查询参数或锚点的站内绝对路径' }]}>
-        <Input placeholder="例如 /reports" maxLength={500} />
+      {type === 'route' && <Form.Item name="path" label="选择页面" rules={[{ required: true, message: '请选择已开发页面' }]}>
+        <MenuPagePicker items={items} editingKey={editing?.key} onPageSelect={fillPageDefaults} />
       </Form.Item>}
       <Form.Item name="icon" label="图标"><MenuIconPicker /></Form.Item>
       <Form.Item name="visible" label="侧栏显示" valuePropName="checked"><Switch /></Form.Item>

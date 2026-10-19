@@ -111,7 +111,8 @@ export function MenuManagementPage() {
       </Space>;
     } },
     { title: '操作', key: 'actions', width: 145, render: (_, item) => <Space size={0}>
-      <Button type="link" size="small" icon={<Pencil size={14} />} onClick={() => edit(item)}>编辑</Button>
+      <Button type="link" size="small" icon={<Pencil size={14} />} disabled={item.type === 'action'}
+        onClick={() => edit(item)}>编辑</Button>
       <Popconfirm title={`删除「${item.label}」？`} description="删除后需点击保存才会写入数据库。"
         okText="删除" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={() => remove(item)}>
         <Button type="link" size="small" danger icon={<Trash2 size={14} />}>删除</Button>
