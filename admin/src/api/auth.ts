@@ -10,7 +10,7 @@ import type {
 
 /**
  * 管理员登录
- * POST /api/v1/auth/login
+ * POST /api/v1/admin/auth/login
  * 鉴权：无
  */
 export async function login(data: LoginRequest): Promise<ApiResponse<LoginData>> {
@@ -23,7 +23,7 @@ export async function login(data: LoginRequest): Promise<ApiResponse<LoginData>>
 
 /**
  * 获取当前登录管理员信息
- * GET /api/v1/auth/me
+ * GET /api/v1/admin/auth/me
  * 鉴权：JWT (Authorization: Bearer <Token>)
  */
 export async function getMe(): Promise<ApiResponse<AdminSummary>> {
@@ -35,7 +35,7 @@ export async function getMe(): Promise<ApiResponse<AdminSummary>> {
 
 /**
  * 修改当前管理员密码
- * PUT /api/v1/auth/password
+ * PUT /api/v1/admin/auth/password
  * 鉴权：JWT (Authorization: Bearer <Token>)
  */
 export async function changePassword(

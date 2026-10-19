@@ -4,7 +4,7 @@ import type { AdminSummary, ApiResponse, SetupAdminRequest, SetupStatusData } fr
 
 /**
  * 获取系统初始化状态
- * GET /api/v1/setup/status
+ * GET /api/v1/admin/setup/status
  * 鉴权：无
  */
 export async function getSetupStatus(): Promise<ApiResponse<SetupStatusData>> {
@@ -16,7 +16,7 @@ export async function getSetupStatus(): Promise<ApiResponse<SetupStatusData>> {
 
 /**
  * 初始化管理员
- * POST /api/v1/setup/admin
+ * POST /api/v1/admin/setup/admin
  * 鉴权：无（需请求体中携带 setupKey）
  */
 export async function setupAdmin(data: SetupAdminRequest): Promise<ApiResponse<AdminSummary>> {

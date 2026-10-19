@@ -1,4 +1,4 @@
-import { getApiBaseUrl, request } from './client';
+import { getPublicApiBaseUrl, request } from './client';
 import type { ApiResponse } from './types';
 
 export interface FileItem {
@@ -34,7 +34,7 @@ function parseFile(value: unknown): FileItem {
     typeof value.url !== 'string' || typeof value.createdAt !== 'string') {
     throw new Error('文件数据格式异常');
   }
-  const apiBase = getApiBaseUrl().replace(/\/+$/, '');
+  const apiBase = getPublicApiBaseUrl().replace(/\/+$/, '');
   const url = value.url.startsWith('/api/v1/')
     ? `${apiBase}${value.url.slice('/api/v1'.length)}` : value.url;
   return { id: value.id, name: value.name, mimeType: value.mimeType,

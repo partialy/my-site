@@ -1,4 +1,4 @@
-import { getApiBaseUrl, request } from './client';
+import { getPublicApiBaseUrl, request } from './client';
 import type { ApiResponse } from './types';
 
 export type SiteTarget = 'admin' | 'client';
@@ -29,7 +29,7 @@ function parseIdentity(value: unknown): SiteIdentity {
     throw new Error('网站信息格式异常');
   }
   const iconUrl = item.iconUrl as string | null;
-  const apiBase = getApiBaseUrl().replace(/\/+$/, '');
+  const apiBase = getPublicApiBaseUrl().replace(/\/+$/, '');
   return {
     siteTitle: item.siteTitle,
     systemName: item.systemName,

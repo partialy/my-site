@@ -5,7 +5,8 @@ import {
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
 import { ArrowUpRight, BarChart3, Globe2, UsersRound } from 'lucide-react';
-import { popularPages, trafficSources, trafficTrends, weeklyUsers } from './dashboardData';
+import type { DashboardData } from '../../api/dashboard';
+import { weeklyUsers } from './dashboardData';
 
 const tooltipStyle = {
   border: '1px solid #e8edf4', borderRadius: 10, boxShadow: '0 12px 30px rgba(15, 23, 42, .1)',
@@ -24,21 +25,29 @@ function ChartHeading({ icon, title, subtitle, extra }: {
   </div>;
 }
 
-export function DashboardCharts() {
+const sourceColors = ['#2463eb', '#14b8a6', '#f59e0b', '#cbd5e1'];
+
+export function DashboardCharts({ data }: { data: DashboardData }) {
   const [period, setPeriod] = useState<'7d' | '30d'>('7d');
+  const trend = (period === '7d' ? data.visits.trend7 : data.visits.trend30)
+    .map((point) => ({ ...point, label: point.day.slice(5) }));
+  const sources = data.requestLogs.sources.map((source, index) => ({
+    ...source, color: sourceColors[index % sourceColors.length],
+  }));
+  const maxPathCount = Math.max(1, ...data.requestLogs.topPaths.map((item) => item.count));
 
   return <>
     <section className="dashboard-chart-grid">
       <article className="dashboard-panel dashboard-traffic-panel">
-        <ChartHeading icon={<BarChart3 size={18} />} title="访问趋势" subtitle="访问量与独立访客走势"
+        <ChartHeading icon={<BarChart3 size={18} />} title="访问趋势" subtitle="前台访问量 · 每个访客每日去重"
           extra={<div className="dashboard-period" aria-label="选择访问趋势时间范围">
             <button type="button" className={period === '7d' ? 'active' : ''} onClick={() => setPeriod('7d')}>近 7 天</button>
             <button type="button" className={period === '30d' ? 'active' : ''} onClick={() => setPeriod('30d')}>近 30 天</button>
           </div>} />
-        <div className="dashboard-chart-legend"><span className="blue">访问量</span><span className="teal">独立访客</span></div>
+        <div className="dashboard-chart-legend"><span className="blue">访问量</span></div>
         <div className="dashboard-chart-area">
           <ResponsiveContainer width="100%" height={278}>
-            <AreaChart data={trafficTrends[period]} margin={{ top: 10, right: 5, bottom: 0, left: -22 }}>
+            <AreaChart data={trend} margin={{ top: 10, right: 5, bottom: 0, left: -22 }}>
               <defs>
                 <linearGradient id="dashboardVisitsFill" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#2563eb" stopOpacity={0.22} />
@@ -51,15 +60,13 @@ export function DashboardCharts() {
               <Tooltip contentStyle={tooltipStyle} />
               <Area type="monotone" dataKey="visits" name="访问量" stroke="#2563eb" strokeWidth={3}
                 fill="url(#dashboardVisitsFill)" activeDot={{ r: 5 }} />
-              <Area type="monotone" dataKey="users" name="独立访客" stroke="#14b8a6" strokeWidth={2.5}
-                strokeDasharray="5 4" fill="transparent" activeDot={{ r: 4 }} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
       </article>
 
       <article className="dashboard-panel dashboard-users-panel">
-        <ChartHeading icon={<UsersRound size={18} />} title="新增用户" subtitle="本周新增与活跃用户" />
+        <ChartHeading icon={<UsersRound size={18} />} title="新增用户" subtitle="演示数据 · 等待业务用户模块接入" />
         <div className="dashboard-users-summary"><strong>302</strong><span>本周累计新增</span><span className="dashboard-users-rise">+18.6%</span></div>
         <div className="dashboard-chart-area">
           <ResponsiveContainer width="100%" height={278}>
@@ -78,41 +85,42 @@ export function DashboardCharts() {
 
     <section className="dashboard-chart-grid dashboard-bottom-grid">
       <article className="dashboard-panel dashboard-source-panel">
-        <ChartHeading icon={<Globe2 size={18} />} title="流量来源" subtitle="不同渠道带来的访问占比" />
-        <div className="dashboard-source-content">
+        <ChartHeading icon={<Globe2 size={18} />} title="接口来源" subtitle="近 7 天请求日志中的 Origin / Referer" />
+        {sources.length === 0 ? <div className="dashboard-empty">暂无接口日志，开启日志记录后展示来源分布</div> : <div className="dashboard-source-content">
           <div className="dashboard-donut-wrap">
             <ResponsiveContainer width="100%" height={205}>
               <PieChart>
-                <Pie data={trafficSources} dataKey="value" nameKey="name" innerRadius={64} outerRadius={90}
+                <Pie data={sources} dataKey="count" nameKey="name" innerRadius={64} outerRadius={90}
                   paddingAngle={3} stroke="none">
-                  {trafficSources.map((source) => <Cell key={source.name} fill={source.color} />)}
+                  {sources.map((source) => <Cell key={source.name} fill={source.color} />)}
                 </Pie>
-                <Tooltip contentStyle={tooltipStyle} formatter={(value) => `${value}%`} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(value) => `${value} 次`} />
               </PieChart>
             </ResponsiveContainer>
-            <div className="dashboard-donut-center"><strong>100%</strong><span>总访问来源</span></div>
+            <div className="dashboard-donut-center"><strong>{data.requestLogs.total}</strong><span>接口请求</span></div>
           </div>
           <div className="dashboard-source-list">
-            {trafficSources.map((source) => <div key={source.name}>
+            {sources.map((source) => <div key={source.name}>
               <span><i style={{ background: source.color }} />{source.name}</span>
-              <strong>{source.value}%</strong>
+              <strong>{data.requestLogs.total ? Math.round(source.count / data.requestLogs.total * 100) : 0}%</strong>
             </div>)}
           </div>
-        </div>
+        </div>}
       </article>
 
       <article className="dashboard-panel dashboard-pages-panel">
-        <ChartHeading icon={<ArrowUpRight size={18} />} title="热门页面" subtitle="按访问量排序的页面表现" />
-        <div className="dashboard-pages-list">
-          {popularPages.map((page, index) => <div className="dashboard-page-row" key={page.path}>
+        <ChartHeading icon={<ArrowUpRight size={18} />} title="热门接口" subtitle="近 7 天请求次数最多的接口路径" />
+        {data.requestLogs.topPaths.length === 0 ? <div className="dashboard-empty">暂无接口日志，开启日志记录后展示热门接口</div>
+          : <div className="dashboard-pages-list">
+          {data.requestLogs.topPaths.map((page, index) => <div className="dashboard-page-row" key={page.path}>
             <span className="dashboard-page-rank">{String(index + 1).padStart(2, '0')}</span>
             <div className="dashboard-page-details">
-              <div><strong>{page.label}</strong><span>{page.path}</span></div>
-              <div className="dashboard-page-track"><span style={{ width: `${page.share}%` }} /></div>
+              <div><strong>{page.path}</strong></div>
+              <div className="dashboard-page-track"><span style={{ width: `${page.count / maxPathCount * 100}%` }} /></div>
             </div>
-            <strong className="dashboard-page-visits">{page.visits.toLocaleString('zh-CN')}</strong>
+            <strong className="dashboard-page-visits">{page.count.toLocaleString('zh-CN')}</strong>
           </div>)}
-        </div>
+        </div>}
       </article>
     </section>
   </>;

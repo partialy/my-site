@@ -23,7 +23,11 @@ function notifyUnauthorized(): void {
 }
 
 export function getApiBaseUrl(): string {
-  return import.meta.env.VITE_API_BASE_URL || '/api/v1';
+  return import.meta.env.VITE_API_BASE_URL || '/api/v1/admin';
+}
+
+export function getPublicApiBaseUrl(): string {
+  return getApiBaseUrl().replace(/\/admin\/?$/, '');
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
