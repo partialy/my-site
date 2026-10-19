@@ -144,7 +144,7 @@ export function createAdminRoutes(setup: SetupService, auth: AuthService, system
     res.json(ok(requestLogs.cleanup(input), '请求日志已清理'));
   });
 
-  routes.get('/dashboard', requireAuth(auth), (_req, res) => {
+  routes.get(['/home', '/dashboard'], requireAuth(auth), (_req, res) => {
     res.json(ok(dashboard.get()));
   });
 

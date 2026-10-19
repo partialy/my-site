@@ -100,6 +100,11 @@ async function main() {
     assert.equal((await visitResponse.json()).data.recorded, false);
     result = await request('/dashboard', 'GET', undefined, token);
     assert.equal(result.body.data.visits.today, 1);
+    result = await request('/home', 'GET', undefined, token);
+    assert.equal(result.body.data.visits.today, 1);
+    assert.equal(result.body.data.users.source, 'mock');
+    assert.equal(result.body.data.users.total, 2680);
+    assert.equal(result.body.data.users.trend7.length, 7);
     result = await request('/visits?path=%2F&page=1&pageSize=10', 'GET', undefined, token);
     assert.equal(result.body.data.total, 1);
     assert.equal(result.body.data.items[0].visitorId, visit.visitorId);
