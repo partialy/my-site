@@ -7,6 +7,7 @@ import { DashboardPage } from '../pages/dashboard/DashboardPage';
 import { SystemConfigPage } from '../pages/system-config/SystemConfigPage';
 import { ConfigsPage } from '../pages/configs/ConfigsPage';
 import { RequestLogsPage } from '../pages/request-logs/RequestLogsPage';
+import { VisitLogsPage } from '../pages/visit-logs/VisitLogsPage';
 import { FilesPage } from '../pages/files/FilesPage';
 import { MenuManagementPage } from '../pages/menus/MenuManagementPage';
 import { NotFoundPage } from '../pages/errors/NotFoundPage';
@@ -37,6 +38,10 @@ export const router = createBrowserRouter([
       {
         path: 'request-logs',
         element: <RequestLogsPage />,
+      },
+      {
+        path: 'visit-logs',
+        element: <VisitLogsPage />,
       },
       {
         path: 'files',
