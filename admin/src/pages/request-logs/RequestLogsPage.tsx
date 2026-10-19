@@ -89,7 +89,7 @@ export function RequestLogsPage() {
         </div>
         <Space wrap>
           <Button icon={<RefreshCw size={16} />} loading={loading} onClick={() => void reload()}>刷新</Button>
-          <Button danger icon={<Trash2 size={16} />} disabled={cleaning} onClick={() => setCleanupOpen(true)}>按时间清理</Button>
+          <Button danger icon={<Trash2 size={16} />} disabled={cleaning} onClick={() => setCleanupOpen(true)}>按规则清理</Button>
           <Button danger icon={<Trash2 size={16} />} disabled={selectedIds.length === 0 || cleaning}
             onClick={confirmSelectedCleanup}>清理选中{selectedIds.length ? `（${selectedIds.length}）` : ''}</Button>
         </Space>
@@ -115,7 +115,7 @@ export function RequestLogsPage() {
       </Card>
       <RequestLogDetail item={selected} onClose={() => setSelected(null)} />
       <RequestLogCleanupModal open={cleanupOpen} onClose={() => setCleanupOpen(false)}
-        onConfirm={(startTime, endTime) => cleanup({ mode: 'timeRange', startTime, endTime })} />
+        onConfirm={cleanup} />
     </div>
   );
 }

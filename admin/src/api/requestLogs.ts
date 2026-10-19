@@ -34,7 +34,9 @@ export interface RequestLogPage {
 
 export type RequestLogCleanup =
   | { mode: 'ids'; ids: number[] }
-  | { mode: 'timeRange'; startTime: string; endTime: string };
+  | { mode: 'timeRange'; startTime: string; endTime: string }
+  | { mode: 'beforeTime' | 'afterTime'; time: string }
+  | { mode: 'keepLatest'; count: number };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
