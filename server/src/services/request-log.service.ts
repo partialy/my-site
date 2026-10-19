@@ -9,6 +9,17 @@ export const requestLogQuerySchema = z.strictObject({
   status: z.coerce.number().int().min(100).max(599).optional(),
 });
 
+export const requestLogCleanupSchema = z.discriminatedUnion('mode', [
+  z.strictObject({ mode: z.literal('ids'), ids: z.array(z.number().int().positive()).min(1).max(500) }),
+  z.strictObject({
+    mode: z.literal('timeRange'),
+    startTime: z.iso.datetime({ offset: true }),
+    endTime: z.iso.datetime({ offset: true }),
+  }).refine((value) => Date.parse(value.startTime) <= Date.parse(value.endTime), {
+    path: ['endTime'], message: '结束时间不能早于开始时间',
+  }),
+]);
+
 export class RequestLogService {
   constructor(private readonly repository: RequestLogRepository) {}
 
@@ -18,5 +29,14 @@ export class RequestLogService {
 
   dashboard(since: string) {
     return this.repository.dashboard(since);
+  }
+
+  cleanup(input: z.infer<typeof requestLogCleanupSchema>) {
+    const deleted = input.mode === 'ids'
+      ? this.repository.deleteByIds([...new Set(input.ids)])
+      : this.repository.deleteByTimeRange(
+        new Date(input.startTime).toISOString(), new Date(input.endTime).toISOString(),
+      );
+    return { deleted };
   }
 }

@@ -103,6 +103,19 @@ async function main() {
     result = await request('/visits?path=%2F&page=1&pageSize=10', 'GET', undefined, token);
     assert.equal(result.body.data.total, 1);
     assert.equal(result.body.data.items[0].visitorId, visit.visitorId);
+    systemConfig.update({ requestLogMode: 'all', consoleLogEnabled: false, consoleLogFormat: '[${time}] ${url}' });
+    systemConfig.update({ requestLogMode: 'off', consoleLogEnabled: false, consoleLogFormat: '[${time}] ${url}' });
+    const insertLog = db.prepare('INSERT INTO request_log (time, method, path, url, status, duration_ms) VALUES (?, ?, ?, ?, ?, ?)');
+    const selectedId = Number(insertLog.run('2026-01-01T00:00:00.000Z', 'GET', '/api/v1/demo', '/api/v1/demo', 200, 1).lastInsertRowid);
+    insertLog.run('2026-02-01T00:00:00.000Z', 'GET', '/api/v1/demo', '/api/v1/demo', 200, 1);
+    result = await request('/request-logs', 'DELETE', { mode: 'ids', ids: [selectedId] });
+    assert.equal(result.body.code, 1005);
+    result = await request('/request-logs', 'DELETE', { mode: 'ids', ids: [selectedId] }, token);
+    assert.equal(result.body.data.deleted, 1);
+    result = await request('/request-logs', 'DELETE', {
+      mode: 'timeRange', startTime: '2026-02-01T08:00:00+08:00', endTime: '2026-02-01T08:00:01+08:00',
+    }, token);
+    assert.equal(result.body.data.deleted, 1);
     result = await request('/auth/me');
     assert.equal(result.body.code, 1005);
     const expired = jwt.sign({ ver: 0, exp: Math.floor(Date.now() / 1000) - 1 }, config.jwtSecret, {

@@ -74,9 +74,23 @@ function toItem(record: RequestLogRecord): RequestLogItem {
 export class RequestLogRepository {
   constructor(private readonly db: Database.Database) {}
 
+  private exists(): boolean {
+    return Boolean(this.db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'request_log'").get());
+  }
+
+  deleteByIds(ids: number[]): number {
+    if (!this.exists()) return 0;
+    const placeholders = ids.map(() => '?').join(',');
+    return this.db.prepare(`DELETE FROM request_log WHERE id IN (${placeholders})`).run(...ids).changes;
+  }
+
+  deleteByTimeRange(startTime: string, endTime: string): number {
+    if (!this.exists()) return 0;
+    return this.db.prepare('DELETE FROM request_log WHERE time >= ? AND time <= ?').run(startTime, endTime).changes;
+  }
+
   dashboard(since: string): RequestLogDashboard {
-    const exists = this.db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'request_log'").get();
-    if (!exists) return { total: 0, successRate: null, sources: [], topPaths: [] };
+    if (!this.exists()) return { total: 0, successRate: null, sources: [], topPaths: [] };
 
     const filter = "time >= ? AND path NOT IN ('/api/v1/request-logs', '/api/v1/admin/request-logs', '/api/v1/admin/dashboard')";
     const totals = this.db.prepare(`
@@ -109,8 +123,7 @@ export class RequestLogRepository {
   }
 
   list(query: RequestLogQuery): RequestLogPage {
-    const exists = this.db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'request_log'").get();
-    if (!exists) return { items: [], total: 0, page: query.page, pageSize: query.pageSize };
+    if (!this.exists()) return { items: [], total: 0, page: query.page, pageSize: query.pageSize };
 
     const conditions: string[] = [];
     const params: Record<string, string | number> = {};

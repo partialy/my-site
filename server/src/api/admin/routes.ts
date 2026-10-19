@@ -13,7 +13,7 @@ import {
 } from '../../services/site-settings.service';
 import { ApiError } from '../api-error';
 import { ApiCode } from '../codes';
-import { RequestLogService, requestLogQuerySchema } from '../../services/request-log.service';
+import { RequestLogService, requestLogCleanupSchema, requestLogQuerySchema } from '../../services/request-log.service';
 import { FileService, fileIdSchema, fileListQuerySchema, fileMimeTypes, maxFileBytes, selectIconFileSchema,
   type FileMimeType } from '../../services/file.service';
 import { MenuService, menuInputSchema } from '../../services/menu.service';
@@ -137,6 +137,11 @@ export function createAdminRoutes(setup: SetupService, auth: AuthService, system
   routes.get('/request-logs', requireAuth(auth), (req, res) => {
     const query = parseInput(requestLogQuerySchema, req.query);
     res.json(ok(requestLogs.list(query)));
+  });
+
+  routes.delete('/request-logs', requireAuth(auth), (req, res) => {
+    const input = parseInput(requestLogCleanupSchema, req.body);
+    res.json(ok(requestLogs.cleanup(input), '请求日志已清理'));
   });
 
   routes.get('/dashboard', requireAuth(auth), (_req, res) => {
