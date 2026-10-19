@@ -13,18 +13,22 @@ export const adminTheme: ThemeConfig = {
     colorBgBase: '#ffffff',
     colorTextBase: '#1e293b',
     colorBorderSecondary: '#f1f5f9',
+    controlHeight: 40,
     boxShadow:
       '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
   },
   components: {
     Button: {
-      controlHeight: 38,
+      controlHeight: 40,
       borderRadius: 8,
       fontWeight: 500,
     },
     Input: {
       controlHeight: 40,
       borderRadius: 8,
+    },
+    Select: {
+      controlHeight: 40,
     },
     Card: {
       borderRadiusLG: 12,

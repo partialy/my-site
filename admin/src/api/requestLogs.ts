@@ -32,6 +32,10 @@ export interface RequestLogPage {
   pageSize: number;
 }
 
+export type RequestLogCleanup =
+  | { mode: 'ids'; ids: number[] }
+  | { mode: 'timeRange'; startTime: string; endTime: string };
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -74,4 +78,13 @@ export function getRequestLogs(query: RequestLogQuery): Promise<ApiResponse<Requ
   if (query.path) params.set('path', query.path);
   if (query.status !== undefined) params.set('status', String(query.status));
   return request(`/request-logs?${params.toString()}`, parseRequestLogPage);
+}
+
+export function cleanupRequestLogs(input: RequestLogCleanup): Promise<ApiResponse<{ deleted: number }>> {
+  return request('/request-logs', (value) => {
+    if (!isRecord(value) || typeof value.deleted !== 'number' || !Number.isInteger(value.deleted) || value.deleted < 0) {
+      throw new Error('日志清理结果格式异常');
+    }
+    return { deleted: value.deleted };
+  }, { method: 'DELETE', body: input });
 }

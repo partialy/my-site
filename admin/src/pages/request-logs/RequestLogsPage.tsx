@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
-import { Alert, Button, Card, Flex, Input, Select, Space, Table, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Flex, Input, message, Modal, Select, Space, Table, Tag, Typography } from 'antd';
 import type { TableProps } from 'antd';
-import { FileText, RefreshCw, Search } from 'lucide-react';
-import type { RequestLogItem, RequestLogQuery } from '../../api/requestLogs';
+import { FileText, RefreshCw, Search, Trash2 } from 'lucide-react';
+import { cleanupRequestLogs } from '../../api/requestLogs';
+import type { RequestLogCleanup, RequestLogItem, RequestLogQuery } from '../../api/requestLogs';
 import { RequestLogDetail } from './RequestLogDetail';
+import { RequestLogCleanupModal } from './RequestLogCleanupModal';
 import { useRequestLogs } from './useRequestLogs';
 import { formatDateTime } from '../../utils/dateTime';
 
@@ -16,15 +18,49 @@ export function RequestLogsPage() {
   const [statusDraft, setStatusDraft] = useState('');
   const [query, setQuery] = useState<RequestLogQuery>({ page: 1, pageSize: 10 });
   const [selected, setSelected] = useState<RequestLogItem | null>(null);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [cleanupOpen, setCleanupOpen] = useState(false);
+  const [cleaning, setCleaning] = useState(false);
   const { result, loading, error, reload } = useRequestLogs(query);
 
-  const search = () => setQuery((current) => ({ ...current, page: 1, path: path.trim() || undefined,
-    method, status: /^\d{3}$/.test(statusDraft) ? Number(statusDraft) : undefined }));
+  const search = () => {
+    setSelectedIds([]);
+    setQuery((current) => ({ ...current, page: 1, path: path.trim() || undefined,
+      method, status: /^\d{3}$/.test(statusDraft) ? Number(statusDraft) : undefined }));
+  };
   const reset = () => {
+    setSelectedIds([]);
     setPath('');
     setMethod(undefined);
     setStatusDraft('');
     setQuery({ page: 1, pageSize: 10 });
+  };
+
+  const cleanup = async (input: RequestLogCleanup) => {
+    setCleaning(true);
+    try {
+      const response = await cleanupRequestLogs(input);
+      if (!response.success) throw new Error(response.msg);
+      message.success(`已清理 ${response.data.deleted} 条请求日志`);
+      setSelectedIds([]);
+      setSelected(null);
+      if (query.page > 1) setQuery((current) => ({ ...current, page: 1 }));
+      else await reload();
+    } catch (cause) {
+      message.error(cause instanceof Error ? cause.message : '清理请求日志失败');
+      throw cause;
+    } finally {
+      setCleaning(false);
+    }
+  };
+
+  const confirmSelectedCleanup = () => {
+    const ids = [...selectedIds];
+    Modal.confirm({
+      title: `清理选中的 ${ids.length} 条请求日志？`,
+      content: '清理后无法恢复。', okText: '确认清理', okType: 'danger', cancelText: '取消',
+      onOk: () => cleanup({ mode: 'ids', ids }),
+    });
   };
 
   const columns = useMemo<TableProps<RequestLogItem>['columns']>(() => [
@@ -51,7 +87,12 @@ export function RequestLogsPage() {
           <Title level={2} style={{ margin: 0 }}>请求日志</Title>
           <Paragraph type="secondary" style={{ margin: '8px 0 0' }}>查看已记录的接口请求、响应和来源信息。</Paragraph>
         </div>
-        <Button icon={<RefreshCw size={16} />} loading={loading} onClick={() => void reload()}>刷新</Button>
+        <Space wrap>
+          <Button icon={<RefreshCw size={16} />} loading={loading} onClick={() => void reload()}>刷新</Button>
+          <Button danger icon={<Trash2 size={16} />} disabled={cleaning} onClick={() => setCleanupOpen(true)}>按时间清理</Button>
+          <Button danger icon={<Trash2 size={16} />} disabled={selectedIds.length === 0 || cleaning}
+            onClick={confirmSelectedCleanup}>清理选中{selectedIds.length ? `（${selectedIds.length}）` : ''}</Button>
+        </Space>
       </Flex>
       <Card style={{ marginBottom: 16, borderRadius: 16 }}>
         <Flex wrap="wrap" gap={12} align="center">
@@ -66,11 +107,15 @@ export function RequestLogsPage() {
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} />}
       <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 16, overflow: 'hidden' }}>
         <Table<RequestLogItem> rowKey="id" columns={columns} dataSource={result.items} loading={loading} scroll={{ x: 'max-content' }}
+          rowSelection={{ selectedRowKeys: selectedIds, preserveSelectedRowKeys: true,
+            onChange: (keys) => setSelectedIds(keys.map(Number)) }}
           pagination={{ current: query.page, pageSize: query.pageSize, total: result.total,
             showSizeChanger: true, pageSizeOptions: [10, 20, 50], showTotal: (total) => `共 ${total} 条`,
             onChange: (page, pageSize) => setQuery((current) => ({ ...current, page, pageSize })) }} />
       </Card>
       <RequestLogDetail item={selected} onClose={() => setSelected(null)} />
+      <RequestLogCleanupModal open={cleanupOpen} onClose={() => setCleanupOpen(false)}
+        onConfirm={(startTime, endTime) => cleanup({ mode: 'timeRange', startTime, endTime })} />
     </div>
   );
 }
