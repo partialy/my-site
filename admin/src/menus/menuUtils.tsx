@@ -1,13 +1,19 @@
 import type { LucideIcon } from 'lucide-react';
 import {
-  Activity, AppWindow, BarChart3, Bell, BookOpen, Boxes, CalendarDays, ChartPie,
-  CheckCircle2, ClipboardList, Clock3, Cloud, Code2, CreditCard, Database,
-  Download, Eye, File, Files, FileText, Filter, FolderOpen, GitBranch, Globe,
-  Grid2X2, HardDrive, Heart, House, Image, Images, KeyRound, Layers3,
-  LayoutDashboard, Link2, List, LockKeyhole, Mail, MapPin, Menu, MessageSquare,
-  Music2, Package, Phone, Search, Server, Settings2, ShieldCheck, ShoppingCart,
-  SlidersHorizontal, Star, Table2, Tag, Tags, Terminal, TrendingUp, Upload,
-  UserRound, UsersRound, Video, Wallet, Workflow, Wrench, Zap,
+  Activity, AppWindow, BadgePercent, Banknote, BarChart3, Barcode, Bell,
+  BookOpen, Boxes, Building2, CalendarCheck, CalendarDays, ChartPie,
+  CheckCircle2, CircleUserRound, ClipboardCheck, ClipboardList, Clock3,
+  Cloud, Code2, Cog, Coins, ContactRound, CreditCard, Database, Download,
+  Eye, Factory, File, Files, FileSpreadsheet, FileText, Filter, FolderOpen,
+  Gift, GitBranch, Globe, Grid2X2, HandCoins, HardDrive, Headset, Heart,
+  House, IdCard, Image, Images, KeyRound, Layers3, LayoutDashboard, Link2,
+  List, LockKeyhole, Mail, MapPin, Megaphone, Menu, MessageSquare, Music2,
+  Package, PackageCheck, PackageOpen, Percent, Phone, QrCode, ReceiptText,
+  ScanBarcode, Search, Server, Settings, Settings2, ShieldCheck, ShoppingBag,
+  ShoppingBasket, ShoppingCart, SlidersHorizontal, Star, Store, Table2, Tag,
+  Tags, Terminal, TicketPercent, TrendingDown, TrendingUp, Truck, Upload,
+  UserCheck, UserCog, UserPlus, UserRound, UsersRound, UserX, Video, Wallet,
+  WalletCards, Warehouse, Workflow, Wrench, Zap,
 } from 'lucide-react';
 import type { MenuItem } from '../api/menus';
 
@@ -28,6 +34,19 @@ const menuIcons: Record<string, LucideIcon> = {
   message: MessageSquare, phone: Phone, 'map-pin': MapPin,
   'lock-keyhole': LockKeyhole, eye: Eye, star: Star, heart: Heart, zap: Zap,
   'credit-card': CreditCard, wallet: Wallet, 'check-circle': CheckCircle2,
+  cog: Cog, 'settings-gear': Settings, 'building-2': Building2,
+  warehouse: Warehouse, factory: Factory, 'file-spreadsheet': FileSpreadsheet,
+  'clipboard-check': ClipboardCheck, 'calendar-check': CalendarCheck,
+  'user-circle': CircleUserRound, 'user-cog': UserCog, 'user-plus': UserPlus,
+  'user-check': UserCheck, 'user-x': UserX, contact: ContactRound,
+  'id-card': IdCard, headset: Headset,
+  store: Store, 'shopping-bag': ShoppingBag, 'shopping-basket': ShoppingBasket,
+  'package-check': PackageCheck, 'package-open': PackageOpen, truck: Truck,
+  barcode: Barcode, 'scan-barcode': ScanBarcode, 'qr-code': QrCode,
+  receipt: ReceiptText, 'badge-percent': BadgePercent, 'ticket-percent': TicketPercent,
+  percent: Percent, gift: Gift, coins: Coins, banknote: Banknote,
+  'hand-coins': HandCoins, 'wallet-cards': WalletCards,
+  megaphone: Megaphone, 'trending-down': TrendingDown,
 };
 
 export const MENU_ICON_OPTIONS = Object.keys(menuIcons);
