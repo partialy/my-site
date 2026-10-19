@@ -36,7 +36,7 @@ admin/.env.example 给出开发代理配置。VITE_API_BASE_URL 默认 /api/v1/a
 | GET、POST | /api/v1/admin/configs | 查询、新增普通配置 |
 | PUT、DELETE | /api/v1/admin/configs/:key | 修改、删除普通配置 |
 | GET | /api/v1/admin/request-logs | 分页筛选请求日志，支持 page、pageSize、method、path、status |
-| DELETE | /api/v1/admin/request-logs | 按选中 ID 或起止时间清理请求日志 |
+| DELETE | /api/v1/admin/request-logs | 按选中 ID、时间段、某时间前/后或保留最新 N 条清理请求日志 |
 | GET | /api/v1/admin/dashboard | 访问统计与近 7 天请求日志聚合 |
 | GET | /api/v1/admin/visits | 分页筛选访问日志，支持路径、访客 ID 与 UTC 日期范围 |
 | GET、POST | /api/v1/admin/files | 文件列表（支持 page、pageSize、search、mimeTypes）与原始文件上传 |
@@ -55,7 +55,7 @@ admin/.env.example 给出开发代理配置。VITE_API_BASE_URL 默认 /api/v1/a
 
 配置管理页位于 `/configs`，通过表格和弹窗维护 `config` 表中的名称、键、值、启用状态及备注。所有设置均通过上述真实服务端接口读写。
 
-请求日志页位于 `/request-logs`，支持按方法、路径和响应状态筛选，分页查看请求记录，并在详情弹窗查看已脱敏的请求参数、响应内容和来源信息。可跨分页勾选多条日志后确认清理，也可按本地时间的起止范围清理；清理不可恢复。尚未启用请求日志时，列表为空。筛选栏的输入框、下拉框和按钮采用统一高度，文件管理搜索栏也遵循同一主题配置。
+请求日志页位于 `/request-logs`，支持按方法、路径和响应状态筛选，分页查看请求记录，并在详情弹窗查看已脱敏的请求参数、响应内容和来源信息。可跨分页勾选多条日志后确认清理，也可选择时间段、某时间前、某时间后、保留最新 N 条规则清理；规则针对全部日志，不受当前筛选条件影响。时间按浏览器本地时区选择：时间段包含起止秒，时间前/后不包含所选整秒；清理不可恢复。尚未启用请求日志时，列表为空。筛选栏的输入框、下拉框和按钮采用统一高度，文件管理搜索栏也遵循同一主题配置。
 
 访问日志页位于 `/visit-logs`，支持按页面路径、访客 ID、UTC 日期范围筛选并查看详情。页面路由已注册；菜单由管理员在菜单管理中自行新增，可设置路径 `/visit-logs`。
 
