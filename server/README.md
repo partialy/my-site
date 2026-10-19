@@ -15,6 +15,8 @@ ADMIN_ORIGIN 是允许跨域访问管理端 API 的来源，如 http://localhost
 
 ## 初始化与认证
 
+新增接口时，只有管理端使用的接口放在 `src/api/admin/` 并使用 `/api/v1/admin/**`；admin 与 client 共用的接口放在公共路由模块，使用 `/api/v1/**`，不加 `admin` 前缀。
+
 第一次访问 GET /api/v1/admin/setup/status 返回 initialized=false。管理端让用户输入管理员用户名、密码和 SETUP_KEY，调用 POST /api/v1/admin/setup/admin。初始化完成后只能登录，无法再次创建管理员。SETUP_KEY 是部署配置，不要放进前端构建产物。
 
 管理员登录返回有效期 43200 秒的 JWT。后续请求携带 Authorization: Bearer <JWT>。修改密码会使已签发 Token 失效；当前没有刷新 Token 和服务端注销接口。
@@ -121,6 +123,6 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 
 菜单保存在 SQLite 的 `menu` 表。服务启动时加载到 `MenuService` 内存缓存；`GET /api/v1/admin/menus` 返回缓存中的扁平 `MenuItem[]`，`PUT /api/v1/admin/menus` 提交 `{ "items": MenuItem[] }`，在事务中替换全表，成功后刷新缓存。写库失败时缓存保持原值。首次初始化由 `sys_config.menu_initialized` 标记，因此保存空列表后重启不会重新生成默认菜单。此功能仅管理导航结构，不提供权限控制；若隐藏或删除菜单管理入口，可直接访问管理端 `/menus` 恢复。
 
-`MenuItem` 为 `{key,label,type,parentKey,path,action,icon,sort,visible}`。`type` 取 `group`、`route`、`action`；`parentKey`、`path`、`action`、`icon` 均可为 `null`。分组只能是一级，二级菜单的父级必须是一级分组；路由使用不重复的站内绝对路径，操作目前仅支持 `change-password`。`sort` 是同级非负整数排序值，`visible` 决定是否显示；服务端校验唯一键、唯一路由、两级结构和类型字段。菜单 API 需要 JWT，不根据菜单配置决定接口权限。新增路由菜单时，管理端还需实现对应页面。
+`MenuItem` 为 `{key,label,type,parentKey,path,action,icon,sort,visible}`。新菜单通过管理端创建 `group` 或 `route`；`action` 仅为旧数据及接口兼容保留，管理端不再提供新增或编辑入口。`parentKey`、`path`、`action`、`icon` 均可为 `null`。分组只能是一级，二级菜单的父级必须是一级分组；路由使用不重复的站内绝对路径。`sort` 是同级非负整数排序值，`visible` 决定是否显示；服务端校验唯一键、唯一路由、两级结构和类型字段。菜单 API 需要 JWT，不根据菜单配置决定接口权限。新增页面时，管理端需同时注册路由并更新页面清单，再由管理员手动配置菜单。
 
-默认菜单：一级 `home`（首页，`/`，图标 `layout-dashboard`）与 `system-settings`（系统设置分组，图标 `settings`）；分组下依次是 `system-config`（`/system-config`，`setting`）、`configs`（`/configs`，`database`）、`request-logs`（`/request-logs`，`file-text`）、`files`（`/files`，`folder`）、`menu-management`（`/menus`，`menu`）。旧数据库中默认的 `change-password` 菜单在升级时移除一次，修改密码入口保留在管理端右上角账号菜单。
+默认菜单：一级 `home`（首页，`/`，图标 `layout-dashboard`）与 `system-settings`（系统设置分组，图标 `settings`）；分组下依次是 `system-config`（`/system-config`，`setting`）、`configs`（`/configs`，`database`）、`request-logs`（`/request-logs`，`file-text`）、`files`（`/files`，`folder`）、`menu-management`（`/menus`，`menu`）。服务端启动时不会删除或调整已有菜单；修改密码入口保留在管理端右上角账号菜单。
