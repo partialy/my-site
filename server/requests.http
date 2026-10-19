@@ -1,0 +1,39 @@
+@baseUrl = http://localhost:3000/api/v1
+@setupKey = replace-with-your-setup-key
+@token = paste-jwt-here
+
+### 查询初始化状态
+GET {{baseUrl}}/setup/status
+
+### 创建初始管理员
+POST {{baseUrl}}/setup/admin
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "replace-with-strong-password",
+  "setupKey": "{{setupKey}}"
+}
+
+### 登录
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "replace-with-strong-password"
+}
+
+### 当前管理员
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{token}}
+
+### 修改密码
+PUT {{baseUrl}}/auth/password
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "oldPassword": "replace-with-strong-password",
+  "newPassword": "replace-with-another-strong-password"
+}
