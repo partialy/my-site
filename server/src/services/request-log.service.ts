@@ -18,6 +18,9 @@ export const requestLogCleanupSchema = z.discriminatedUnion('mode', [
   }).refine((value) => Date.parse(value.startTime) <= Date.parse(value.endTime), {
     path: ['endTime'], message: '结束时间不能早于开始时间',
   }),
+  z.strictObject({ mode: z.literal('beforeTime'), time: z.iso.datetime({ offset: true }) }),
+  z.strictObject({ mode: z.literal('afterTime'), time: z.iso.datetime({ offset: true }) }),
+  z.strictObject({ mode: z.literal('keepLatest'), count: z.number().int().min(1).max(1_000_000) }),
 ]);
 
 export class RequestLogService {
@@ -32,11 +35,26 @@ export class RequestLogService {
   }
 
   cleanup(input: z.infer<typeof requestLogCleanupSchema>) {
-    const deleted = input.mode === 'ids'
-      ? this.repository.deleteByIds([...new Set(input.ids)])
-      : this.repository.deleteByTimeRange(
-        new Date(input.startTime).toISOString(), new Date(input.endTime).toISOString(),
-      );
+    let deleted: number;
+    switch (input.mode) {
+      case 'ids':
+        deleted = this.repository.deleteByIds([...new Set(input.ids)]);
+        break;
+      case 'timeRange':
+        deleted = this.repository.deleteByTimeRange(
+          new Date(input.startTime).toISOString(), new Date(input.endTime).toISOString(),
+        );
+        break;
+      case 'beforeTime':
+        deleted = this.repository.deleteBeforeTime(new Date(input.time).toISOString());
+        break;
+      case 'afterTime':
+        deleted = this.repository.deleteAfterTime(new Date(input.time).toISOString());
+        break;
+      case 'keepLatest':
+        deleted = this.repository.deleteExceptLatest(input.count);
+        break;
+    }
     return { deleted };
   }
 }

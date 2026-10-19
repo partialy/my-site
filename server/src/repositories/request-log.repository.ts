@@ -89,6 +89,25 @@ export class RequestLogRepository {
     return this.db.prepare('DELETE FROM request_log WHERE time >= ? AND time <= ?').run(startTime, endTime).changes;
   }
 
+  deleteBeforeTime(time: string): number {
+    if (!this.exists()) return 0;
+    return this.db.prepare('DELETE FROM request_log WHERE time < ?').run(time).changes;
+  }
+
+  deleteAfterTime(time: string): number {
+    if (!this.exists()) return 0;
+    return this.db.prepare('DELETE FROM request_log WHERE time > ?').run(time).changes;
+  }
+
+  deleteExceptLatest(count: number): number {
+    if (!this.exists()) return 0;
+    return this.db.prepare(`
+      DELETE FROM request_log WHERE id NOT IN (
+        SELECT id FROM request_log ORDER BY id DESC LIMIT ?
+      )
+    `).run(count).changes;
+  }
+
   dashboard(since: string): RequestLogDashboard {
     if (!this.exists()) return { total: 0, successRate: null, sources: [], topPaths: [] };
 
