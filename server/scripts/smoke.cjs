@@ -15,6 +15,8 @@ const { RequestLogRepository } = require('../dist/repositories/request-log.repos
 const { RequestLogService } = require('../dist/services/request-log.service');
 const { FileRepository } = require('../dist/repositories/file.repository');
 const { FileService } = require('../dist/services/file.service');
+const { MenuRepository } = require('../dist/repositories/menu.repository');
+const { MenuService } = require('../dist/services/menu.service');
 
 async function main() {
   const concurrentDb = openDatabase(':memory:');
@@ -42,7 +44,7 @@ async function main() {
   const manager = new ConfigManager(new ConfigRepository(db));
   const systemConfig = new SystemConfigService(manager, db);
   const files = new FileService(new FileRepository(db));
-  const app = createApp(config, new SetupService(admins, config.setupKey), new AuthService(admins, new JwtService(config.jwtSecret)), systemConfig, new ConfigService(manager), new SiteSettingsService(manager, files), new RequestLogService(new RequestLogRepository(db)), files, db);
+  const app = createApp(config, new SetupService(admins, config.setupKey), new AuthService(admins, new JwtService(config.jwtSecret)), systemConfig, new ConfigService(manager), new SiteSettingsService(manager, files), new RequestLogService(new RequestLogRepository(db)), files, new MenuService(new MenuRepository(db)), db);
   const server = app.listen(0);
   try {
     const base = `http://127.0.0.1:${server.address().port}/api/v1`;

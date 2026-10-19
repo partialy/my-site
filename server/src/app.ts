@@ -13,8 +13,9 @@ import { ConfigService } from './services/config.service';
 import { SiteSettingsService } from './services/site-settings.service';
 import { RequestLogService } from './services/request-log.service';
 import { FileService } from './services/file.service';
+import { MenuService } from './services/menu.service';
 
-export function createApp(config: AppConfig, setup: SetupService, auth: AuthService, systemConfig: SystemConfigService, configs: ConfigService, siteSettings: SiteSettingsService, requestLogs: RequestLogService, files: FileService, db: Database.Database) {
+export function createApp(config: AppConfig, setup: SetupService, auth: AuthService, systemConfig: SystemConfigService, configs: ConfigService, siteSettings: SiteSettingsService, requestLogs: RequestLogService, files: FileService, menus: MenuService, db: Database.Database) {
   const app = express();
   app.disable('x-powered-by');
   app.use('/api/v1', requestLogMiddleware(systemConfig, db));
@@ -25,7 +26,7 @@ export function createApp(config: AppConfig, setup: SetupService, auth: AuthServ
     },
   }));
   app.use(express.json({ limit: '1mb' }));
-  app.use('/api/v1', createRoutes(setup, auth, systemConfig, configs, siteSettings, requestLogs, files));
+  app.use('/api/v1', createRoutes(setup, auth, systemConfig, configs, siteSettings, requestLogs, files, menus));
   app.use('/api/v1', (_req, res) => {
     res.status(404).json({ code: ApiCode.NotFound, msg: '接口不存在', data: null, success: false });
   });

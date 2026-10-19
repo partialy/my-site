@@ -42,6 +42,17 @@ export function openDatabase(filePath: string): Database.Database {
       archived_at TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_file_active_created ON file(archived_at, created_at DESC);
+    CREATE TABLE IF NOT EXISTS menu (
+      key TEXT PRIMARY KEY,
+      label TEXT NOT NULL,
+      type TEXT NOT NULL CHECK (type IN ('group', 'route', 'action')),
+      parent_key TEXT,
+      path TEXT,
+      action TEXT,
+      icon TEXT,
+      sort INTEGER NOT NULL,
+      visible INTEGER NOT NULL
+    );
   `);
   // 兼容早期只有 key、value、updated_at 的 config 表，保留已有记录。
   const columns = new Set((db.pragma('table_info(config)') as Array<{ name: string }>).map((item) => item.name));

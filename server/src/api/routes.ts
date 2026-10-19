@@ -16,8 +16,9 @@ import { ApiCode } from './codes';
 import { RequestLogService, requestLogQuerySchema } from '../services/request-log.service';
 import { FileService, fileIdSchema, fileListQuerySchema, fileMimeTypes, maxFileBytes, selectIconFileSchema,
   type FileMimeType } from '../services/file.service';
+import { MenuService, menuInputSchema } from '../services/menu.service';
 
-export function createRoutes(setup: SetupService, auth: AuthService, systemConfig: SystemConfigService, configs: ConfigService, siteSettings: SiteSettingsService, requestLogs: RequestLogService, files: FileService): Router {
+export function createRoutes(setup: SetupService, auth: AuthService, systemConfig: SystemConfigService, configs: ConfigService, siteSettings: SiteSettingsService, requestLogs: RequestLogService, files: FileService, menus: MenuService): Router {
   const routes = Router();
 
   routes.get('/setup/status', (_req, res) => {
@@ -91,6 +92,15 @@ export function createRoutes(setup: SetupService, auth: AuthService, systemConfi
   routes.delete('/configs/:key', requireAuth(auth), (req, res) => {
     configs.delete(String(req.params.key));
     res.json(ok(null, '配置已删除'));
+  });
+
+  routes.get('/menus', requireAuth(auth), (_req, res) => {
+    res.json(ok(menus.list()));
+  });
+
+  routes.put('/menus', requireAuth(auth), (req, res) => {
+    const input = parseInput(menuInputSchema, req.body);
+    res.json(ok(menus.replace(input), '菜单已保存'));
   });
 
   routes.get('/site-settings', (_req, res) => {

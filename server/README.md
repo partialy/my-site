@@ -1,6 +1,6 @@
 # server
 
-单管理员后端基础框架。使用 Express 5、TypeScript、Zod、JWT 和 SQLite；框架维护 admin、config、sys_config、file，按需创建 request_log。
+单管理员后端基础框架。使用 Express 5、TypeScript、Zod、JWT 和 SQLite；框架维护 admin、config、sys_config、file、menu，按需创建 request_log。
 
 ## 启动
 
@@ -46,6 +46,8 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 | POST | /api/v1/configs | 创建普通配置 |
 | PUT | /api/v1/configs/:key | 更新普通配置，可修改键 |
 | DELETE | /api/v1/configs/:key | 删除普通配置 |
+| GET | /api/v1/menus | 从内存读取菜单列表，需要管理员 Token |
+| PUT | /api/v1/menus | 原子替换全部菜单，需要管理员 Token |
 | GET | /api/v1/site-settings | 公开读取后台与前台的站点名称和图标 URL |
 | PUT | /api/v1/site-settings | 修改后台与前台的站点名称，需要管理员 Token |
 | GET | /api/v1/site-settings/:target/icon | 公开读取图标二进制，target 为 admin 或 client |
@@ -102,3 +104,11 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 `GET /api/v1/files?page=1&pageSize=20&search=关键词&mimeTypes=image/png,image/jpeg` 返回 `{items,total,page,pageSize}`，按上传时间倒序，只列出未归档的文件。`mimeTypes` 可选，使用逗号分隔，在计数和分页前过滤类型。每条 `FileItem` 包含 `{id,name,mimeType,size,url,createdAt}`，其中 `url` 为 `/api/v1/files/:id/content`，可直接供图片、图标等资源复用。列表、上传、归档需要管理员 JWT；内容链接公开读取。
 
 `POST /api/v1/files` 使用原始文件字节作为请求体，设置实际文件 MIME 的 `Content-Type`，并将文件名执行 `encodeURIComponent` 后放入 `X-File-Name`。首版支持 PNG、JPEG、WebP、ICO、GIF、PDF，最大 10 MiB；校验文件头并拒绝 SVG。元数据保存在 SQLite 的 `file` 表，文件本体保存在 `server/data/uploads/`，备份时两者要一起保存。`DELETE /api/v1/files/:id` 仅归档记录，让列表不再显示；已有内容链接仍可访问，避免业务引用失效。
+
+## 菜单管理
+
+菜单保存在 SQLite 的 `menu` 表。服务启动时加载到 `MenuService` 内存缓存；`GET /api/v1/menus` 返回缓存中的扁平 `MenuItem[]`，`PUT /api/v1/menus` 提交 `{ "items": MenuItem[] }`，在事务中替换全表，成功后刷新缓存。写库失败时缓存保持原值。首次初始化由 `sys_config.menu_initialized` 标记，因此保存空列表后重启不会重新生成默认菜单。此功能仅管理导航结构，不提供权限控制；若隐藏或删除菜单管理入口，可直接访问管理端 `/menus` 恢复。
+
+`MenuItem` 为 `{key,label,type,parentKey,path,action,icon,sort,visible}`。`type` 取 `group`、`route`、`action`；`parentKey`、`path`、`action`、`icon` 均可为 `null`。分组只能是一级，二级菜单的父级必须是一级分组；路由使用站内绝对路径，操作目前仅支持 `change-password`。`sort` 是同级非负整数排序值，`visible` 决定是否显示；服务端校验唯一键、两级结构和类型字段。菜单 API 需要 JWT，不根据菜单配置决定接口权限。新增路由菜单时，管理端还需实现对应页面。
+
+默认菜单：一级 `home`（首页，`/`，图标 `layout-dashboard`）与 `system-settings`（系统设置分组，图标 `settings`）；分组下依次是 `system-config`（`/system-config`，`setting`）、`configs`（`/configs`，`database`）、`request-logs`（`/request-logs`，`file-text`）、`files`（`/files`，`folder`）、`menu-management`（`/menus`，`menu`）、`change-password`（操作 `change-password`，`lock`）。
