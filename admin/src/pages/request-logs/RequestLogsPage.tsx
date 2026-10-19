@@ -5,6 +5,7 @@ import { FileText, RefreshCw, Search } from 'lucide-react';
 import type { RequestLogItem, RequestLogQuery } from '../../api/requestLogs';
 import { RequestLogDetail } from './RequestLogDetail';
 import { useRequestLogs } from './useRequestLogs';
+import { formatDateTime } from '../../utils/dateTime';
 
 const { Title, Text, Paragraph } = Typography;
 const methodOptions = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'].map((value) => ({ label: value, value }));
@@ -27,7 +28,7 @@ export function RequestLogsPage() {
   };
 
   const columns = useMemo<TableProps<RequestLogItem>['columns']>(() => [
-    { title: '时间', dataIndex: 'time', key: 'time', width: 190 },
+    { title: '时间', dataIndex: 'time', key: 'time', width: 190, render: formatDateTime },
     { title: '方法', dataIndex: 'method', key: 'method', width: 90,
       render: (value: string) => <Tag color={value === 'GET' ? 'blue' : value === 'DELETE' ? 'red' : 'geekblue'}>{value}</Tag> },
     { title: '请求地址', dataIndex: 'url', key: 'url', ellipsis: true,

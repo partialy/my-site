@@ -1,5 +1,6 @@
 import { Descriptions, Modal, Typography } from 'antd';
 import type { RequestLogItem } from '../../api/requestLogs';
+import { formatDateTime } from '../../utils/dateTime';
 
 const { Text } = Typography;
 
@@ -33,7 +34,7 @@ export function RequestLogDetail({ item, onClose }: Props) {
       {item && (
         <>
           <Descriptions bordered size="small" column={{ xs: 1, sm: 2 }}>
-            <Descriptions.Item label="记录时间">{item.time}</Descriptions.Item>
+            <Descriptions.Item label="记录时间">{formatDateTime(item.time)}</Descriptions.Item>
             <Descriptions.Item label="响应状态">{item.status}</Descriptions.Item>
             <Descriptions.Item label="请求方法">{item.method}</Descriptions.Item>
             <Descriptions.Item label="耗时">{item.durationMs} ms</Descriptions.Item>

@@ -5,6 +5,7 @@ import { Pencil, Plus, RefreshCw, Settings2, Trash2 } from 'lucide-react';
 import type { ConfigItem } from '../../api/configs';
 import { ConfigEditor } from './ConfigEditor';
 import { useConfigs } from './useConfigs';
+import { formatDateTime } from '../../utils/dateTime';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -24,8 +25,8 @@ export function ConfigsPage() {
     { title: '值', dataIndex: 'value', key: 'value', ellipsis: true, render: (value: string) => <Text ellipsis={{ tooltip: value }}>{value || '—'}</Text> },
     { title: '状态', dataIndex: 'enabled', key: 'enabled', width: 90, render: (enabled: boolean) => <Tag color={enabled ? 'success' : 'default'}>{enabled ? '启用' : '停用'}</Tag> },
     { title: '备注', dataIndex: 'remark', key: 'remark', width: 180, ellipsis: true, render: (remark: string) => remark || '—' },
-    { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 190, render: (time: string) => time || '—' },
-    { title: '更新时间', dataIndex: 'updatedAt', key: 'updatedAt', width: 190, render: (time: string) => time || '—' },
+    { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 190, render: formatDateTime },
+    { title: '更新时间', dataIndex: 'updatedAt', key: 'updatedAt', width: 190, render: formatDateTime },
     {
       title: '操作', key: 'actions', width: 145,
       render: (_, item) => (
