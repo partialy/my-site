@@ -16,6 +16,9 @@ import { FileRepository } from './repositories/file.repository';
 import { FileService } from './services/file.service';
 import { MenuRepository } from './repositories/menu.repository';
 import { MenuService } from './services/menu.service';
+import { VisitRepository } from './repositories/visit.repository';
+import { VisitService } from './services/visit.service';
+import { DashboardService } from './services/dashboard.service';
 
 function main(): void {
   const config = loadConfig();
@@ -30,7 +33,11 @@ function main(): void {
   const siteSettings = new SiteSettingsService(configManager, files);
   const requestLogs = new RequestLogService(new RequestLogRepository(db));
   const menus = new MenuService(new MenuRepository(db));
-  const app = createApp(config, setup, auth, systemConfig, configs, siteSettings, requestLogs, files, menus, db);
+  const visits = new VisitService(new VisitRepository(db));
+  const dashboard = new DashboardService(visits, requestLogs);
+  const app = createApp(config, {
+    setup, auth, systemConfig, configs, siteSettings, requestLogs, files, menus, visits, dashboard,
+  }, db);
   const server = app.listen(config.port, () => {
     console.log(`server 已启动，端口 ${config.port}`);
   });

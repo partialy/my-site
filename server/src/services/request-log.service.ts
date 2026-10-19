@@ -15,4 +15,8 @@ export class RequestLogService {
   list(query: z.infer<typeof requestLogQuerySchema>) {
     return this.repository.list(query);
   }
+
+  dashboard(since: string) {
+    return this.repository.dashboard(since);
+  }
 }

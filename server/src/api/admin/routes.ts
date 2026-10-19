@@ -1,24 +1,26 @@
 import { Router, raw } from 'express';
-import { setupAdminSchema, loginSchema, changePasswordSchema } from './schemas';
-import { parseInput } from './validation';
-import { ok } from './types';
-import { requireAuth, authenticatedAdmin } from '../middleware/auth.middleware';
-import { SetupService } from '../services/setup.service';
-import { AuthService } from '../services/auth.service';
-import { SystemConfigService, systemConfigInputSchema, whitelistInputSchema } from '../services/system-config.service';
-import { ConfigService, configInputSchema } from '../services/config.service';
+import { setupAdminSchema, loginSchema, changePasswordSchema } from '../schemas';
+import { parseInput } from '../validation';
+import { ok } from '../types';
+import { requireAuth, authenticatedAdmin } from '../../middleware/auth.middleware';
+import { SetupService } from '../../services/setup.service';
+import { AuthService } from '../../services/auth.service';
+import { SystemConfigService, systemConfigInputSchema, whitelistInputSchema } from '../../services/system-config.service';
+import { ConfigService, configInputSchema } from '../../services/config.service';
 import {
   iconMimeTypes, maxIconBytes, SiteSettingsService, siteSettingsInputSchema, siteTargetSchema,
   type IconMimeType,
-} from '../services/site-settings.service';
-import { ApiError } from './api-error';
-import { ApiCode } from './codes';
-import { RequestLogService, requestLogQuerySchema } from '../services/request-log.service';
+} from '../../services/site-settings.service';
+import { ApiError } from '../api-error';
+import { ApiCode } from '../codes';
+import { RequestLogService, requestLogQuerySchema } from '../../services/request-log.service';
 import { FileService, fileIdSchema, fileListQuerySchema, fileMimeTypes, maxFileBytes, selectIconFileSchema,
-  type FileMimeType } from '../services/file.service';
-import { MenuService, menuInputSchema } from '../services/menu.service';
+  type FileMimeType } from '../../services/file.service';
+import { MenuService, menuInputSchema } from '../../services/menu.service';
+import { DashboardService } from '../../services/dashboard.service';
+import { VisitService, visitQuerySchema } from '../../services/visit.service';
 
-export function createRoutes(setup: SetupService, auth: AuthService, systemConfig: SystemConfigService, configs: ConfigService, siteSettings: SiteSettingsService, requestLogs: RequestLogService, files: FileService, menus: MenuService): Router {
+export function createAdminRoutes(setup: SetupService, auth: AuthService, systemConfig: SystemConfigService, configs: ConfigService, siteSettings: SiteSettingsService, requestLogs: RequestLogService, files: FileService, menus: MenuService, dashboard: DashboardService, visits: VisitService): Router {
   const routes = Router();
 
   routes.get('/setup/status', (_req, res) => {
@@ -112,15 +114,6 @@ export function createRoutes(setup: SetupService, auth: AuthService, systemConfi
     res.json(ok(siteSettings.update(input), '站点配置已保存'));
   });
 
-  routes.get('/site-settings/:target/icon', async (req, res) => {
-    const target = parseInput(siteTargetSchema, req.params.target);
-    const icon = await siteSettings.readIcon(target);
-    res.set('Content-Type', icon.mime);
-    res.set('X-Content-Type-Options', 'nosniff');
-    res.set('Cache-Control', 'no-cache');
-    res.send(icon.bytes);
-  });
-
   routes.put('/site-settings/:target/icon', requireAuth(auth), raw({ type: [...iconMimeTypes], limit: maxIconBytes }), async (req, res) => {
     const target = parseInput(siteTargetSchema, req.params.target);
     const mime = req.get('content-type')?.split(';', 1)[0]?.trim().toLowerCase();
@@ -146,6 +139,14 @@ export function createRoutes(setup: SetupService, auth: AuthService, systemConfi
     res.json(ok(requestLogs.list(query)));
   });
 
+  routes.get('/dashboard', requireAuth(auth), (_req, res) => {
+    res.json(ok(dashboard.get()));
+  });
+
+  routes.get('/visits', requireAuth(auth), (req, res) => {
+    res.json(ok(visits.list(parseInput(visitQuerySchema, req.query))));
+  });
+
   routes.get('/files', requireAuth(auth), (req, res) => {
     res.json(ok(files.list(parseInput(fileListQuerySchema, req.query))));
   });
@@ -160,15 +161,6 @@ export function createRoutes(setup: SetupService, auth: AuthService, systemConfi
     try { name = encodedName ? decodeURIComponent(encodedName) : ''; }
     catch { throw new ApiError(400, ApiCode.ValidationError, '文件名编码无效', { fieldErrors: { name: ['文件名编码无效'] } }); }
     res.status(201).json(ok(await files.upload(name, mime as FileMimeType, req.body), '文件已上传'));
-  });
-
-  routes.get('/files/:id/content', async (req, res) => {
-    const { item, bytes } = await files.read(parseInput(fileIdSchema, req.params.id));
-    res.set('Content-Type', item.mimeType);
-    res.set('Content-Length', String(item.size));
-    res.set('X-Content-Type-Options', 'nosniff');
-    res.set('Cache-Control', 'public, max-age=3600');
-    res.send(bytes);
   });
 
   routes.delete('/files/:id', requireAuth(auth), (req, res) => {

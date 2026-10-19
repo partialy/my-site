@@ -2,7 +2,7 @@ import type { RequestHandler } from 'express';
 import type Database from 'better-sqlite3';
 import { SystemConfigService, type WhitelistRule } from '../services/system-config.service';
 
-const secretKey = /password|passwd|secret|token|authorization|setupkey|cookie|api.?key/i;
+const secretKey = /password|passwd|secret|token|authorization|setupkey|cookie|api.?key|visitorid/i;
 const maxLength = 16_384;
 
 function redact(value: unknown, depth = 0): unknown {
@@ -79,12 +79,14 @@ export function requestLogMiddleware(config: SystemConfigService, db: Database.D
       };
 
       if (settings.consoleLogEnabled) console.log(formatLine(settings.consoleLogFormat, values));
-      if (/^\/api\/v1\/request-logs?\/?$/.test(path)) return;
+      if (path === '/api/v1/admin/request-logs' || path === '/api/v1/admin/dashboard' ||
+        /^\/api\/v1\/request-logs?\/?$/.test(path)) return;
       if (settings.requestLogMode === 'off') return;
       if (settings.requestLogMode === 'white_list' && !settings.requestLogWhitelist.some((rule) => matches(path, rule))) return;
 
       try {
-        const hidesConfigValues = path === '/api/v1/configs' || path.startsWith('/api/v1/configs/') ||
+        const hidesConfigValues = path === '/api/v1/admin/configs' || path.startsWith('/api/v1/admin/configs/') ||
+          path === '/api/v1/admin/site-settings' || path.startsWith('/api/v1/admin/site-settings/') ||
           path === '/api/v1/site-settings' || path.startsWith('/api/v1/site-settings/');
         insert().run({
           time: time.toISOString(), method: req.method, path, url,

@@ -1,4 +1,5 @@
-@baseUrl = http://localhost:3000/api/v1
+@baseUrl = http://localhost:3000/api/v1/admin
+@publicUrl = http://localhost:3000/api/v1
 @setupKey = replace-with-your-setup-key
 @token = paste-jwt-here
 
@@ -27,6 +28,20 @@ Content-Type: application/json
 ### 当前管理员
 GET {{baseUrl}}/auth/me
 Authorization: Bearer {{token}}
+
+### 仪表盘统计
+GET {{baseUrl}}/dashboard
+Authorization: Bearer {{token}}
+
+### 前台访问上报（同一 visitorId 每个 UTC 日期只记录一次）
+POST {{publicUrl}}/visits
+Content-Type: application/json
+
+{
+  "visitorId": "7a9e4c72-b061-4ee6-9ed8-d986dbd6c919",
+  "path": "/",
+  "pageTitle": "首页"
+}
 
 ### 修改密码
 PUT {{baseUrl}}/auth/password

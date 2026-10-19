@@ -53,6 +53,19 @@ export function openDatabase(filePath: string): Database.Database {
       sort INTEGER NOT NULL,
       visible INTEGER NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS visit (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      visit_day TEXT NOT NULL,
+      visitor_id TEXT NOT NULL,
+      path TEXT NOT NULL,
+      page_title TEXT NOT NULL DEFAULT '',
+      referrer TEXT NOT NULL DEFAULT '',
+      ip TEXT,
+      user_agent TEXT,
+      created_at TEXT NOT NULL,
+      UNIQUE(visitor_id, visit_day)
+    );
+    CREATE INDEX IF NOT EXISTS idx_visit_day ON visit(visit_day);
   `);
   // 兼容早期只有 key、value、updated_at 的 config 表，保留已有记录。
   const columns = new Set((db.pragma('table_info(config)') as Array<{ name: string }>).map((item) => item.name));

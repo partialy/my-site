@@ -47,6 +47,20 @@ export interface RequestLogPage {
   pageSize: number;
 }
 
+export interface RequestLogDashboard {
+  total: number;
+  successRate: number | null;
+  sources: Array<{ name: string; count: number }>;
+  topPaths: Array<{ path: string; count: number }>;
+}
+
+function sourceName(origin: string | null, referer: string | null): string {
+  const source = origin || referer;
+  if (!source) return '直接请求';
+  try { return new URL(source).host || '其他来源'; }
+  catch { return '其他来源'; }
+}
+
 function toItem(record: RequestLogRecord): RequestLogItem {
   return {
     id: record.id, time: record.time, method: record.method,
@@ -59,6 +73,40 @@ function toItem(record: RequestLogRecord): RequestLogItem {
 
 export class RequestLogRepository {
   constructor(private readonly db: Database.Database) {}
+
+  dashboard(since: string): RequestLogDashboard {
+    const exists = this.db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'request_log'").get();
+    if (!exists) return { total: 0, successRate: null, sources: [], topPaths: [] };
+
+    const filter = "time >= ? AND path NOT IN ('/api/v1/request-logs', '/api/v1/admin/request-logs', '/api/v1/admin/dashboard')";
+    const totals = this.db.prepare(`
+      SELECT COUNT(*) AS total, SUM(CASE WHEN status < 400 THEN 1 ELSE 0 END) AS success
+      FROM request_log WHERE ${filter}
+    `).get(since) as { total: number; success: number | null };
+    const groupedSources = this.db.prepare(`
+      SELECT origin, referer, COUNT(*) AS count FROM request_log
+      WHERE ${filter} GROUP BY origin, referer
+    `).all(since) as Array<{ origin: string | null; referer: string | null; count: number }>;
+    const sourceCounts = new Map<string, number>();
+    for (const row of groupedSources) {
+      const name = sourceName(row.origin, row.referer);
+      sourceCounts.set(name, (sourceCounts.get(name) ?? 0) + row.count);
+    }
+    const sortedSources = [...sourceCounts].sort((a, b) => b[1] - a[1]);
+    const sources = sortedSources.slice(0, 3).map(([name, count]) => ({ name, count }));
+    const otherCount = sortedSources.slice(3).reduce((sum, [, count]) => sum + count, 0);
+    if (otherCount > 0) sources.push({ name: '其余来源', count: otherCount });
+
+    const topPaths = this.db.prepare(`
+      SELECT path, COUNT(*) AS count FROM request_log
+      WHERE ${filter} GROUP BY path ORDER BY count DESC, path LIMIT 5
+    `).all(since) as Array<{ path: string; count: number }>;
+    return {
+      total: totals.total,
+      successRate: totals.total ? Math.round((totals.success ?? 0) / totals.total * 1000) / 10 : null,
+      sources, topPaths,
+    };
+  }
 
   list(query: RequestLogQuery): RequestLogPage {
     const exists = this.db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'request_log'").get();

@@ -17,6 +17,9 @@ const { FileRepository } = require('../dist/repositories/file.repository');
 const { FileService } = require('../dist/services/file.service');
 const { MenuRepository } = require('../dist/repositories/menu.repository');
 const { MenuService } = require('../dist/services/menu.service');
+const { VisitRepository } = require('../dist/repositories/visit.repository');
+const { VisitService } = require('../dist/services/visit.service');
+const { DashboardService } = require('../dist/services/dashboard.service');
 
 async function main() {
   const concurrentDb = openDatabase(':memory:');
@@ -44,10 +47,24 @@ async function main() {
   const manager = new ConfigManager(new ConfigRepository(db));
   const systemConfig = new SystemConfigService(manager, db);
   const files = new FileService(new FileRepository(db));
-  const app = createApp(config, new SetupService(admins, config.setupKey), new AuthService(admins, new JwtService(config.jwtSecret)), systemConfig, new ConfigService(manager), new SiteSettingsService(manager, files), new RequestLogService(new RequestLogRepository(db)), files, new MenuService(new MenuRepository(db)), db);
+  const requestLogs = new RequestLogService(new RequestLogRepository(db));
+  const visits = new VisitService(new VisitRepository(db));
+  const app = createApp(config, {
+    setup: new SetupService(admins, config.setupKey),
+    auth: new AuthService(admins, new JwtService(config.jwtSecret)),
+    systemConfig,
+    configs: new ConfigService(manager),
+    siteSettings: new SiteSettingsService(manager, files),
+    requestLogs,
+    files,
+    menus: new MenuService(new MenuRepository(db)),
+    visits,
+    dashboard: new DashboardService(visits, requestLogs),
+  }, db);
   const server = app.listen(0);
   try {
-    const base = `http://127.0.0.1:${server.address().port}/api/v1`;
+    const publicBase = `http://127.0.0.1:${server.address().port}/api/v1`;
+    const base = `${publicBase}/admin`;
     const request = async (path, method = 'GET', body, token) => {
       const response = await fetch(base + path, {
         method,
@@ -76,6 +93,16 @@ async function main() {
     assert.equal(result.body.data.expiresIn, 43200);
     result = await request('/auth/me', 'GET', undefined, token);
     assert.equal(result.body.data.username, 'admin');
+    const visit = { visitorId: '7a9e4c72-b061-4ee6-9ed8-d986dbd6c919', path: '/', pageTitle: '首页' };
+    let visitResponse = await fetch(`${publicBase}/visits`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(visit) });
+    assert.equal((await visitResponse.json()).data.recorded, true);
+    visitResponse = await fetch(`${publicBase}/visits`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(visit) });
+    assert.equal((await visitResponse.json()).data.recorded, false);
+    result = await request('/dashboard', 'GET', undefined, token);
+    assert.equal(result.body.data.visits.today, 1);
+    result = await request('/visits?path=%2F&page=1&pageSize=10', 'GET', undefined, token);
+    assert.equal(result.body.data.total, 1);
+    assert.equal(result.body.data.items[0].visitorId, visit.visitorId);
     result = await request('/auth/me');
     assert.equal(result.body.code, 1005);
     const expired = jwt.sign({ ver: 0, exp: Math.floor(Date.now() / 1000) - 1 }, config.jwtSecret, {
