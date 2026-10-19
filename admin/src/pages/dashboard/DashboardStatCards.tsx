@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ArrowDownRight, ArrowUpRight, Eye, Gauge, MousePointerClick, UsersRound } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, CalendarDays, Eye, UserRound, UsersRound } from 'lucide-react';
 import type { DashboardData } from '../../api/dashboard';
 
 interface StatCardData {
@@ -12,7 +12,7 @@ interface StatCardData {
 }
 
 export function DashboardStatCards({ data }: { data: DashboardData }) {
-  const { visits, requestLogs } = data;
+  const { visits, users } = data;
   const change = visits.yesterday > 0
     ? `${visits.today >= visits.yesterday ? '+' : ''}${Math.round((visits.today - visits.yesterday) / visits.yesterday * 1000) / 10}%`
     : undefined;
@@ -20,11 +20,13 @@ export function DashboardStatCards({ data }: { data: DashboardData }) {
     { label: '今日访问量', value: visits.today.toLocaleString('zh-CN'), change,
       note: change ? '较昨日' : '按访客 ID 去重', icon: <Eye size={19} />, tone: 'blue' },
     { label: '近 7 日访问量', value: visits.last7Days.toLocaleString('zh-CN'),
-      note: '每日去重记录之和', icon: <UsersRound size={19} />, tone: 'teal' },
-    { label: '接口请求量', value: requestLogs.total.toLocaleString('zh-CN'),
-      note: '近 7 天 · 已记录日志', icon: <MousePointerClick size={19} />, tone: 'orange' },
-    { label: '接口成功率', value: requestLogs.successRate === null ? '—' : `${requestLogs.successRate}%`,
-      note: '近 7 天 · HTTP 4xx 以下', icon: <Gauge size={19} />, tone: 'slate' },
+      note: '每日去重记录之和', icon: <CalendarDays size={19} />, tone: 'teal' },
+    { label: '近 7 日活跃用户', value: users.activeLast7Days.toLocaleString('zh-CN'),
+      note: users.source === 'mock' ? '演示数据 · 待接入用户模块' : '按用户去重',
+      icon: <UsersRound size={19} />, tone: 'orange' },
+    { label: '用户总数', value: users.total.toLocaleString('zh-CN'),
+      note: users.source === 'mock' ? '演示数据 · 待接入用户模块' : '业务用户账号数',
+      icon: <UserRound size={19} />, tone: 'slate' },
   ];
 
   return <section className="dashboard-stats" aria-label="关键指标">

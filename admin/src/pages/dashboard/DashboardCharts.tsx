@@ -6,7 +6,6 @@ import {
 } from 'recharts';
 import { ArrowUpRight, BarChart3, Globe2, UsersRound } from 'lucide-react';
 import type { DashboardData } from '../../api/dashboard';
-import { weeklyUsers } from './dashboardData';
 
 const tooltipStyle = {
   border: '1px solid #e8edf4', borderRadius: 10, boxShadow: '0 12px 30px rgba(15, 23, 42, .1)',
@@ -35,6 +34,7 @@ export function DashboardCharts({ data }: { data: DashboardData }) {
     ...source, color: sourceColors[index % sourceColors.length],
   }));
   const maxPathCount = Math.max(1, ...data.requestLogs.topPaths.map((item) => item.count));
+  const userTrend = data.users.trend7.map((point) => ({ ...point, label: point.day.slice(5) }));
 
   return <>
     <section className="dashboard-chart-grid">
@@ -66,11 +66,12 @@ export function DashboardCharts({ data }: { data: DashboardData }) {
       </article>
 
       <article className="dashboard-panel dashboard-users-panel">
-        <ChartHeading icon={<UsersRound size={18} />} title="新增用户" subtitle="演示数据 · 等待业务用户模块接入" />
-        <div className="dashboard-users-summary"><strong>302</strong><span>本周累计新增</span><span className="dashboard-users-rise">+18.6%</span></div>
+        <ChartHeading icon={<UsersRound size={18} />} title="新增用户"
+          subtitle={data.users.source === 'mock' ? '演示数据 · 等待业务用户模块接入' : '近 7 天用户变化'} />
+        <div className="dashboard-users-summary"><strong>{data.users.newLast7Days.toLocaleString('zh-CN')}</strong><span>近 7 天累计新增</span></div>
         <div className="dashboard-chart-area">
           <ResponsiveContainer width="100%" height={278}>
-            <BarChart data={weeklyUsers} margin={{ top: 12, right: 0, bottom: 0, left: -28 }} barGap={3}>
+            <BarChart data={userTrend} margin={{ top: 12, right: 0, bottom: 0, left: -28 }} barGap={3}>
               <CartesianGrid stroke="#edf1f6" strokeDasharray="4 4" vertical={false} />
               <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} dy={10} />
               <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} />

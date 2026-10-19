@@ -37,7 +37,7 @@ admin/.env.example 给出开发代理配置。VITE_API_BASE_URL 默认 /api/v1/a
 | PUT、DELETE | /api/v1/admin/configs/:key | 修改、删除普通配置 |
 | GET | /api/v1/admin/request-logs | 分页筛选请求日志，支持 page、pageSize、method、path、status |
 | DELETE | /api/v1/admin/request-logs | 按选中 ID、时间段、某时间前/后或保留最新 N 条清理请求日志 |
-| GET | /api/v1/admin/dashboard | 访问统计与近 7 天请求日志聚合 |
+| GET | /api/v1/admin/home | 访问统计、近 7 天请求日志聚合与用户演示数据 |
 | GET | /api/v1/admin/visits | 分页筛选访问日志，支持路径、访客 ID 与 UTC 日期范围 |
 | GET、POST | /api/v1/admin/files | 文件列表（支持 page、pageSize、search、mimeTypes）与原始文件上传 |
 | GET | /api/v1/files/:id/content | 公开访问文件内容，可直接用于图片和下载链接 |
@@ -65,6 +65,6 @@ admin/.env.example 给出开发代理配置。VITE_API_BASE_URL 默认 /api/v1/a
 
 新增页面时，先在 `src/router/routes.tsx` 注册路由，再在 `src/router/pageRegistry.ts` 登记路径、名称、默认标识、图标、默认菜单标记及是否允许加入菜单。页面清单不入库、不自动显示在侧栏；管理员再到菜单管理页选择页面并保存菜单。登录、初始化、404 等非导航页面也登记在清单中，但不可作为菜单选择。
 
-首页使用 Recharts 展示真实访问趋势和近 7 天请求日志聚合的接口来源、热门接口。没有日志时相应图表显示空状态；仅新增用户图表仍为演示数据，集中在 `src/pages/dashboard/dashboardData.ts`。前台访问上报接口和浏览器去重工具见 `server/README.md`、`client/visitTracker.ts`。配置管理和请求日志的时间使用浏览器本地时区，格式为 `YYYY-MM-DD HH:mm:ss`。
+首页使用 Recharts 展示真实访问趋势和近 7 天请求日志聚合的接口来源、热门接口。没有日志时相应图表显示空状态；近 7 日活跃用户、用户总数及新增用户图表由服务端提供演示数据，并在页面标明，待业务用户模块接入。前台访问上报接口和浏览器去重工具见 `server/README.md`、`client/visitTracker.ts`。配置管理和请求日志的时间使用浏览器本地时区，格式为 `YYYY-MM-DD HH:mm:ss`。
 
 系统管理页另设“网站信息”区块，左右并排配置管理后台和未来前台的标签名称、系统名称及图标。点击图标选择入口会打开文件选择弹窗，可复用已有图片或在弹窗中上传，支持 PNG、JPG、WebP、ICO，最多 2 MiB。后台设置会同步到登录/初始化页、侧栏品牌和浏览器标签；站点配置由公开读取接口加载，前台项目可复用同一接口。后台内容页最大宽度统一为 1400px。

@@ -6,6 +6,12 @@ export interface VisitTrendPoint {
   visits: number;
 }
 
+export interface UserTrendPoint {
+  day: string;
+  newUsers: number;
+  activeUsers: number;
+}
+
 export interface DashboardData {
   visits: {
     today: number;
@@ -13,6 +19,13 @@ export interface DashboardData {
     last7Days: number;
     trend7: VisitTrendPoint[];
     trend30: VisitTrendPoint[];
+  };
+  users: {
+    source: 'mock' | 'real';
+    total: number;
+    activeLast7Days: number;
+    newLast7Days: number;
+    trend7: UserTrendPoint[];
   };
   requestLogs: {
     total: number;
@@ -33,6 +46,17 @@ function parseTrend(value: unknown): VisitTrendPoint[] {
       throw new Error('访问趋势数据格式异常');
     }
     return { day: item.day, visits: item.visits };
+  });
+}
+
+function parseUserTrend(value: unknown): UserTrendPoint[] {
+  if (!Array.isArray(value)) throw new Error('用户趋势数据格式异常');
+  return value.map((item: unknown) => {
+    if (!isRecord(item) || typeof item.day !== 'string' ||
+      typeof item.newUsers !== 'number' || typeof item.activeUsers !== 'number') {
+      throw new Error('用户趋势数据格式异常');
+    }
+    return { day: item.day, newUsers: item.newUsers, activeUsers: item.activeUsers };
   });
 }
 
@@ -57,12 +81,15 @@ function parseTopPaths(value: unknown): DashboardData['requestLogs']['topPaths']
 }
 
 function parseDashboard(value: unknown): DashboardData {
-  if (!isRecord(value) || !isRecord(value.visits) || !isRecord(value.requestLogs)) {
+  if (!isRecord(value) || !isRecord(value.visits) || !isRecord(value.users) || !isRecord(value.requestLogs)) {
     throw new Error('仪表盘数据格式异常');
   }
-  const { visits, requestLogs } = value;
+  const { visits, users, requestLogs } = value;
   if (typeof visits.today !== 'number' || typeof visits.yesterday !== 'number' ||
     typeof visits.last7Days !== 'number' || typeof requestLogs.total !== 'number' ||
+    (users.source !== 'mock' && users.source !== 'real') ||
+    typeof users.total !== 'number' || typeof users.activeLast7Days !== 'number' ||
+    typeof users.newLast7Days !== 'number' ||
     (requestLogs.successRate !== null && typeof requestLogs.successRate !== 'number')) {
     throw new Error('仪表盘数据格式异常');
   }
@@ -70,6 +97,10 @@ function parseDashboard(value: unknown): DashboardData {
     visits: {
       today: visits.today, yesterday: visits.yesterday, last7Days: visits.last7Days,
       trend7: parseTrend(visits.trend7), trend30: parseTrend(visits.trend30),
+    },
+    users: {
+      source: users.source, total: users.total, activeLast7Days: users.activeLast7Days,
+      newLast7Days: users.newLast7Days, trend7: parseUserTrend(users.trend7),
     },
     requestLogs: {
       total: requestLogs.total, successRate: requestLogs.successRate,
@@ -79,5 +110,5 @@ function parseDashboard(value: unknown): DashboardData {
 }
 
 export function getDashboard(): Promise<ApiResponse<DashboardData>> {
-  return request('/dashboard', parseDashboard);
+  return request('/home', parseDashboard);
 }
