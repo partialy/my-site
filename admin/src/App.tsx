@@ -8,6 +8,7 @@ import { adminTheme } from './styles/theme';
 import { AuthProvider } from './auth';
 import { router } from './router';
 import { SiteSettingsProvider } from './site-settings/SiteSettingsContext';
+import { MenuProvider } from './menus/MenuContext';
 
 // 配置 dayjs 中文语言
 dayjs.locale('zh-cn');
@@ -18,7 +19,9 @@ export const App: React.FC = () => {
       <AntdApp>
         <SiteSettingsProvider>
           <AuthProvider>
-            <RouterProvider router={router} />
+            <MenuProvider>
+              <RouterProvider router={router} />
+            </MenuProvider>
           </AuthProvider>
         </SiteSettingsProvider>
       </AntdApp>

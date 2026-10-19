@@ -8,6 +8,7 @@ import { SystemConfigPage } from '../pages/system-config/SystemConfigPage';
 import { ConfigsPage } from '../pages/configs/ConfigsPage';
 import { RequestLogsPage } from '../pages/request-logs/RequestLogsPage';
 import { FilesPage } from '../pages/files/FilesPage';
+import { MenuManagementPage } from '../pages/menus/MenuManagementPage';
 import { NotFoundPage } from '../pages/errors/NotFoundPage';
 
 export const router = createBrowserRouter([
@@ -40,6 +41,10 @@ export const router = createBrowserRouter([
       {
         path: 'files',
         element: <FilesPage />,
+      },
+      {
+        path: 'menus',
+        element: <MenuManagementPage />,
       },
     ],
   },

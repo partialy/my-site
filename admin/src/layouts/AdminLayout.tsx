@@ -10,31 +10,31 @@ import {
   Modal,
   Drawer,
   message,
+  Alert,
+  Spin,
 } from 'antd';
 import type { MenuProps } from 'antd';
 import {
-  LayoutDashboard,
   KeyRound,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
   User,
-  Settings2,
-  List,
-  FileText,
-  FolderOpen,
 } from 'lucide-react';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../auth';
 import { ChangePasswordModal } from '../components/ChangePasswordModal';
 import { SiteIcon } from '../components/SiteIcon';
 import { useSiteSettings } from '../site-settings/SiteSettingsContext';
+import { useMenus } from '../menus/MenuContext';
+import { renderMenuIcon, sortedMenus } from '../menus/menuUtils';
 
 const { Header, Sider, Content, Footer } = Layout;
 
 export const AdminLayout: React.FC = () => {
   const { state, logout } = useAuth();
   const { settings } = useSiteSettings();
+  const { items: menus, loading: menusLoading, error: menusError, reload: reloadMenus } = useMenus();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -42,7 +42,7 @@ export const AdminLayout: React.FC = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
-  const [openMenuKeys, setOpenMenuKeys] = useState<string[]>(location.pathname === '/' ? [] : ['system-settings']);
+  const [openMenuKeys, setOpenMenuKeys] = useState<string[]>([]);
 
   // 监听窗口尺寸变化
   useEffect(() => {
@@ -57,9 +57,10 @@ export const AdminLayout: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const activeMenu = menus.find((item) => item.type === 'route' && item.path === location.pathname);
   useEffect(() => {
-    if (location.pathname !== '/') setOpenMenuKeys(['system-settings']);
-  }, [location.pathname]);
+    if (activeMenu?.parentKey) setOpenMenuKeys((previous) => previous.includes(activeMenu.parentKey!) ? previous : [...previous, activeMenu.parentKey!]);
+  }, [activeMenu?.parentKey]);
 
   const adminName = state.admin?.username || '管理员';
 
@@ -110,60 +111,34 @@ export const AdminLayout: React.FC = () => {
     },
   ];
 
-  // 侧边栏导航项
-  const siderMenuItems: MenuProps['items'] = [
-    {
-      key: '/',
-      icon: <LayoutDashboard size={18} />,
-      label: <Link to="/">首页</Link>,
-    },
-    {
-      key: 'system-settings',
-      icon: <Settings2 size={18} />,
-      label: '系统设置',
-      children: [
-        { key: '/system-config', icon: <Settings2 size={16} />, label: <Link to="/system-config">系统管理</Link> },
-        { key: '/configs', icon: <List size={16} />, label: <Link to="/configs">配置管理</Link> },
-        { key: '/request-logs', icon: <FileText size={16} />, label: <Link to="/request-logs">请求日志</Link> },
-        { key: '/files', icon: <FolderOpen size={16} />, label: <Link to="/files">文件管理</Link> },
-        {
-          key: 'pwd-action',
-          icon: <KeyRound size={16} />,
-          label: '修改密码',
-          onClick: () => {
-            if (isMobile) setMobileDrawerOpen(false);
-            setPasswordModalOpen(true);
-          },
-        },
-      ],
-    },
-  ];
+  const menuItem = (item: typeof menus[number]): NonNullable<MenuProps['items']>[number] => ({
+    key: item.key,
+    icon: renderMenuIcon(item.icon),
+    label: item.type === 'route' && item.path ? <Link to={item.path}>{item.label}</Link> : item.label,
+    onClick: item.type === 'action' ? () => {
+      if (item.action === 'change-password') setPasswordModalOpen(true);
+      else message.warning('此操作尚未接入管理端');
+    } : undefined,
+    ...(item.type === 'group' ? { children: sortedMenus(menus.filter((child) => child.parentKey === item.key && child.visible)).map(menuItem) } : {}),
+  });
+
+  const siderMenuItems: MenuProps['items'] = sortedMenus(menus.filter((item) => item.parentKey === null && item.visible))
+    .map(menuItem);
 
   // 面包屑名称映射
   const getBreadcrumbs = () => {
-    if (location.pathname === '/') {
-      return [{ title: '管理后台' }, { title: '首页' }];
-    }
-    if (location.pathname === '/system-config') {
-      return [{ title: '管理后台' }, { title: '系统设置' }, { title: '系统管理' }];
-    }
-    if (location.pathname === '/configs') {
-      return [{ title: '管理后台' }, { title: '系统设置' }, { title: '配置管理' }];
-    }
-    if (location.pathname === '/request-logs') {
-      return [{ title: '管理后台' }, { title: '系统设置' }, { title: '请求日志' }];
-    }
-    if (location.pathname === '/files') {
-      return [{ title: '管理后台' }, { title: '系统设置' }, { title: '文件管理' }];
-    }
-    return [{ title: '管理后台' }, { title: '当前页面' }];
+    if (!activeMenu) return [{ title: '管理后台' }, { title: '当前页面' }];
+    const parent = menus.find((item) => item.key === activeMenu.parentKey);
+    return [{ title: '管理后台' }, ...(parent ? [{ title: parent.label }] : []), { title: activeMenu.label }];
   };
 
-  const menuComponent = (
+  const menuComponent = menusError ? <Alert type="error" message="菜单加载失败" description={menusError}
+    action={<Button size="small" onClick={() => void reloadMenus()}>重试</Button>} style={{ margin: 12 }} /> : menusLoading && menus.length === 0
+    ? <div style={{ padding: 24, textAlign: 'center' }}><Spin /></div> : (
     <Menu
       theme="light"
       mode="inline"
-      selectedKeys={[location.pathname]}
+      selectedKeys={activeMenu ? [activeMenu.key] : []}
       openKeys={openMenuKeys}
       onOpenChange={setOpenMenuKeys}
       items={siderMenuItems}
