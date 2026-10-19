@@ -19,6 +19,7 @@
 
 - admin 使用 React 18、TypeScript、React Router v6、Ant Design v5，采用 Vite 构建独立 SPA。
 - 只做单管理员后台通用流程：初始化向导（`/setup`）、登录（`/login`）、自适应管理端布局、首页占位、系统管理（`/system-config`）、配置管理（`/configs`）、请求日志（`/request-logs`）、文件管理（`/files`）、修改密码、退出登录和 404 兜底页。业务菜单与页面留给复制后的项目添加。
+- 侧栏「首页」为独立一级菜单；系统管理、配置管理、请求日志、文件管理、修改密码归入二级菜单「系统设置」。
 - 代码按页面（`pages`）、布局（`layouts`）、复用组件（`components`）、API 请求（`api`）、认证状态（`auth`）与路由守卫（`router`）分层。
 - 认证状态集中在 `src/auth/` 独立管理，Token 存放于 `sessionStorage`；页面与组件不直接发原始 fetch 请求或拼接 Authorization 头。
 - 严格遵循 `/api/v1` 基础路径和 `{code, msg, data, success}` 契约。服务端 JSON 先按 `unknown` 处理并在请求层收窄，不使用 `any`。

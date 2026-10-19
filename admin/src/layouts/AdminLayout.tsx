@@ -42,6 +42,7 @@ export const AdminLayout: React.FC = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [openMenuKeys, setOpenMenuKeys] = useState<string[]>(location.pathname === '/' ? [] : ['system-settings']);
 
   // 监听窗口尺寸变化
   useEffect(() => {
@@ -55,6 +56,10 @@ export const AdminLayout: React.FC = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    if (location.pathname !== '/') setOpenMenuKeys(['system-settings']);
+  }, [location.pathname]);
 
   const adminName = state.admin?.username || '管理员';
 
@@ -110,55 +115,46 @@ export const AdminLayout: React.FC = () => {
     {
       key: '/',
       icon: <LayoutDashboard size={18} />,
-      label: <Link to="/">控制台首页</Link>,
+      label: <Link to="/">首页</Link>,
     },
     {
-      key: '/system-config',
+      key: 'system-settings',
       icon: <Settings2 size={18} />,
-      label: <Link to="/system-config">系统管理</Link>,
-    },
-    {
-      key: '/configs',
-      icon: <List size={18} />,
-      label: <Link to="/configs">配置管理</Link>,
-    },
-    {
-      key: '/request-logs',
-      icon: <FileText size={18} />,
-      label: <Link to="/request-logs">请求日志</Link>,
-    },
-    {
-      key: '/files',
-      icon: <FolderOpen size={18} />,
-      label: <Link to="/files">文件管理</Link>,
-    },
-    {
-      key: 'pwd-action',
-      icon: <KeyRound size={18} />,
-      label: '修改密码',
-      onClick: () => {
-        if (isMobile) setMobileDrawerOpen(false);
-        setPasswordModalOpen(true);
-      },
+      label: '系统设置',
+      children: [
+        { key: '/system-config', icon: <Settings2 size={16} />, label: <Link to="/system-config">系统管理</Link> },
+        { key: '/configs', icon: <List size={16} />, label: <Link to="/configs">配置管理</Link> },
+        { key: '/request-logs', icon: <FileText size={16} />, label: <Link to="/request-logs">请求日志</Link> },
+        { key: '/files', icon: <FolderOpen size={16} />, label: <Link to="/files">文件管理</Link> },
+        {
+          key: 'pwd-action',
+          icon: <KeyRound size={16} />,
+          label: '修改密码',
+          onClick: () => {
+            if (isMobile) setMobileDrawerOpen(false);
+            setPasswordModalOpen(true);
+          },
+        },
+      ],
     },
   ];
 
   // 面包屑名称映射
   const getBreadcrumbs = () => {
     if (location.pathname === '/') {
-      return [{ title: '管理后台' }, { title: '控制台首页' }];
+      return [{ title: '管理后台' }, { title: '首页' }];
     }
     if (location.pathname === '/system-config') {
-      return [{ title: '管理后台' }, { title: '系统管理' }];
+      return [{ title: '管理后台' }, { title: '系统设置' }, { title: '系统管理' }];
     }
     if (location.pathname === '/configs') {
-      return [{ title: '管理后台' }, { title: '配置管理' }];
+      return [{ title: '管理后台' }, { title: '系统设置' }, { title: '配置管理' }];
     }
     if (location.pathname === '/request-logs') {
-      return [{ title: '管理后台' }, { title: '请求日志' }];
+      return [{ title: '管理后台' }, { title: '系统设置' }, { title: '请求日志' }];
     }
     if (location.pathname === '/files') {
-      return [{ title: '管理后台' }, { title: '文件管理' }];
+      return [{ title: '管理后台' }, { title: '系统设置' }, { title: '文件管理' }];
     }
     return [{ title: '管理后台' }, { title: '当前页面' }];
   };
@@ -168,6 +164,8 @@ export const AdminLayout: React.FC = () => {
       theme="light"
       mode="inline"
       selectedKeys={[location.pathname]}
+      openKeys={openMenuKeys}
+      onOpenChange={setOpenMenuKeys}
       items={siderMenuItems}
       style={{ borderRight: 0, marginTop: 8 }}
       onClick={() => {

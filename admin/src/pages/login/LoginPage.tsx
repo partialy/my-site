@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Alert, Typography, message, Space } from 'antd';
+import { Form, Input, Button, Alert, message } from 'antd';
 import { User, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ApiCode } from '../../api';
@@ -7,8 +7,6 @@ import { useAuth } from '../../auth';
 import { SiteIcon } from '../../components/SiteIcon';
 import { useSiteSettings } from '../../site-settings/SiteSettingsContext';
 import type { LoginRequest } from '../../api/types';
-
-const { Text } = Typography;
 
 export const LoginPage: React.FC = () => {
   const [form] = Form.useForm<LoginRequest>();
@@ -68,7 +66,6 @@ export const LoginPage: React.FC = () => {
             <SiteIcon url={settings.admin.iconUrl} size={28} />
           </div>
           <h1 className="auth-title">{settings.admin.systemName}登录</h1>
-          <p className="auth-subtitle">{settings.admin.siteTitle} · 单管理员后台</p>
         </div>
 
         {errorMsg && (
@@ -125,13 +122,6 @@ export const LoginPage: React.FC = () => {
           </Form.Item>
         </Form>
 
-        <div style={{ textAlign: 'center', marginTop: 20 }}>
-          <Space size="small">
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              会话采用 JWT 鉴权，仅在当前浏览器标签页有效
-            </Text>
-          </Space>
-        </div>
       </div>
     </div>
   );
