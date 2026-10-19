@@ -38,7 +38,7 @@ export function RequestLogsPage() {
       render: (value: number) => `${value} ms` },
     { title: '来源 IP', dataIndex: 'ip', key: 'ip', width: 160,
       render: (value: string | null) => value || '—' },
-    { title: '操作', key: 'actions', width: 90, fixed: 'right',
+    { title: '操作', key: 'actions', width: 90,
       render: (_, item) => <Button type="link" size="small" onClick={() => setSelected(item)}>详情</Button> },
   ], []);
 
@@ -64,7 +64,7 @@ export function RequestLogsPage() {
       </Card>
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} />}
       <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 16, overflow: 'hidden' }}>
-        <Table<RequestLogItem> rowKey="id" columns={columns} dataSource={result.items} loading={loading} scroll={{ x: 1000 }}
+        <Table<RequestLogItem> rowKey="id" columns={columns} dataSource={result.items} loading={loading} scroll={{ x: 'max-content' }}
           pagination={{ current: query.page, pageSize: query.pageSize, total: result.total,
             showSizeChanger: true, pageSizeOptions: [10, 20, 50], showTotal: (total) => `共 ${total} 条`,
             onChange: (page, pageSize) => setQuery((current) => ({ ...current, page, pageSize })) }} />

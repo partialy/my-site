@@ -76,7 +76,7 @@ export function FilesPage() {
     { title: '大小', dataIndex: 'size', key: 'size', width: 110, render: formatFileSize },
     { title: '上传时间', dataIndex: 'createdAt', key: 'createdAt', width: 190,
       render: (value: string) => new Date(value).toLocaleString('zh-CN') },
-    { title: '操作', key: 'actions', width: 190, fixed: 'right', render: (_, file) => <Space size={0}>
+    { title: '操作', key: 'actions', width: 190, render: (_, file) => <Space size={0}>
       <Button type="link" size="small" icon={<Copy size={14} />} onClick={() => void copyUrl(file)}>复制链接</Button>
       <Button type="link" danger size="small" icon={<Trash2 size={14} />} onClick={() => confirmArchive(file)}>归档</Button>
     </Space> },
@@ -103,7 +103,7 @@ export function FilesPage() {
       </Card>
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} />}
       <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 16, overflow: 'hidden' }}>
-        <Table<FileItem> rowKey="id" columns={columns} dataSource={result.items} loading={loading} scroll={{ x: 920 }}
+        <Table<FileItem> rowKey="id" columns={columns} dataSource={result.items} loading={loading} scroll={{ x: 'max-content' }}
           pagination={{ current: query.page, pageSize: query.pageSize, total: result.total, showSizeChanger: true,
             pageSizeOptions: [10, 20, 50], showTotal: (total) => `共 ${total} 个文件`,
             onChange: (page, pageSize) => setQuery((current) => ({ ...current, page, pageSize })) }} />

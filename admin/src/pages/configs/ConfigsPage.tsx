@@ -27,7 +27,7 @@ export function ConfigsPage() {
     { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 190, render: (time: string) => time || '—' },
     { title: '更新时间', dataIndex: 'updatedAt', key: 'updatedAt', width: 190, render: (time: string) => time || '—' },
     {
-      title: '操作', key: 'actions', width: 145, fixed: 'right',
+      title: '操作', key: 'actions', width: 145,
       render: (_, item) => (
         <Space size={4}>
           <Button type="link" size="small" icon={<Pencil size={14} />} onClick={() => openEditor(item)}>编辑</Button>
@@ -54,7 +54,7 @@ export function ConfigsPage() {
       </Flex>
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} />}
       <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 16, overflow: 'hidden' }}>
-        <Table<ConfigItem> rowKey="key" columns={columns} dataSource={items} loading={loading} scroll={{ x: 1290 }} pagination={{ pageSize: 10, showTotal: (total) => `共 ${total} 条` }} />
+        <Table<ConfigItem> rowKey="key" columns={columns} dataSource={items} loading={loading} scroll={{ x: 'max-content' }} pagination={{ pageSize: 10, showTotal: (total) => `共 ${total} 条` }} />
       </Card>
       <ConfigEditor open={editorOpen} item={editingItem} saving={saving} onClose={() => setEditorOpen(false)} onSave={save} />
     </div>

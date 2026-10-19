@@ -1,7 +1,7 @@
 import { Form, Input, Modal, Select, Switch } from 'antd';
 import { useEffect } from 'react';
 import type { MenuItem } from '../../api/menus';
-import { MENU_ICON_OPTIONS } from '../../menus/menuUtils';
+import { MenuIconPicker } from './MenuIconPicker';
 
 interface Props {
   open: boolean;
@@ -11,7 +11,8 @@ interface Props {
   onConfirm: (item: MenuItem) => void;
 }
 
-type FormValues = Omit<MenuItem, 'sort'>;
+type FormValues = Omit<MenuItem, 'sort' | 'parentKey'> & { parentKey: string };
+const ROOT_PARENT = '__root__';
 
 export function MenuEditor({ open, editing, items, onClose, onConfirm }: Props) {
   const [form] = Form.useForm<FormValues>();
@@ -20,10 +21,10 @@ export function MenuEditor({ open, editing, items, onClose, onConfirm }: Props) 
 
   useEffect(() => {
     if (open) {
-      form.setFieldsValue(editing ?? {
-        key: '', label: '', type: 'route', parentKey: null, path: '', action: null,
-        icon: null, visible: true,
-      });
+      form.setFieldsValue(editing
+        ? { ...editing, parentKey: editing.parentKey ?? ROOT_PARENT }
+        : { key: '', label: '', type: 'route', parentKey: ROOT_PARENT, path: '', action: null,
+          icon: null, visible: true });
     }
   }, [editing, form, open]);
 
@@ -32,7 +33,7 @@ export function MenuEditor({ open, editing, items, onClose, onConfirm }: Props) 
       const values = await form.validateFields();
       const next: MenuItem = {
         key: values.key.trim(), label: values.label.trim(), type: values.type,
-        parentKey: values.type === 'group' ? null : values.parentKey || null,
+        parentKey: values.type === 'group' || values.parentKey === ROOT_PARENT ? null : values.parentKey,
         path: values.type === 'route' ? values.path?.trim() || null : null,
         action: values.type === 'action' ? values.action?.trim() || null : null,
         icon: values.icon || null, visible: values.visible,
@@ -59,9 +60,10 @@ export function MenuEditor({ open, editing, items, onClose, onConfirm }: Props) 
           { label: '页面', value: 'route' }, { label: '分组', value: 'group' }, { label: '操作', value: 'action' },
         ]} />
       </Form.Item>
-      {type !== 'group' && <Form.Item name="parentKey" label="归属" tooltip="不选择时作为一级菜单">
-        <Select allowClear placeholder="一级菜单" options={items.filter((item) => item.type === 'group' && item.key !== editing?.key)
-          .map((item) => ({ value: item.key, label: item.label }))} />
+      {type !== 'group' && <Form.Item name="parentKey" label="归属" rules={[{ required: true, message: '请选择归属' }]}>
+        <Select options={[{ value: ROOT_PARENT, label: '一级菜单' }, ...items
+          .filter((item) => item.type === 'group' && item.key !== editing?.key)
+          .map((item) => ({ value: item.key, label: item.label }))]} />
       </Form.Item>}
       {type === 'route' && <Form.Item name="path" label="路由路径" rules={[{ required: true, message: '请输入路由路径' },
         { pattern: /^\/(?!\/)[^?#\\]*$/, message: '请输入不含查询参数或锚点的站内绝对路径' }]}>
@@ -70,7 +72,7 @@ export function MenuEditor({ open, editing, items, onClose, onConfirm }: Props) 
       {type === 'action' && <Form.Item name="action" label="操作" rules={[{ required: true, message: '请选择操作' }]}>
         <Select options={[{ value: 'change-password', label: '修改密码' }]} />
       </Form.Item>}
-      <Form.Item name="icon" label="图标"><Select allowClear placeholder="无图标" options={MENU_ICON_OPTIONS} /></Form.Item>
+      <Form.Item name="icon" label="图标"><MenuIconPicker /></Form.Item>
       <Form.Item name="visible" label="侧栏显示" valuePropName="checked"><Switch /></Form.Item>
     </Form>
   </Modal>;

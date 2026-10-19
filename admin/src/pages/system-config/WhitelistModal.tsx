@@ -70,7 +70,7 @@ export function WhitelistModal({ open, onClose, onChanged }: Props) {
     { title: '备注', dataIndex: 'remark', ellipsis: true, render: (value: string) => value || '—' },
     { title: '创建时间', dataIndex: 'createdAt', width: 170, render: (value: string) => new Date(value).toLocaleString('zh-CN') },
     { title: '更新时间', dataIndex: 'updatedAt', width: 170, render: (value: string) => new Date(value).toLocaleString('zh-CN') },
-    { title: '操作', key: 'actions', width: 140, fixed: 'right', render: (_, rule) => (
+    { title: '操作', key: 'actions', width: 140, render: (_, rule) => (
       <Space size={2}>
         <Button type="link" size="small" icon={<Pencil size={14} />} onClick={() => { setEditing(rule); setEditorOpen(true); }}>编辑</Button>
         <Button type="link" danger size="small" icon={<Trash2 size={14} />} onClick={() => handleDelete(rule)}>删除</Button>
@@ -101,7 +101,7 @@ export function WhitelistModal({ open, onClose, onChanged }: Props) {
           dataSource={rules}
           loading={loading}
           size="middle"
-          scroll={{ x: 1020 }}
+          scroll={{ x: 'max-content' }}
           pagination={{ pageSize: 6, showSizeChanger: false }}
           locale={{ emptyText: '暂无规则，点击右上角添加' }}
         />

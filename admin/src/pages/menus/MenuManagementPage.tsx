@@ -110,7 +110,7 @@ export function MenuManagementPage() {
           disabled={index >= siblings.length - 1} onClick={() => updateDraft(moveMenu(draft, item.key, 1))} />
       </Space>;
     } },
-    { title: '操作', key: 'actions', width: 145, fixed: 'right', render: (_, item) => <Space size={0}>
+    { title: '操作', key: 'actions', width: 145, render: (_, item) => <Space size={0}>
       <Button type="link" size="small" icon={<Pencil size={14} />} onClick={() => edit(item)}>编辑</Button>
       <Popconfirm title={`删除「${item.label}」？`} description="删除后需点击保存才会写入数据库。"
         okText="删除" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={() => remove(item)}>
@@ -140,7 +140,7 @@ export function MenuManagementPage() {
     {dirty && <Alert type="info" showIcon message="有未保存的菜单修改" style={{ marginBottom: 16 }} />}
     <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 16, overflow: 'hidden' }}>
       <Table<MenuItem> rowKey="key" columns={columns} dataSource={displayItems} loading={loading}
-        scroll={{ x: 1150 }} pagination={false} />
+        scroll={{ x: 'max-content' }} pagination={false} />
     </Card>
     <MenuEditor open={editorOpen} editing={editing} items={draft} onClose={() => setEditorOpen(false)}
       onConfirm={confirmEditor} />
