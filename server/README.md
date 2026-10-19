@@ -109,6 +109,6 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 
 菜单保存在 SQLite 的 `menu` 表。服务启动时加载到 `MenuService` 内存缓存；`GET /api/v1/menus` 返回缓存中的扁平 `MenuItem[]`，`PUT /api/v1/menus` 提交 `{ "items": MenuItem[] }`，在事务中替换全表，成功后刷新缓存。写库失败时缓存保持原值。首次初始化由 `sys_config.menu_initialized` 标记，因此保存空列表后重启不会重新生成默认菜单。此功能仅管理导航结构，不提供权限控制；若隐藏或删除菜单管理入口，可直接访问管理端 `/menus` 恢复。
 
-`MenuItem` 为 `{key,label,type,parentKey,path,action,icon,sort,visible}`。`type` 取 `group`、`route`、`action`；`parentKey`、`path`、`action`、`icon` 均可为 `null`。分组只能是一级，二级菜单的父级必须是一级分组；路由使用站内绝对路径，操作目前仅支持 `change-password`。`sort` 是同级非负整数排序值，`visible` 决定是否显示；服务端校验唯一键、两级结构和类型字段。菜单 API 需要 JWT，不根据菜单配置决定接口权限。新增路由菜单时，管理端还需实现对应页面。
+`MenuItem` 为 `{key,label,type,parentKey,path,action,icon,sort,visible}`。`type` 取 `group`、`route`、`action`；`parentKey`、`path`、`action`、`icon` 均可为 `null`。分组只能是一级，二级菜单的父级必须是一级分组；路由使用不重复的站内绝对路径，操作目前仅支持 `change-password`。`sort` 是同级非负整数排序值，`visible` 决定是否显示；服务端校验唯一键、唯一路由、两级结构和类型字段。菜单 API 需要 JWT，不根据菜单配置决定接口权限。新增路由菜单时，管理端还需实现对应页面。
 
 默认菜单：一级 `home`（首页，`/`，图标 `layout-dashboard`）与 `system-settings`（系统设置分组，图标 `settings`）；分组下依次是 `system-config`（`/system-config`，`setting`）、`configs`（`/configs`，`database`）、`request-logs`（`/request-logs`，`file-text`）、`files`（`/files`，`folder`）、`menu-management`（`/menus`，`menu`）、`change-password`（操作 `change-password`，`lock`）。

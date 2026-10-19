@@ -24,6 +24,7 @@ function invalid(message: string): never {
 
 function validateStructure(items: MenuRecord[]): void {
   const byKey = new Map<string, MenuRecord>();
+  const paths = new Set<string>();
   for (const item of items) {
     if (byKey.has(item.key)) invalid(`菜单键重复：${item.key}`);
     byKey.set(item.key, item);
@@ -31,6 +32,8 @@ function validateStructure(items: MenuRecord[]): void {
       if (item.parentKey !== null || item.path !== null || item.action !== null) invalid(`分组菜单 ${item.key} 必须是一级菜单，且不能设置路径或操作`);
     } else if (item.type === 'route') {
       if (item.action !== null || !item.path || !/^\/(?!\/)[^?#\\]*$/.test(item.path)) invalid(`路由菜单 ${item.key} 必须设置站内绝对路径，不能设置操作`);
+      if (paths.has(item.path)) invalid(`路由路径重复：${item.path}`);
+      paths.add(item.path);
     } else if (item.path !== null || item.action !== 'change-password') {
       invalid(`操作菜单 ${item.key} 只能使用 change-password 操作，不能设置路径`);
     }
