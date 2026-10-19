@@ -58,6 +58,7 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 | GET | /api/v1/admin/dashboard | 访问量和请求日志聚合，需要管理员 Token |
 | GET | /api/v1/admin/visits | 分页筛选访问日志，需要管理员 Token |
 | GET | /api/v1/admin/request-logs | 分页查询请求日志，需要管理员 Token |
+| DELETE | /api/v1/admin/request-logs | 按 ID 或时间范围清理请求日志，需要管理员 Token |
 | GET | /api/v1/admin/files | 分页查询文件库，需要管理员 Token |
 | POST | /api/v1/admin/files | 上传原始文件，需要管理员 Token |
 | DELETE | /api/v1/admin/files/:id | 归档文件，需要管理员 Token |
@@ -93,7 +94,7 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 
 `console_log_enabled` 默认开启，`console_log_format` 默认 `[${time}][${method}] ${url}`。支持 `${time}`、`${method}`、`${url}`、`${status}`、`${duration}`、`${ip}`，其中耗时带 `ms`。请求日志记录路径、已脱敏的查询参数和请求体、响应 JSON、HTTP 状态、耗时、IP、Origin、Referer、User-Agent；请求/响应内容分别限制为 16 KiB，上传的二进制请求体只记录占位说明。普通配置接口的请求和响应内容会整体隐藏，避免配置值写入日志。
 
-`GET /api/v1/admin/request-logs` 支持 `page`（默认 1）、`pageSize`（默认 20，最大 100）、`method`、`path`（子串匹配）、`status` 查询参数，返回 `{items,total,page,pageSize}`。按新到旧排序，供管理端查看列表和单条详情；`request_log` 尚未创建时返回空列表，不会因查询而创建表。日志查询与仪表盘查询请求自身不会写入请求日志表。接口只读，不提供删除或修改日志的操作。旧白名单中的管理端路径需按新 `/api/v1/admin/` 前缀调整，公开接口路径保持原样。
+`GET /api/v1/admin/request-logs` 支持 `page`（默认 1）、`pageSize`（默认 20，最大 100）、`method`、`path`（子串匹配）、`status` 查询参数，返回 `{items,total,page,pageSize}`。按新到旧排序，供管理端查看列表和单条详情；`request_log` 尚未创建时返回空列表，不会因查询而创建表。`DELETE /api/v1/admin/request-logs` 可提交 `{mode:"ids",ids:[1,2]}`（1～500 个正整数 ID）或 `{mode:"timeRange",startTime:"...",endTime:"..."}`（带时区的 ISO 时间，范围两端包含），返回 `{deleted}`；删除后仪表盘的请求日志指标随之变化。日志表不存在时清理返回 0。日志查询、清理与仪表盘查询请求自身不会写入请求日志表。旧白名单中的管理端路径需按新 `/api/v1/admin/` 前缀调整，公开接口路径保持原样。
 
 业务项目自行设计业务数据，不应直接修改框架认证表。
 
