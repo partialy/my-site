@@ -35,7 +35,7 @@ export function MenuEditor({ open, editing, items, onClose, onConfirm }: Props) 
         key: values.key.trim(), label: values.label.trim(), type: values.type,
         parentKey: values.type === 'group' || values.parentKey === ROOT_PARENT ? null : values.parentKey,
         path: values.type === 'route' ? values.path?.trim() || null : null,
-        action: values.type === 'action' ? values.action?.trim() || null : null,
+        action: null,
         icon: values.icon || null, visible: values.visible,
         sort: editing?.sort ?? 0,
       };
@@ -57,7 +57,7 @@ export function MenuEditor({ open, editing, items, onClose, onConfirm }: Props) 
       </Form.Item>
       <Form.Item name="type" label="菜单类型" rules={[{ required: true }]}>
         <Select disabled={hasChildren} options={[
-          { label: '页面', value: 'route' }, { label: '分组', value: 'group' }, { label: '操作', value: 'action' },
+          { label: '页面', value: 'route' }, { label: '分组', value: 'group' },
         ]} />
       </Form.Item>
       {type !== 'group' && <Form.Item name="parentKey" label="归属" rules={[{ required: true, message: '请选择归属' }]}>
@@ -68,9 +68,6 @@ export function MenuEditor({ open, editing, items, onClose, onConfirm }: Props) 
       {type === 'route' && <Form.Item name="path" label="路由路径" rules={[{ required: true, message: '请输入路由路径' },
         { pattern: /^\/(?!\/)[^?#\\]*$/, message: '请输入不含查询参数或锚点的站内绝对路径' }]}>
         <Input placeholder="例如 /reports" maxLength={500} />
-      </Form.Item>}
-      {type === 'action' && <Form.Item name="action" label="操作" rules={[{ required: true, message: '请选择操作' }]}>
-        <Select options={[{ value: 'change-password', label: '修改密码' }]} />
       </Form.Item>}
       <Form.Item name="icon" label="图标"><MenuIconPicker /></Form.Item>
       <Form.Item name="visible" label="侧栏显示" valuePropName="checked"><Switch /></Form.Item>
