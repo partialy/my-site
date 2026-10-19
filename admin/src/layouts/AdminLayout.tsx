@@ -21,6 +21,7 @@ import {
   User,
   Settings2,
   List,
+  FileText,
 } from 'lucide-react';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../auth';
@@ -121,6 +122,11 @@ export const AdminLayout: React.FC = () => {
       label: <Link to="/configs">配置管理</Link>,
     },
     {
+      key: '/request-logs',
+      icon: <FileText size={18} />,
+      label: <Link to="/request-logs">请求日志</Link>,
+    },
+    {
       key: 'pwd-action',
       icon: <KeyRound size={18} />,
       label: '修改密码',
@@ -141,6 +147,9 @@ export const AdminLayout: React.FC = () => {
     }
     if (location.pathname === '/configs') {
       return [{ title: '管理后台' }, { title: '配置管理' }];
+    }
+    if (location.pathname === '/request-logs') {
+      return [{ title: '管理后台' }, { title: '请求日志' }];
     }
     return [{ title: '管理后台' }, { title: '当前页面' }];
   };

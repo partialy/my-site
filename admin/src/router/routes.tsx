@@ -6,6 +6,7 @@ import { LoginPage } from '../pages/login/LoginPage';
 import { DashboardPage } from '../pages/dashboard/DashboardPage';
 import { SystemConfigPage } from '../pages/system-config/SystemConfigPage';
 import { ConfigsPage } from '../pages/configs/ConfigsPage';
+import { RequestLogsPage } from '../pages/request-logs/RequestLogsPage';
 import { NotFoundPage } from '../pages/errors/NotFoundPage';
 
 export const router = createBrowserRouter([
@@ -30,6 +31,10 @@ export const router = createBrowserRouter([
       {
         path: 'configs',
         element: <ConfigsPage />,
+      },
+      {
+        path: 'request-logs',
+        element: <RequestLogsPage />,
       },
     ],
   },

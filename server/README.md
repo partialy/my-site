@@ -51,6 +51,7 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 | GET | /api/v1/site-settings/:target/icon | 公开读取图标二进制，target 为 admin 或 client |
 | PUT | /api/v1/site-settings/:target/icon | 上传图标原始字节，需要管理员 Token |
 | DELETE | /api/v1/site-settings/:target/icon | 删除图标，需要管理员 Token |
+| GET | /api/v1/request-logs | 分页查询请求日志，需要管理员 Token |
 
 初始化与登录的成功响应示例：
 
@@ -77,7 +78,9 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 
 系统配置中的 `request_log_mode` 可设为 `off`（默认）、`all`、`white_list`；`request_log_whitelist` 保存规则列表。白名单模式只记录匹配的 `/api/v1` 请求。精准路径必须完整匹配；通配路径必须以 `/**` 结尾。记录模式开启时才创建 `request_log` 表，关闭后保留已有日志。
 
-`console_log_enabled` 默认开启，`console_log_format` 默认 `[${time}][${method}] ${url}`。支持 `${time}`、`${method}`、`${url}`、`${status}`、`${duration}`、`${ip}`，其中耗时带 `ms`。请求日志记录路径、已脱敏的查询参数和请求体、响应 JSON、HTTP 状态、耗时、IP、Origin、Referer、User-Agent；请求/响应内容分别限制为 16 KiB。普通配置接口的请求和响应内容会整体隐藏，避免配置值写入日志。此功能目前只提供配置，不提供日志查询页面。
+`console_log_enabled` 默认开启，`console_log_format` 默认 `[${time}][${method}] ${url}`。支持 `${time}`、`${method}`、`${url}`、`${status}`、`${duration}`、`${ip}`，其中耗时带 `ms`。请求日志记录路径、已脱敏的查询参数和请求体、响应 JSON、HTTP 状态、耗时、IP、Origin、Referer、User-Agent；请求/响应内容分别限制为 16 KiB。普通配置接口的请求和响应内容会整体隐藏，避免配置值写入日志。
+
+`GET /api/v1/request-logs` 支持 `page`（默认 1）、`pageSize`（默认 20，最大 100）、`method`、`path`（子串匹配）、`status` 查询参数，返回 `{items,total,page,pageSize}`。按新到旧排序，供管理端查看列表和单条详情；`request_log` 尚未创建时返回空列表，不会因查询而创建表。接口只读，不提供删除或修改日志的操作。
 
 业务项目自行设计业务数据，不应直接修改框架认证表。
 

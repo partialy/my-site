@@ -35,6 +35,7 @@ admin/.env.example 给出开发代理配置。VITE_API_BASE_URL 默认 /api/v1�
 | PUT、DELETE | /api/v1/system-config/whitelist/:id | 修改、删除白名单规则 |
 | GET、POST | /api/v1/configs | 查询、新增普通配置 |
 | PUT、DELETE | /api/v1/configs/:key | 修改、删除普通配置 |
+| GET | /api/v1/request-logs | 分页筛选请求日志，支持 page、pageSize、method、path、status |
 | GET、PUT | /api/v1/site-settings | 读取和修改后台、前台网站名称 |
 | GET、PUT、DELETE | /api/v1/site-settings/:target/icon | 读取、上传、移除系统图标 |
 
@@ -43,5 +44,7 @@ admin/.env.example 给出开发代理配置。VITE_API_BASE_URL 默认 /api/v1�
 系统管理页位于 `/system-config`，可从下拉框选择请求日志记录模式（关闭、全部、白名单）、管理白名单规则，以及设置控制台日志开关和输出模板。模板变量显示中文名称，点击复制变量文本。
 
 配置管理页位于 `/configs`，通过表格和弹窗维护 `config` 表中的名称、键、值、启用状态及备注。所有设置均通过上述真实服务端接口读写。
+
+请求日志页位于 `/request-logs`，支持按方法、路径和响应状态筛选，分页查看请求记录，并在详情弹窗查看已脱敏的请求参数、响应内容和来源信息。尚未启用请求日志时，列表为空。
 
 系统管理页另设“网站信息”区块，左右并排配置管理后台和未来前台的标签名称、系统名称及图标。图标文件由 server 托管，支持 PNG、JPG、WebP、ICO，最多 2 MiB。后台设置会同步到登录/初始化页、侧栏品牌和浏览器标签；站点配置由公开读取接口加载，前台项目可复用同一接口。后台内容页最大宽度统一为 1400px。

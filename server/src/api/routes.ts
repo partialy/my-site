@@ -13,8 +13,9 @@ import {
 } from '../services/site-settings.service';
 import { ApiError } from './api-error';
 import { ApiCode } from './codes';
+import { RequestLogService, requestLogQuerySchema } from '../services/request-log.service';
 
-export function createRoutes(setup: SetupService, auth: AuthService, systemConfig: SystemConfigService, configs: ConfigService, siteSettings: SiteSettingsService): Router {
+export function createRoutes(setup: SetupService, auth: AuthService, systemConfig: SystemConfigService, configs: ConfigService, siteSettings: SiteSettingsService, requestLogs: RequestLogService): Router {
   const routes = Router();
 
   routes.get('/setup/status', (_req, res) => {
@@ -120,6 +121,11 @@ export function createRoutes(setup: SetupService, auth: AuthService, systemConfi
   routes.delete('/site-settings/:target/icon', requireAuth(auth), async (req, res) => {
     const target = parseInput(siteTargetSchema, req.params.target);
     res.json(ok(await siteSettings.deleteIcon(target), '图标已删除'));
+  });
+
+  routes.get('/request-logs', requireAuth(auth), (req, res) => {
+    const query = parseInput(requestLogQuerySchema, req.query);
+    res.json(ok(requestLogs.list(query)));
   });
 
   return routes;

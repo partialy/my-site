@@ -10,6 +10,8 @@ import { ConfigManager } from './config/config-manager';
 import { SystemConfigService } from './services/system-config.service';
 import { ConfigService } from './services/config.service';
 import { SiteSettingsService } from './services/site-settings.service';
+import { RequestLogRepository } from './repositories/request-log.repository';
+import { RequestLogService } from './services/request-log.service';
 
 function main(): void {
   const config = loadConfig();
@@ -21,7 +23,8 @@ function main(): void {
   const systemConfig = new SystemConfigService(configManager, db);
   const configs = new ConfigService(configManager);
   const siteSettings = new SiteSettingsService(configManager);
-  const app = createApp(config, setup, auth, systemConfig, configs, siteSettings, db);
+  const requestLogs = new RequestLogService(new RequestLogRepository(db));
+  const app = createApp(config, setup, auth, systemConfig, configs, siteSettings, requestLogs, db);
   const server = app.listen(config.port, () => {
     console.log(`server 已启动，端口 ${config.port}`);
   });
