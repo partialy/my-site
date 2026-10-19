@@ -88,7 +88,9 @@ export function requestLogMiddleware(config: SystemConfigService, db: Database.D
           path === '/api/v1/site-settings' || path.startsWith('/api/v1/site-settings/');
         insert().run({
           time: time.toISOString(), method: req.method, path, url,
-          requestData: hidesConfigValues ? '"[配置内容已隐藏]"' : serialize({ query: req.query, body: req.body }),
+          requestData: hidesConfigValues ? '"[配置内容已隐藏]"' : serialize({
+            query: req.query, body: Buffer.isBuffer(req.body) ? '[二进制内容已省略]' : req.body,
+          }),
           responseData: hidesConfigValues ? '"[配置内容已隐藏]"' : serialize(responseBody),
           status: res.statusCode, duration,
           ip: req.ip ?? null, origin: req.get('origin') ?? null,

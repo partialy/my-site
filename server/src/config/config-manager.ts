@@ -9,10 +9,12 @@ export const SysConfigKey = {
   AdminSystemName: 'admin_system_name',
   AdminIconMime: 'admin_icon_mime',
   AdminIconVersion: 'admin_icon_version',
+  AdminIconFileId: 'admin_icon_file_id',
   ClientSiteTitle: 'client_site_title',
   ClientSystemName: 'client_system_name',
   ClientIconMime: 'client_icon_mime',
   ClientIconVersion: 'client_icon_version',
+  ClientIconFileId: 'client_icon_file_id',
 } as const;
 
 const defaults = [

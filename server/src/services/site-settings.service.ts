@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { ApiError } from '../api/api-error';
 import { ApiCode } from '../api/codes';
 import { ConfigManager, SysConfigKey } from '../config/config-manager';
+import { FileService } from './file.service';
 
 export const siteTargetSchema = z.enum(['admin', 'client']);
 export type SiteTarget = z.infer<typeof siteTargetSchema>;
@@ -41,12 +42,14 @@ const keys = {
     name: SysConfigKey.AdminSystemName,
     mime: SysConfigKey.AdminIconMime,
     version: SysConfigKey.AdminIconVersion,
+    fileId: SysConfigKey.AdminIconFileId,
   },
   client: {
     title: SysConfigKey.ClientSiteTitle,
     name: SysConfigKey.ClientSystemName,
     mime: SysConfigKey.ClientIconMime,
     version: SysConfigKey.ClientIconVersion,
+    fileId: SysConfigKey.ClientIconFileId,
   },
 } as const;
 
@@ -66,7 +69,7 @@ function isValidImage(bytes: Buffer, mime: IconMimeType): boolean {
 export class SiteSettingsService {
   private readonly iconDirectory: string;
 
-  constructor(private readonly manager: ConfigManager) {
+  constructor(private readonly manager: ConfigManager, private readonly files: FileService) {
     this.iconDirectory = path.resolve(__dirname, '../../data/site-icons');
   }
 
@@ -102,7 +105,18 @@ export class SiteSettingsService {
     this.manager.setSysConfigs([
       { key: fields.mime, name: `${target} 系统图标 MIME`, value: mime },
       { key: fields.version, name: `${target} 系统图标版本`, value: randomUUID() },
+      { key: fields.fileId, name: `${target} 系统图标文件 ID`, value: null },
     ]);
+    return this.get();
+  }
+
+  selectIconFile(target: SiteTarget, fileId: string): SiteSettingsData {
+    const file = this.files.findActive(fileId);
+    if (!iconMimeTypes.includes(file.mimeType as IconMimeType) || file.size > maxIconBytes) {
+      throw new ApiError(400, ApiCode.ValidationError, '请选择不超过 2 MiB 的 PNG、JPEG、WebP 或 ICO 图片',
+        { fieldErrors: { fileId: ['文件类型或大小不符合图标要求'] } });
+    }
+    this.manager.setSysConfig(keys[target].fileId, `${target} 系统图标文件 ID`, fileId);
     return this.get();
   }
 
@@ -111,6 +125,7 @@ export class SiteSettingsService {
     this.manager.setSysConfigs([
       { key: fields.mime, name: `${target} 系统图标 MIME`, value: null },
       { key: fields.version, name: `${target} 系统图标版本`, value: null },
+      { key: fields.fileId, name: `${target} 系统图标文件 ID`, value: null },
     ]);
     await rm(this.iconPath(target), { force: true });
     return this.get();
@@ -136,10 +151,12 @@ export class SiteSettingsService {
     const fields = keys[target];
     const mime = config.get(fields.mime);
     const version = config.get(fields.version);
+    const fileId = config.get(fields.fileId);
     return {
       siteTitle: String(config.get(fields.title)),
       systemName: String(config.get(fields.name)),
-      iconUrl: iconMimeTypes.includes(mime as IconMimeType) && typeof version === 'string' && existsSync(this.iconPath(target))
+      iconUrl: typeof fileId === 'string' && fileId ? this.files.find(fileId).url
+        : iconMimeTypes.includes(mime as IconMimeType) && typeof version === 'string' && existsSync(this.iconPath(target))
         ? `/api/v1/site-settings/${target}/icon?v=${encodeURIComponent(version)}`
         : null,
     };

@@ -1,6 +1,6 @@
 # server
 
-单管理员后端基础框架。使用 Express 5、TypeScript、Zod、JWT 和 SQLite；框架维护 admin、config、sys_config，按需创建 request_log。
+单管理员后端基础框架。使用 Express 5、TypeScript、Zod、JWT 和 SQLite；框架维护 admin、config、sys_config、file，按需创建 request_log。
 
 ## 启动
 
@@ -51,7 +51,12 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 | GET | /api/v1/site-settings/:target/icon | 公开读取图标二进制，target 为 admin 或 client |
 | PUT | /api/v1/site-settings/:target/icon | 上传图标原始字节，需要管理员 Token |
 | DELETE | /api/v1/site-settings/:target/icon | 删除图标，需要管理员 Token |
+| PUT | /api/v1/site-settings/:target/icon-file | 从文件库选择图标，body 为 `{ "fileId": "UUID" }`，需要管理员 Token |
 | GET | /api/v1/request-logs | 分页查询请求日志，需要管理员 Token |
+| GET | /api/v1/files | 分页查询文件库，需要管理员 Token |
+| POST | /api/v1/files | 上传原始文件，需要管理员 Token |
+| GET | /api/v1/files/:id/content | 公开读取文件原始内容 |
+| DELETE | /api/v1/files/:id | 归档文件，需要管理员 Token |
 
 初始化与登录的成功响应示例：
 
@@ -78,9 +83,9 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 
 系统配置中的 `request_log_mode` 可设为 `off`（默认）、`all`、`white_list`；`request_log_whitelist` 保存规则列表。白名单模式只记录匹配的 `/api/v1` 请求。精准路径必须完整匹配；通配路径必须以 `/**` 结尾。记录模式开启时才创建 `request_log` 表，关闭后保留已有日志。
 
-`console_log_enabled` 默认开启，`console_log_format` 默认 `[${time}][${method}] ${url}`。支持 `${time}`、`${method}`、`${url}`、`${status}`、`${duration}`、`${ip}`，其中耗时带 `ms`。请求日志记录路径、已脱敏的查询参数和请求体、响应 JSON、HTTP 状态、耗时、IP、Origin、Referer、User-Agent；请求/响应内容分别限制为 16 KiB。普通配置接口的请求和响应内容会整体隐藏，避免配置值写入日志。
+`console_log_enabled` 默认开启，`console_log_format` 默认 `[${time}][${method}] ${url}`。支持 `${time}`、`${method}`、`${url}`、`${status}`、`${duration}`、`${ip}`，其中耗时带 `ms`。请求日志记录路径、已脱敏的查询参数和请求体、响应 JSON、HTTP 状态、耗时、IP、Origin、Referer、User-Agent；请求/响应内容分别限制为 16 KiB，上传的二进制请求体只记录占位说明。普通配置接口的请求和响应内容会整体隐藏，避免配置值写入日志。
 
-`GET /api/v1/request-logs` 支持 `page`（默认 1）、`pageSize`（默认 20，最大 100）、`method`、`path`（子串匹配）、`status` 查询参数，返回 `{items,total,page,pageSize}`。按新到旧排序，供管理端查看列表和单条详情；`request_log` 尚未创建时返回空列表，不会因查询而创建表。接口只读，不提供删除或修改日志的操作。
+`GET /api/v1/request-logs` 支持 `page`（默认 1）、`pageSize`（默认 20，最大 100）、`method`、`path`（子串匹配）、`status` 查询参数，返回 `{items,total,page,pageSize}`。按新到旧排序，供管理端查看列表和单条详情；`request_log` 尚未创建时返回空列表，不会因查询而创建表。日志查询请求自身不会写入请求日志表。接口只读，不提供删除或修改日志的操作。
 
 业务项目自行设计业务数据，不应直接修改框架认证表。
 
@@ -89,3 +94,11 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 `GET /api/v1/site-settings` 返回 `{admin:{siteTitle,systemName,iconUrl},client:{siteTitle,systemName,iconUrl}}`，图标未设置时 `iconUrl=null`。默认后台名称为 `NodeBase Admin`，前台名称为 `NodeBase Client`。`PUT /api/v1/site-settings` 提交同样的双端对象，每端只需 `siteTitle`、`systemName` 两个非空字符串，最长 100 字符；响应包含最新 `iconUrl`。
 
 图标上传以原始图片字节作为请求体，Content-Type 仅支持 `image/png`、`image/jpeg`、`image/webp`、`image/x-icon`，最大 2 MiB。服务端校验文件头，不接受 SVG。图标分别存放在 `server/data/site-icons/admin.icon` 与 `server/data/site-icons/client.icon`，上传时覆盖对应文件；MIME 和版本号保存在 `sys_config`。返回的图标 URL 带版本参数，供页面刷新缓存。图标读取接口返回图片二进制，其余站点设置接口使用统一 JSON 响应格式。
+
+新图标可通过 `PUT /api/v1/site-settings/:target/icon-file` 选用文件库的 `fileId`，只接受 PNG、JPEG、WebP、ICO 且不超过 2 MiB。选中后 `iconUrl` 返回文件库稳定链接；旧版固定图标继续可读，删除图标会清空文件引用与旧文件。
+
+## 文件库
+
+`GET /api/v1/files?page=1&pageSize=20&search=关键词&mimeTypes=image/png,image/jpeg` 返回 `{items,total,page,pageSize}`，按上传时间倒序，只列出未归档的文件。`mimeTypes` 可选，使用逗号分隔，在计数和分页前过滤类型。每条 `FileItem` 包含 `{id,name,mimeType,size,url,createdAt}`，其中 `url` 为 `/api/v1/files/:id/content`，可直接供图片、图标等资源复用。列表、上传、归档需要管理员 JWT；内容链接公开读取。
+
+`POST /api/v1/files` 使用原始文件字节作为请求体，设置实际文件 MIME 的 `Content-Type`，并将文件名执行 `encodeURIComponent` 后放入 `X-File-Name`。首版支持 PNG、JPEG、WebP、ICO、GIF、PDF，最大 10 MiB；校验文件头并拒绝 SVG。元数据保存在 SQLite 的 `file` 表，文件本体保存在 `server/data/uploads/`，备份时两者要一起保存。`DELETE /api/v1/files/:id` 仅归档记录，让列表不再显示；已有内容链接仍可访问，避免业务引用失效。

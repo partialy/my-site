@@ -14,8 +14,10 @@ import {
 import { ApiError } from './api-error';
 import { ApiCode } from './codes';
 import { RequestLogService, requestLogQuerySchema } from '../services/request-log.service';
+import { FileService, fileIdSchema, fileListQuerySchema, fileMimeTypes, maxFileBytes, selectIconFileSchema,
+  type FileMimeType } from '../services/file.service';
 
-export function createRoutes(setup: SetupService, auth: AuthService, systemConfig: SystemConfigService, configs: ConfigService, siteSettings: SiteSettingsService, requestLogs: RequestLogService): Router {
+export function createRoutes(setup: SetupService, auth: AuthService, systemConfig: SystemConfigService, configs: ConfigService, siteSettings: SiteSettingsService, requestLogs: RequestLogService, files: FileService): Router {
   const routes = Router();
 
   routes.get('/setup/status', (_req, res) => {
@@ -118,6 +120,12 @@ export function createRoutes(setup: SetupService, auth: AuthService, systemConfi
     res.json(ok(await siteSettings.uploadIcon(target, mime as IconMimeType, req.body), '图标已上传'));
   });
 
+  routes.put('/site-settings/:target/icon-file', requireAuth(auth), (req, res) => {
+    const target = parseInput(siteTargetSchema, req.params.target);
+    const { fileId } = parseInput(selectIconFileSchema, req.body);
+    res.json(ok(siteSettings.selectIconFile(target, fileId), '图标已设置'));
+  });
+
   routes.delete('/site-settings/:target/icon', requireAuth(auth), async (req, res) => {
     const target = parseInput(siteTargetSchema, req.params.target);
     res.json(ok(await siteSettings.deleteIcon(target), '图标已删除'));
@@ -126,6 +134,36 @@ export function createRoutes(setup: SetupService, auth: AuthService, systemConfi
   routes.get('/request-logs', requireAuth(auth), (req, res) => {
     const query = parseInput(requestLogQuerySchema, req.query);
     res.json(ok(requestLogs.list(query)));
+  });
+
+  routes.get('/files', requireAuth(auth), (req, res) => {
+    res.json(ok(files.list(parseInput(fileListQuerySchema, req.query))));
+  });
+
+  routes.post('/files', requireAuth(auth), raw({ type: () => true, limit: maxFileBytes }), async (req, res) => {
+    const mime = req.get('content-type')?.split(';', 1)[0]?.trim().toLowerCase();
+    if (!fileMimeTypes.includes(mime as FileMimeType) || !Buffer.isBuffer(req.body)) {
+      throw new ApiError(415, ApiCode.ValidationError, '不支持的文件类型', { fieldErrors: { file: ['只支持 PNG、JPEG、WebP、ICO、GIF、PDF'] } });
+    }
+    const encodedName = req.get('x-file-name');
+    let name: string;
+    try { name = encodedName ? decodeURIComponent(encodedName) : ''; }
+    catch { throw new ApiError(400, ApiCode.ValidationError, '文件名编码无效', { fieldErrors: { name: ['文件名编码无效'] } }); }
+    res.status(201).json(ok(await files.upload(name, mime as FileMimeType, req.body), '文件已上传'));
+  });
+
+  routes.get('/files/:id/content', async (req, res) => {
+    const { item, bytes } = await files.read(parseInput(fileIdSchema, req.params.id));
+    res.set('Content-Type', item.mimeType);
+    res.set('Content-Length', String(item.size));
+    res.set('X-Content-Type-Options', 'nosniff');
+    res.set('Cache-Control', 'public, max-age=3600');
+    res.send(bytes);
+  });
+
+  routes.delete('/files/:id', requireAuth(auth), (req, res) => {
+    files.archive(parseInput(fileIdSchema, req.params.id));
+    res.json(ok(null, '文件已归档'));
   });
 
   return routes;
