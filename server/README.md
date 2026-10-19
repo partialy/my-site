@@ -111,4 +111,4 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 
 `MenuItem` 为 `{key,label,type,parentKey,path,action,icon,sort,visible}`。`type` 取 `group`、`route`、`action`；`parentKey`、`path`、`action`、`icon` 均可为 `null`。分组只能是一级，二级菜单的父级必须是一级分组；路由使用不重复的站内绝对路径，操作目前仅支持 `change-password`。`sort` 是同级非负整数排序值，`visible` 决定是否显示；服务端校验唯一键、唯一路由、两级结构和类型字段。菜单 API 需要 JWT，不根据菜单配置决定接口权限。新增路由菜单时，管理端还需实现对应页面。
 
-默认菜单：一级 `home`（首页，`/`，图标 `layout-dashboard`）与 `system-settings`（系统设置分组，图标 `settings`）；分组下依次是 `system-config`（`/system-config`，`setting`）、`configs`（`/configs`，`database`）、`request-logs`（`/request-logs`，`file-text`）、`files`（`/files`，`folder`）、`menu-management`（`/menus`，`menu`）、`change-password`（操作 `change-password`，`lock`）。
+默认菜单：一级 `home`（首页，`/`，图标 `layout-dashboard`）与 `system-settings`（系统设置分组，图标 `settings`）；分组下依次是 `system-config`（`/system-config`，`setting`）、`configs`（`/configs`，`database`）、`request-logs`（`/request-logs`，`file-text`）、`files`（`/files`，`folder`）、`menu-management`（`/menus`，`menu`）。旧数据库中默认的 `change-password` 菜单在升级时移除一次，修改密码入口保留在管理端右上角账号菜单。
