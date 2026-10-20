@@ -1,4 +1,6 @@
 import type Database from 'better-sqlite3';
+import { TableListRepository } from './table-list.repository';
+import { userListResource } from './resources/user-list.resource';
 
 export type UserStatus = 'active' | 'disabled';
 
@@ -14,6 +16,8 @@ export interface UserRecord {
   updated_at: string;
 }
 
+export type UserListRecord = Omit<UserRecord, 'password_hash' | 'token_version'>;
+
 export interface UserListQuery {
   page: number;
   pageSize: number;
@@ -22,14 +26,18 @@ export interface UserListQuery {
 }
 
 export interface UserListPage {
-  items: UserRecord[];
+  items: UserListRecord[];
   total: number;
   page: number;
   pageSize: number;
 }
 
 export class UserRepository {
-  constructor(private readonly db: Database.Database) {}
+  private readonly tableList: TableListRepository;
+
+  constructor(private readonly db: Database.Database) {
+    this.tableList = new TableListRepository(db);
+  }
 
   findById(id: number): UserRecord | null {
     return (this.db.prepare('SELECT * FROM user WHERE id = ?').get(id) as UserRecord | undefined) ?? null;
@@ -57,21 +65,7 @@ export class UserRepository {
   }
 
   list(query: UserListQuery): UserListPage {
-    const conditions: string[] = [];
-    const args: Array<string | number> = [];
-    if (query.search) {
-      conditions.push('(instr(lower(account), lower(?)) > 0 OR instr(lower(nickname), lower(?)) > 0)');
-      args.push(query.search, query.search);
-    }
-    if (query.status) {
-      conditions.push('status = ?');
-      args.push(query.status);
-    }
-    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-    const total = (this.db.prepare(`SELECT COUNT(*) AS total FROM user ${where}`).get(...args) as { total: number }).total;
-    const items = this.db.prepare(`SELECT * FROM user ${where} ORDER BY id DESC LIMIT ? OFFSET ?`)
-      .all(...args, query.pageSize, (query.page - 1) * query.pageSize) as UserRecord[];
-    return { items, total, page: query.page, pageSize: query.pageSize };
+    return this.tableList.list<UserListRecord, UserListQuery>(userListResource, query);
   }
 
   recordActivity(userId: number, day: string, time: string): void {

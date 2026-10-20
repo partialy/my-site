@@ -1,51 +1,42 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { getUsers, setUserStatus, type UserPage, type UserQuery, type UserStatus } from '../../api/users';
+import { useCallback } from 'react';
+import { getUsers, setUserStatus, type UserItem, type UserStatus } from '../../api/users';
+import { useTableQuery, type TableQueryOptions } from '../../hooks/useTableQuery';
 
-const emptyPage: UserPage = { items: [], total: 0, page: 1, pageSize: 20 };
+export interface UserFilters {
+  search?: string;
+  status?: UserStatus;
+}
 
-export function useUsers(query: UserQuery) {
-  const [result, setResult] = useState<UserPage>(emptyPage);
-  const [loading, setLoading] = useState(true);
-  const [savingId, setSavingId] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const requestId = useRef(0);
+const userTableOptions: TableQueryOptions<UserItem, UserFilters> = {
+  defaultPageSize: 20,
+  defaultFilters: {},
+  filters: {
+    read(params) {
+      const search = params.get('search')?.trim().slice(0, 100) || undefined;
+      const rawStatus = params.get('status');
+      const status = rawStatus === 'active' || rawStatus === 'disabled' ? rawStatus : undefined;
+      return { search, status };
+    },
+    write(params, filters) {
+      if (filters.search?.trim()) params.set('search', filters.search.trim());
+      else params.delete('search');
+      if (filters.status) params.set('status', filters.status);
+      else params.delete('status');
+    },
+  },
+  fetchPage: (query, signal) => getUsers(query, signal),
+};
 
-  const reload = useCallback(async () => {
-    const id = ++requestId.current;
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await getUsers(query);
-      if (!response.success) throw new Error(response.msg);
-      if (id === requestId.current) setResult(response.data);
-    } catch (cause) {
-      if (id === requestId.current) setError(cause instanceof Error ? cause.message : '加载用户失败');
-    } finally {
-      if (id === requestId.current) setLoading(false);
-    }
-  }, [query]);
-
-  useEffect(() => {
-    void reload();
-    return () => { requestId.current += 1; };
-  }, [reload]);
+export function useUsers() {
+  const table = useTableQuery<UserItem, UserFilters>(userTableOptions);
 
   const updateStatus = useCallback(async (id: number, status: UserStatus) => {
-    setSavingId(id);
-    setError(null);
-    try {
-      const response = await setUserStatus(id, status);
-      if (!response.success) throw new Error(response.msg);
-      setResult((current) => ({ ...current, items: current.items.map((item) => item.id === id ? response.data : item) }));
-      return response.msg;
-    } catch (cause) {
-      const message = cause instanceof Error ? cause.message : '修改用户状态失败';
-      setError(message);
-      throw new Error(message);
-    } finally {
-      setSavingId(null);
-    }
-  }, []);
+    const response = await setUserStatus(id, status);
+    if (!response.success) throw new Error(response.msg);
+    if (table.query.status) table.reload();
+    else table.replaceItem((item) => item.id === id, response.data);
+    return { item: response.data, message: response.msg };
+  }, [table.query.status, table.reload, table.replaceItem]);
 
-  return { result, loading, savingId, error, reload, updateStatus };
+  return { ...table, updateStatus };
 }

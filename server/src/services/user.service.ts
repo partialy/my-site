@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ApiError } from '../api/api-error';
 import { ApiCode } from '../api/codes';
-import { UserRepository, type UserRecord, type UserStatus } from '../repositories/user.repository';
+import { UserRepository, type UserListRecord, type UserStatus } from '../repositories/user.repository';
 import { USER_JWT_EXPIRES_IN, UserJwtService } from '../security/user-jwt.service';
 import { hashPassword, verifyPassword } from '../security/password';
 import { daysAgo, utcDay } from './visit.service';
@@ -33,7 +33,7 @@ export interface UserSummary {
   updatedAt: string;
 }
 
-function summary(user: UserRecord): UserSummary {
+function summary(user: UserListRecord): UserSummary {
   return {
     id: user.id, account: user.account, nickname: user.nickname, avatar: user.avatar,
     status: user.status, createdAt: user.created_at, updatedAt: user.updated_at,

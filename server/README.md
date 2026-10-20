@@ -98,6 +98,8 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 - src/db：SQLite 连接与版本化迁移；`migrations/` 保存编号 SQL。
 - src/config：环境变量校验与配置内存管理。
 
+普通业务列表可使用 `src/repositories/table-list.repository.ts` 的 `TableListRepository`。资源在服务端代码中静态声明 `table`、返回列、搜索列、等值筛选列和排序列；用户示例位于 `src/repositories/resources/user-list.resource.ts`。Controller 仍使用专属 Zod Schema 校验查询参数，Service 保留业务规则。表名和列名仅来自代码配置，筛选值使用 SQLite 参数绑定。用户列表不会将密码哈希作为列表字段读取。包含副作用的写操作仍由业务 Service 和对应 Repository 实现。
+
 ## 配置与请求日志
 
 `config` 存普通动态配置，字段包括名称、键、JSON 值、启用、备注、创建和更新时间；`sys_config` 存系统配置，没有启用字段。`ConfigManager` 启动时加载两类配置，普通配置用 `get(key, defaultValue)` 读取，系统配置用 `getSysConfig().get(key)` 读取；调用写入方法时同步更新 SQLite 与内存。旧版 `config` 表启动时自动补齐字段并保留原有记录。`/api/v1/admin/configs` 提供普通配置增删改查，管理接口将值作为文本编辑，禁用的配置从 `get` 读取时返回默认值。

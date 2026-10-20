@@ -75,6 +75,7 @@ export interface RequestOptions {
   contentType?: string;
   requiresAuth?: boolean;
   headers?: Record<string, string>;
+  signal?: AbortSignal;
 }
 
 export async function request<TData>(
@@ -98,8 +99,10 @@ export async function request<TData>(
       method,
       headers,
       body: rawBody ?? (body !== undefined ? JSON.stringify(body) : undefined),
+      signal: options.signal,
     });
-  } catch {
+  } catch (cause) {
+    if (options.signal?.aborted) throw cause;
     throw new ApiNetworkError();
   }
 

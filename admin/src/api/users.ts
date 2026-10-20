@@ -45,11 +45,11 @@ function parseUserPage(value: unknown): UserPage {
   return { items: page.items.map(parseUser), total: page.total, page: page.page, pageSize: page.pageSize };
 }
 
-export function getUsers(query: UserQuery): Promise<ApiResponse<UserPage>> {
+export function getUsers(query: UserQuery, signal?: AbortSignal): Promise<ApiResponse<UserPage>> {
   const params = new URLSearchParams({ page: String(query.page), pageSize: String(query.pageSize) });
   if (query.search) params.set('search', query.search);
   if (query.status) params.set('status', query.status);
-  return request(`/users?${params.toString()}`, parseUserPage);
+  return request(`/users?${params.toString()}`, parseUserPage, { signal });
 }
 
 export function getUser(id: number): Promise<ApiResponse<UserItem>> {
