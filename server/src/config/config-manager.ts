@@ -5,6 +5,7 @@ export const SysConfigKey = {
   RequestLogWhitelist: 'request_log_whitelist',
   ConsoleLogEnabled: 'console_log_enabled',
   ConsoleLogFormat: 'console_log_format',
+  ProjectName: 'project_name',
   AdminSiteTitle: 'admin_site_title',
   AdminSystemName: 'admin_system_name',
   AdminIconMime: 'admin_icon_mime',
@@ -22,6 +23,7 @@ const defaults = [
   [SysConfigKey.RequestLogWhitelist, '日志白名单', []],
   [SysConfigKey.ConsoleLogEnabled, '日志输出', true],
   [SysConfigKey.ConsoleLogFormat, '日志输出格式', '[${time}][${method}] ${url}'],
+  [SysConfigKey.ProjectName, '项目名称', 'NodeBase'],
   [SysConfigKey.AdminSiteTitle, '管理后台网站标签名称', 'NodeBase Admin'],
   [SysConfigKey.AdminSystemName, '管理系统名称', 'NodeBase Admin'],
   [SysConfigKey.ClientSiteTitle, '前台网站标签名称', 'NodeBase Client'],
@@ -48,6 +50,11 @@ export class ConfigManager {
 
   getSysConfig(): ReadonlyMap<string, unknown> {
     return this.sysConfigs;
+  }
+
+  reloadSysConfigs(): void {
+    this.sysConfigs.clear();
+    for (const row of this.repository.listSys()) this.sysConfigs.set(row.key, decode(row.value));
   }
 
   get<T>(key: string, defaultValue: T): T {

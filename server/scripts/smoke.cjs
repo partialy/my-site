@@ -6,6 +6,7 @@ const { AdminRepository } = require('../dist/repositories/admin.repository');
 const { JwtService } = require('../dist/security/jwt.service');
 const { AuthService } = require('../dist/services/auth.service');
 const { SetupService } = require('../dist/services/setup.service');
+const { SetupRepository } = require('../dist/repositories/setup.repository');
 const { ConfigRepository } = require('../dist/repositories/config.repository');
 const { ConfigManager } = require('../dist/config/config-manager');
 const { SystemConfigService } = require('../dist/services/system-config.service');
@@ -24,10 +25,16 @@ const { DashboardService } = require('../dist/services/dashboard.service');
 async function main() {
   const concurrentDb = openDatabase(':memory:');
   try {
-    const concurrentSetup = new SetupService(new AdminRepository(concurrentDb), 'smoke-test-setup-key');
+    const concurrentManager = new ConfigManager(new ConfigRepository(concurrentDb));
+    const concurrentSetup = new SetupService(new AdminRepository(concurrentDb), 'smoke-test-setup-key',
+      new SetupRepository(concurrentDb), concurrentManager);
+    const setupSite = { projectName: '测试项目', siteSettings: {
+      admin: { siteTitle: '测试后台', systemName: '测试管理系统' },
+      client: { siteTitle: '测试网站', systemName: '测试前台系统' },
+    } };
     const attempts = await Promise.allSettled([
-      concurrentSetup.createInitialAdmin({ username: 'admin', password: 'strong-password-123', setupKey: 'smoke-test-setup-key' }),
-      concurrentSetup.createInitialAdmin({ username: 'admin2', password: 'strong-password-123', setupKey: 'smoke-test-setup-key' }),
+      concurrentSetup.createInitialAdmin({ ...setupSite, username: 'admin', password: 'strong-password-123', setupKey: 'smoke-test-setup-key' }),
+      concurrentSetup.createInitialAdmin({ ...setupSite, username: 'admin2', password: 'strong-password-123', setupKey: 'smoke-test-setup-key' }),
     ]);
     assert.equal(attempts.filter((attempt) => attempt.status === 'fulfilled').length, 1);
     assert.equal(attempts.filter((attempt) => attempt.status === 'rejected' && attempt.reason.code === 1003).length, 1);
@@ -50,7 +57,7 @@ async function main() {
   const requestLogs = new RequestLogService(new RequestLogRepository(db));
   const visits = new VisitService(new VisitRepository(db));
   const app = createApp(config, {
-    setup: new SetupService(admins, config.setupKey),
+    setup: new SetupService(admins, config.setupKey, new SetupRepository(db), manager),
     auth: new AuthService(admins, new JwtService(config.jwtSecret)),
     systemConfig,
     configs: new ConfigService(manager),
@@ -79,12 +86,21 @@ async function main() {
 
     let result = await request('/setup/status');
     assert.equal(result.body.data.initialized, false);
-    result = await request('/setup/admin', 'POST', { username: 'admin', password: 'strong-password-123', setupKey: 'wrong-key' });
+    const setupSite = { projectName: '新项目', siteSettings: {
+      admin: { siteTitle: '新项目后台', systemName: '新项目管理系统' },
+      client: { siteTitle: '新项目网站', systemName: '新项目前台' },
+    } };
+    result = await request('/setup/admin', 'POST', { ...setupSite, username: 'admin', password: 'strong-password-123', setupKey: 'wrong-key' });
     assert.equal(result.body.code, 1002);
-    result = await request('/setup/admin', 'POST', { username: 'admin', password: 'strong-password-123', setupKey: config.setupKey });
+    assert.equal(manager.getSysConfig().get('project_name'), 'NodeBase');
+    result = await request('/setup/admin', 'POST', { ...setupSite, username: 'admin', password: 'strong-password-123', setupKey: config.setupKey });
     assert.equal(result.status, 201);
     assert.equal(result.body.success, true);
-    result = await request('/setup/admin', 'POST', { username: 'admin2', password: 'strong-password-123', setupKey: config.setupKey });
+    assert.equal(manager.getSysConfig().get('project_name'), '新项目');
+    result = await request('/site-settings');
+    assert.equal(result.body.data.projectName, '新项目');
+    assert.equal(result.body.data.admin.siteTitle, '新项目后台');
+    result = await request('/setup/admin', 'POST', { ...setupSite, username: 'admin2', password: 'strong-password-123', setupKey: config.setupKey });
     assert.equal(result.body.code, 1003);
     result = await request('/auth/login', 'POST', { username: 'admin', password: 'wrong-password-123' });
     assert.equal(result.body.code, 1004);

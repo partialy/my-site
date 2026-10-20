@@ -13,7 +13,12 @@ Content-Type: application/json
 {
   "username": "admin",
   "password": "replace-with-strong-password",
-  "setupKey": "{{setupKey}}"
+  "setupKey": "{{setupKey}}",
+  "projectName": "我的项目",
+  "siteSettings": {
+    "admin": { "siteTitle": "我的项目后台", "systemName": "我的项目管理系统" },
+    "client": { "siteTitle": "我的项目", "systemName": "我的项目" }
+  }
 }
 
 ### 登录

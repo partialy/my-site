@@ -17,6 +17,7 @@ const siteIdentitySchema = z.strictObject({
 });
 
 export const siteSettingsInputSchema = z.strictObject({
+  projectName: z.string().trim().min(1).max(100).optional(),
   admin: siteIdentitySchema,
   client: siteIdentitySchema,
 });
@@ -28,6 +29,7 @@ type SiteIdentity = SiteSettingsInput['admin'] & {
 };
 
 export interface SiteSettingsData {
+  projectName: string;
   admin: SiteIdentity;
   client: SiteIdentity;
 }
@@ -74,11 +76,15 @@ export class SiteSettingsService {
   }
 
   get(): SiteSettingsData {
-    return { admin: this.getSite('admin'), client: this.getSite('client') };
+    return {
+      projectName: String(this.manager.getSysConfig().get(SysConfigKey.ProjectName)),
+      admin: this.getSite('admin'), client: this.getSite('client'),
+    };
   }
 
   update(input: SiteSettingsInput): SiteSettingsData {
     this.manager.setSysConfigs([
+      ...(input.projectName === undefined ? [] : [{ key: SysConfigKey.ProjectName, name: '项目名称', value: input.projectName }]),
       { key: SysConfigKey.AdminSiteTitle, name: '管理后台网站标签名称', value: input.admin.siteTitle },
       { key: SysConfigKey.AdminSystemName, name: '管理系统名称', value: input.admin.systemName },
       { key: SysConfigKey.ClientSiteTitle, name: '前台网站标签名称', value: input.client.siteTitle },

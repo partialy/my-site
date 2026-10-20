@@ -7,6 +7,11 @@ export const setupAdminSchema = z.strictObject({
   username,
   password,
   setupKey: z.string().min(1),
+  projectName: z.string().trim().min(1).max(100),
+  siteSettings: z.strictObject({
+    admin: z.strictObject({ siteTitle: z.string().trim().min(1).max(100), systemName: z.string().trim().min(1).max(100) }),
+    client: z.strictObject({ siteTitle: z.string().trim().min(1).max(100), systemName: z.string().trim().min(1).max(100) }),
+  }),
 });
 
 export const loginSchema = z.strictObject({ username, password });

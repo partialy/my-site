@@ -17,11 +17,11 @@ ADMIN_ORIGIN 是允许跨域访问管理端 API 的来源，如 http://localhost
 
 新增接口时，只有管理端使用的接口放在 `src/api/admin/` 并使用 `/api/v1/admin/**`；admin 与 client 共用的接口放在公共路由模块，使用 `/api/v1/**`，不加 `admin` 前缀。
 
-第一次访问 GET /api/v1/admin/setup/status 返回 initialized=false。管理端让用户输入管理员用户名、密码和 SETUP_KEY，调用 POST /api/v1/admin/setup/admin。初始化完成后只能登录，无法再次创建管理员。SETUP_KEY 是部署配置，不要放进前端构建产物。
+第一次访问 GET /api/v1/admin/setup/status 返回 initialized=false。管理端 setup 页让用户填写项目名称、管理后台与前台的标签/系统名称、管理员用户名和密码，以及 SETUP_KEY，调用 POST /api/v1/admin/setup/admin 一次提交；管理员与项目站点信息在同一数据库事务内创建。初始化完成后只能登录，无法再次创建管理员。SETUP_KEY 是部署配置，不要放进前端构建产物。
 
 管理员登录返回有效期 43200 秒的 JWT。后续请求携带 Authorization: Bearer <JWT>。修改密码会使已签发 Token 失效；当前没有刷新 Token 和服务端注销接口。
 
-完整请求示例见 requests.http。用户名为 3–32 位字母、数字或下划线；密码长度 12–128。初始化成功后不自动登录。
+完整请求示例见 requests.http。用户名为 3–32 位字母、数字或下划线；密码长度 12–128。端口、JWT_SECRET、SETUP_KEY 仍在启动前通过 `.env` 配置。仓库不跟踪数据库和上传文件，复制项目时不会复制 Git 中的示例数据；setup 页不会删除已有数据。初始化成功后不自动登录。
 
 ## 接口契约
 
@@ -34,7 +34,7 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 | 方法 | 路径 | 用途 |
 | --- | --- | --- |
 | GET | /api/v1/admin/setup/status | 检查是否已创建管理员 |
-| POST | /api/v1/admin/setup/admin | 使用 SETUP_KEY 创建唯一管理员 |
+| POST | /api/v1/admin/setup/admin | 使用 SETUP_KEY 一次创建唯一管理员并设置项目/站点名称 |
 | POST | /api/v1/admin/auth/login | 登录并签发 JWT |
 | GET | /api/v1/admin/auth/me | 获取当前管理员 |
 | PUT | /api/v1/admin/auth/password | 修改密码并撤销旧 Token |
