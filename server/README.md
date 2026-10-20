@@ -55,8 +55,10 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 | GET | /api/v1/admin/dictionaries | 获取字典类型及全部子项，需要管理员 Token |
 | GET | /api/v1/admin/dictionaries/options?codes=a,b | 批量获取后台可用字典选项，需要管理员 Token |
 | POST | /api/v1/admin/dictionaries | 创建字典类型，需要管理员 Token |
+| POST | /api/v1/admin/dictionaries/batch | 原子批量创建字典类型（1–20 条），需要管理员 Token |
 | PUT | /api/v1/admin/dictionaries/:id | 修改字典类型，需要管理员 Token |
 | POST | /api/v1/admin/dictionaries/:id/items | 创建字典子项，需要管理员 Token |
+| POST | /api/v1/admin/dictionaries/:id/items/batch | 原子批量创建字典子项（1–20 条），需要管理员 Token |
 | PUT | /api/v1/admin/dictionaries/:id/items/:itemId | 修改字典子项，需要管理员 Token |
 | GET | /api/v1/admin/menus | 从内存读取菜单列表，需要管理员 Token |
 | PUT | /api/v1/admin/menus | 原子替换全部菜单，需要管理员 Token |

@@ -41,6 +41,12 @@ function describe(method: string, path: string): OperationDescriptor | null {
       summary: `${method === 'POST' ? '新增' : method === 'PUT' ? '修改' : '删除'}动态配置`,
       changedFields: method === 'DELETE' ? [] : ['name', 'value', 'enabled', 'remark'] };
   }
+  const dictionaryBatch = /^\/dictionaries(?:\/(\d+)\/items)?\/batch$/.exec(path);
+  if (method === 'POST' && dictionaryBatch) {
+    const isItem = Boolean(dictionaryBatch[1]);
+    return { module: '数据字典', action: 'create', targetType: isItem ? 'dict_item' : 'dict_type',
+      summary: `批量新增字典${isItem ? '子项' : '类型'}` };
+  }
   const dictionary = /^\/dictionaries(?:\/(\d+)(?:\/items(?:\/(\d+))?)?)?$/.exec(path);
   if (dictionary && (method === 'POST' || method === 'PUT')) {
     const isItem = path.includes('/items');

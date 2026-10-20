@@ -71,6 +71,10 @@ export class DictionaryRepository {
     return Number(result.lastInsertRowid);
   }
 
+  createTypes(inputs: Array<{ code: string; name: string; remark: string; isPublic: boolean; enabled: boolean }>): number[] {
+    return this.db.transaction(() => inputs.map((input) => this.createType(input)))();
+  }
+
   updateType(id: number, input: { name: string; remark: string; isPublic: boolean; enabled: boolean }): boolean {
     const result = this.db.prepare(`UPDATE dict_type
       SET name = ?, remark = ?, is_public = ?, enabled = ?, updated_at = ? WHERE id = ?`)
@@ -85,6 +89,10 @@ export class DictionaryRepository {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
       .run(typeId, input.label, input.value, input.sort, Number(input.enabled), input.color, now, now);
     return Number(result.lastInsertRowid);
+  }
+
+  createItems(typeId: number, inputs: Array<{ label: string; value: string; sort: number; enabled: boolean; color: string }>): number[] {
+    return this.db.transaction(() => inputs.map((input) => this.createItem(typeId, input)))();
   }
 
   updateItem(typeId: number, itemId: number, input: { label: string; sort: number; enabled: boolean; color: string }): boolean {

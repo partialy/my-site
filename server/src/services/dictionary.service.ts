@@ -22,6 +22,7 @@ export const createDictionarySchema = z.strictObject({
   enabled: z.boolean(),
 });
 export const updateDictionarySchema = createDictionarySchema.omit({ code: true });
+export const createDictionariesSchema = z.strictObject({ items: z.array(createDictionarySchema).min(1).max(20) });
 export const createDictionaryItemSchema = z.strictObject({
   label: z.string().trim().min(1).max(100),
   value: dictionaryValue,
@@ -30,6 +31,7 @@ export const createDictionaryItemSchema = z.strictObject({
   color,
 });
 export const updateDictionaryItemSchema = createDictionaryItemSchema.omit({ value: true });
+export const createDictionaryItemsSchema = z.strictObject({ items: z.array(createDictionaryItemSchema).min(1).max(20) });
 
 export type CreateDictionaryInput = z.infer<typeof createDictionarySchema>;
 export type UpdateDictionaryInput = z.infer<typeof updateDictionarySchema>;
@@ -94,6 +96,22 @@ export class DictionaryService {
     return this.getType(id);
   }
 
+  createTypes(inputs: CreateDictionaryInput[]): DictionaryType[] {
+    const codes = inputs.map((input) => input.code);
+    if (new Set(codes).size !== codes.length || codes.some((code) => this.byCode.has(code))) {
+      throw new ApiError(409, ApiCode.DictionaryValueExists, '字典类型标识重复');
+    }
+    let ids: number[];
+    try {
+      ids = this.repository.createTypes(inputs);
+    } catch (error) {
+      if (isUniqueConflict(error)) throw new ApiError(409, ApiCode.DictionaryValueExists, '字典类型标识重复');
+      throw error;
+    }
+    this.reload();
+    return ids.map((id) => this.getType(id));
+  }
+
   updateType(id: number, input: UpdateDictionaryInput): DictionaryType {
     if (!this.repository.updateType(id, input)) throw new ApiError(404, ApiCode.NotFound, '字典类型不存在');
     this.reload();
@@ -114,6 +132,23 @@ export class DictionaryService {
     }
     this.reload();
     return this.getItem(typeId, id);
+  }
+
+  createItems(typeId: number, inputs: CreateDictionaryItemInput[]): DictionaryItem[] {
+    const type = this.getType(typeId);
+    const values = inputs.map((input) => input.value);
+    if (new Set(values).size !== values.length || values.some((value) => type.items.some((item) => item.value === value))) {
+      throw new ApiError(409, ApiCode.DictionaryValueExists, '字典子项值重复');
+    }
+    let ids: number[];
+    try {
+      ids = this.repository.createItems(typeId, inputs);
+    } catch (error) {
+      if (isUniqueConflict(error)) throw new ApiError(409, ApiCode.DictionaryValueExists, '字典子项值重复');
+      throw error;
+    }
+    this.reload();
+    return ids.map((id) => this.getItem(typeId, id));
   }
 
   updateItem(typeId: number, itemId: number, input: UpdateDictionaryItemInput): DictionaryItem {
