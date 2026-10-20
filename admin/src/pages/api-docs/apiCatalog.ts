@@ -23,6 +23,8 @@ const publicApi = '/api/v1';
 const adminInfo = '{ id: number; username: string }';
 const siteSettings = '{ projectName: string; admin: { siteTitle: string; systemName: string; iconUrl: string | null }; client: 同 admin }';
 const configItem = '{ key: string; name: string; value: string; enabled: boolean; remark: string; createdAt: ISO时间; updatedAt: ISO时间 }';
+const dictItem = '{ id: number; typeId: number; label: string; value: string; sort: number; enabled: boolean; color: string; createdAt: ISO时间; updatedAt: ISO时间 }';
+const dictType = `{ id: number; code: string; name: string; remark: string; isPublic: boolean; enabled: boolean; createdAt: ISO时间; updatedAt: ISO时间; items: ${dictItem}[] }`;
 const whitelistRule = '{ id: string; name: string; type: "wildcard" | "exact"; path: string; remark: string; createdAt: ISO时间; updatedAt: ISO时间 }';
 const fileItem = '{ id: UUID; name: string; mimeType: string; size: number; url: string; createdAt: ISO时间 }';
 const menuItem = '{ key: string; label: string; type: "group" | "route" | "action"; parentKey: string | null; path: string | null; action: string | null; icon: string | null; sort: number; visible: boolean }';
@@ -70,6 +72,22 @@ export const API_GROUPS: readonly ApiGroup[] = [
       response: configItem, note: '请求体中的 key 可以是新键。' },
     { method: 'DELETE', path: `${admin}/configs/:key`, title: '删除动态配置', auth: true,
       request: '路径: key=配置键，需 URL 编码', response: 'null' },
+  ] },
+  { audience: 'admin', module: '数据字典', endpoints: [
+    { method: 'GET', path: `${admin}/dictionaries`, title: '获取字典类型与子项', auth: true, response: `${dictType}[]` },
+    { method: 'GET', path: `${admin}/dictionaries/options`, title: '批量获取后台字典选项', auth: true,
+      request: 'Query: codes=order_status,article_status（1-30 个）', response: 'Record<string, { code: string; name: string; items: DictItem[] }>',
+      note: '只返回启用的类型与子项；可读取非公开的后台字典。' },
+    { method: 'POST', path: `${admin}/dictionaries`, title: '新增字典类型', auth: true,
+      request: 'JSON: { code: string; name: string; remark: string; isPublic: boolean; enabled: boolean }', response: dictType },
+    { method: 'PUT', path: `${admin}/dictionaries/:id`, title: '修改字典类型', auth: true,
+      request: 'JSON: { name: string; remark: string; isPublic: boolean; enabled: boolean }', response: dictType,
+      note: 'code 创建后不可修改。' },
+    { method: 'POST', path: `${admin}/dictionaries/:id/items`, title: '新增字典子项', auth: true,
+      request: 'JSON: { label: string; value: string; sort: number; enabled: boolean; color: string }', response: dictItem },
+    { method: 'PUT', path: `${admin}/dictionaries/:id/items/:itemId`, title: '修改字典子项', auth: true,
+      request: 'JSON: { label: string; sort: number; enabled: boolean; color: string }', response: dictItem,
+      note: 'value 创建后不可修改；停用保留历史值。' },
   ] },
   { audience: 'admin', module: '菜单管理', endpoints: [
     { method: 'GET', path: `${admin}/menus`, title: '获取菜单', auth: true, response: `${menuItem}[]` },
@@ -150,6 +168,11 @@ export const API_GROUPS: readonly ApiGroup[] = [
     { method: 'GET', path: `${publicApi}/site-settings/:target/icon`, title: '获取站点图标', auth: false,
       request: '路径: target=admin | client；可带 ?v=图标版本用于缓存区分',
       response: '图片二进制，Content-Type 为实际图标 MIME', binary: true },
+  ] },
+  { audience: 'public', module: '数据字典', endpoints: [
+    { method: 'GET', path: `${publicApi}/dictionaries`, title: '批量获取公开字典选项', auth: false,
+      request: 'Query: codes=order_status,article_status（1-30 个）', response: 'Record<string, { code: string; name: string; items: DictItem[] }>',
+      note: '仅返回公开、启用的类型与启用子项；不存在或未公开的类型不返回。' },
   ] },
   { audience: 'public', module: '文件访问', endpoints: [
     { method: 'GET', path: `${publicApi}/files/:id/content`, title: '读取文件内容', auth: false,

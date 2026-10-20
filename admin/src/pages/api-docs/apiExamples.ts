@@ -17,6 +17,11 @@ const rule = { id: 'a1b2c3d4', name: '用户接口', type: 'wildcard', path: '/a
   remark: '记录用户模块', createdAt: '2026-10-20T08:00:00.000Z', updatedAt: '2026-10-20T08:00:00.000Z' };
 const config = { key: 'contact.email', name: '联系邮箱', value: 'hello@example.com', enabled: true,
   remark: '站点联系方式', createdAt: '2026-10-20T08:00:00.000Z', updatedAt: '2026-10-20T08:00:00.000Z' };
+const dictItem = { id: 1, typeId: 1, label: '已支付', value: 'paid', sort: 10, enabled: true,
+  color: 'green', createdAt: '2026-10-20T08:00:00.000Z', updatedAt: '2026-10-20T08:00:00.000Z' };
+const dictType = { id: 1, code: 'order_status', name: '订单状态', remark: '', isPublic: true, enabled: true,
+  createdAt: '2026-10-20T08:00:00.000Z', updatedAt: '2026-10-20T08:00:00.000Z', items: [dictItem] };
+const dictOptions = { order_status: { code: dictType.code, name: dictType.name, items: [dictItem] } };
 const menu = { key: 'home', label: '首页', type: 'route', parentKey: null, path: '/', action: null,
   icon: 'layout-dashboard', sort: 1, visible: true };
 const site = { projectName: '示例项目', admin: { siteTitle: '管理后台', systemName: '管理系统', iconUrl: null },
@@ -74,6 +79,17 @@ const examples: Record<string, EndpointExample> = {
     enabled: true, remark: '站点联系方式' }, response: success(config, '配置已更新') },
   [`DELETE ${admin}/configs/:key`]: { requestKind: 'Path', request: { key: 'contact.email' },
     response: success(null, '配置已删除') },
+  [`GET ${admin}/dictionaries`]: { response: success([dictType]) },
+  [`GET ${admin}/dictionaries/options`]: { requestKind: 'Query', request: { codes: 'order_status' },
+    response: success(dictOptions) },
+  [`POST ${admin}/dictionaries`]: { request: { code: dictType.code, name: dictType.name,
+    remark: '', isPublic: true, enabled: true }, response: success(dictType, '字典类型已创建') },
+  [`PUT ${admin}/dictionaries/:id`]: { request: { name: dictType.name, remark: '', isPublic: true,
+    enabled: true }, response: success(dictType, '字典类型已更新') },
+  [`POST ${admin}/dictionaries/:id/items`]: { request: { label: dictItem.label, value: dictItem.value,
+    sort: 10, enabled: true, color: 'green' }, response: success(dictItem, '字典子项已创建') },
+  [`PUT ${admin}/dictionaries/:id/items/:itemId`]: { request: { label: dictItem.label,
+    sort: 10, enabled: true, color: 'green' }, response: success(dictItem, '字典子项已更新') },
   [`GET ${admin}/menus`]: { response: success([menu]) },
   [`PUT ${admin}/menus`]: { request: { items: [menu] }, response: success([menu], '菜单已保存') },
   [`GET ${admin}/site-settings`]: { response: success(site) },
@@ -115,6 +131,8 @@ const examples: Record<string, EndpointExample> = {
   [`DELETE ${admin}/files/:id`]: { requestKind: 'Path', request: { id: file.id },
     response: success(null, '文件已归档') },
   [`GET ${publicApi}/site-settings`]: { response: success(site) },
+  [`GET ${publicApi}/dictionaries`]: { requestKind: 'Query', request: { codes: 'order_status' },
+    response: success(dictOptions) },
   [`GET ${publicApi}/site-settings/:target/icon`]: { requestKind: 'Path', request: { target: 'admin' } },
   [`GET ${publicApi}/files/:id/content`]: { requestKind: 'Path', request: { id: file.id } },
   [`POST ${publicApi}/visits`]: { request: { visitorId: visit.visitorId, path: '/', pageTitle: '首页',

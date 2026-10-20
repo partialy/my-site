@@ -14,6 +14,7 @@ import { FilesPage } from '../pages/files/FilesPage';
 import { MenuManagementPage } from '../pages/menus/MenuManagementPage';
 import { ApiDocsPage } from '../pages/api-docs/ApiDocsPage';
 import { NotFoundPage } from '../pages/errors/NotFoundPage';
+import { DictionariesPage } from '../pages/dictionaries/DictionariesPage';
 
 export const router = createBrowserRouter([
   {
@@ -37,6 +38,10 @@ export const router = createBrowserRouter([
       {
         path: 'configs',
         element: <ConfigsPage />,
+      },
+      {
+        path: 'dictionaries',
+        element: <DictionariesPage />,
       },
       {
         path: 'request-logs',

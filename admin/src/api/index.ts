@@ -4,6 +4,7 @@ export * from './setup';
 export * from './auth';
 export * from './systemConfig';
 export * from './configs';
+export * from './dictionaries';
 export * from './requestLogs';
 export * from './siteSettings';
 export * from './files';

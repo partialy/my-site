@@ -3,6 +3,7 @@ import { getMe, getSetupStatus, login as loginApi, onUnauthorized, ApiNetworkErr
 import type { AdminSummary, ApiResponse, LoginData, LoginRequest } from '../api/types';
 import { getToken, removeToken, setToken as saveTokenToStorage } from './token';
 import type { AuthContextValue, AuthState } from './types';
+import { clearDictionaryCache } from '../dictionaries';
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
@@ -118,6 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // 监听受保护接口 401 自动清理
   useEffect(() => {
     const unsubscribe = onUnauthorized(() => {
+      clearDictionaryCache();
       setState((prev) => ({
         ...prev,
         admin: null,
@@ -151,6 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // 退出登录方法：仅清理本地 Token 与状态
   const logout = useCallback(() => {
+    clearDictionaryCache();
     removeToken();
     setState((prev) => ({
       ...prev,

@@ -35,6 +35,12 @@ admin/.env.example 给出开发代理配置。VITE_API_BASE_URL 默认 /api/v1/a
 | PUT、DELETE | /api/v1/admin/system-config/whitelist/:id | 修改、删除白名单规则 |
 | GET、POST | /api/v1/admin/configs | 查询、新增普通配置 |
 | PUT、DELETE | /api/v1/admin/configs/:key | 修改、删除普通配置 |
+| GET、POST | /api/v1/admin/dictionaries | 查询、新增字典类型 |
+| GET | /api/v1/admin/dictionaries/options?codes=a,b | 批量读取管理端可用选项 |
+| PUT | /api/v1/admin/dictionaries/:id | 修改字典类型 |
+| POST | /api/v1/admin/dictionaries/:id/items | 新增字典子项 |
+| PUT | /api/v1/admin/dictionaries/:id/items/:itemId | 修改字典子项 |
+| GET | /api/v1/dictionaries?codes=a,b | 批量读取公开字典选项 |
 | GET | /api/v1/admin/request-logs | 分页筛选请求日志，支持 page、pageSize、method、path、status |
 | DELETE | /api/v1/admin/request-logs | 按选中 ID、时间段、某时间前/后或保留最新 N 条清理请求日志 |
 | GET | /api/v1/admin/home | 访问统计、近 7 天请求日志聚合与真实用户数据 |
@@ -54,6 +60,8 @@ admin/.env.example 给出开发代理配置。VITE_API_BASE_URL 默认 /api/v1/a
 系统管理页位于 `/system-config`，可从下拉框选择请求日志记录模式（关闭、全部、白名单）、管理白名单规则，以及设置控制台日志开关和输出模板。模板变量显示中文名称，点击复制变量文本。
 
 配置管理页位于 `/configs`，通过表格和弹窗维护 `config` 表中的名称、键、值、启用状态及备注。所有设置均通过上述真实服务端接口读写。
+
+数据字典页位于 `/dictionaries`，管理类型与子项的名称、排序、状态和徽章颜色。页面与路由已注册，侧栏菜单由管理员自行添加。`src/dictionaries/` 提供 `DictSelect`、`DictTag` 与共享请求缓存；业务页面可直接使用 `<DictSelect dict="order_status" />`、`<DictTag dict="order_status" value={status} />`。类型标识和子项值创建后不可修改，停用可保留历史业务值；未知值在徽章中显示原值。
 
 请求日志页位于 `/request-logs`，支持按方法、路径和响应状态筛选，分页查看请求记录，并在详情弹窗查看已脱敏的请求参数、响应内容和来源信息。可跨分页勾选多条日志后确认清理，也可选择时间段、某时间前、某时间后、保留最新 N 条规则清理；规则针对全部日志，不受当前筛选条件影响。时间按浏览器本地时区选择：时间段包含起止秒，时间前/后不包含所选整秒；清理不可恢复。尚未启用请求日志时，列表为空。筛选栏的输入框、下拉框和按钮采用统一高度，文件管理搜索栏也遵循同一主题配置。
 

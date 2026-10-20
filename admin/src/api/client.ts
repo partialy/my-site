@@ -76,6 +76,7 @@ export interface RequestOptions {
   requiresAuth?: boolean;
   headers?: Record<string, string>;
   signal?: AbortSignal;
+  baseUrl?: string;
 }
 
 export async function request<TData>(
@@ -92,7 +93,7 @@ export async function request<TData>(
     if (token) headers.Authorization = `Bearer ${token}`;
   }
 
-  const url = `${getApiBaseUrl().replace(/\/+$/, '')}/${endpoint.replace(/^\/+/, '')}`;
+  const url = `${(options.baseUrl ?? getApiBaseUrl()).replace(/\/+$/, '')}/${endpoint.replace(/^\/+/, '')}`;
   let response: Response;
   try {
     response = await fetch(url, {
