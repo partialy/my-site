@@ -21,7 +21,7 @@ export interface DashboardData {
     trend30: VisitTrendPoint[];
   };
   users: {
-    source: 'mock' | 'real';
+    source: 'real';
     total: number;
     activeLast7Days: number;
     newLast7Days: number;
@@ -87,7 +87,7 @@ function parseDashboard(value: unknown): DashboardData {
   const { visits, users, requestLogs } = value;
   if (typeof visits.today !== 'number' || typeof visits.yesterday !== 'number' ||
     typeof visits.last7Days !== 'number' || typeof requestLogs.total !== 'number' ||
-    (users.source !== 'mock' && users.source !== 'real') ||
+    users.source !== 'real' ||
     typeof users.total !== 'number' || typeof users.activeLast7Days !== 'number' ||
     typeof users.newLast7Days !== 'number' ||
     (requestLogs.successRate !== null && typeof requestLogs.successRate !== 'number')) {

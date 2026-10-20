@@ -5,6 +5,7 @@ import type { RequestLogMode } from '../../api/systemConfig';
 import { useSystemConfig } from './useSystemConfig';
 import { WhitelistModal } from './WhitelistModal';
 import { SiteIdentitySection } from './SiteIdentitySection';
+import { ServerStatusSection } from './ServerStatusSection';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -55,7 +56,7 @@ export function SystemConfigPage() {
         <div>
           <Space size={10} style={{ color: '#2563eb', marginBottom: 8 }}><Settings2 size={17} /><Text style={{ color: '#2563eb', fontWeight: 600 }}>框架设置</Text></Space>
           <Title level={2} style={{ margin: 0 }}>系统管理</Title>
-          <Paragraph type="secondary" style={{ margin: '8px 0 0' }}>管理请求日志、控制台输出和网站信息。配置保存后立即生效。</Paragraph>
+          <Paragraph type="secondary" style={{ margin: '8px 0 0' }}>管理请求日志、控制台输出和网站信息，查看服务器状态与数据库备份。</Paragraph>
         </div>
         <Space>
           <Button icon={<RefreshCw size={16} />} onClick={() => void reload()} loading={loading}>刷新</Button>
@@ -121,6 +122,7 @@ export function SystemConfigPage() {
         </Space>
       )}
       <div style={{ marginTop: 18 }}><SiteIdentitySection /></div>
+      <div style={{ marginTop: 18 }}><ServerStatusSection /></div>
       <WhitelistModal open={whitelistOpen} onClose={() => setWhitelistOpen(false)} onChanged={() => void refreshWhitelist()} />
     </div>
   );

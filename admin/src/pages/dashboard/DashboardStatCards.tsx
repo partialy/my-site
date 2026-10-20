@@ -22,10 +22,10 @@ export function DashboardStatCards({ data }: { data: DashboardData }) {
     { label: '近 7 日访问量', value: visits.last7Days.toLocaleString('zh-CN'),
       note: '每日去重记录之和', icon: <CalendarDays size={19} />, tone: 'teal' },
     { label: '近 7 日活跃用户', value: users.activeLast7Days.toLocaleString('zh-CN'),
-      note: users.source === 'mock' ? '演示数据 · 待接入用户模块' : '按用户去重',
+      note: '按用户去重',
       icon: <UsersRound size={19} />, tone: 'orange' },
     { label: '用户总数', value: users.total.toLocaleString('zh-CN'),
-      note: users.source === 'mock' ? '演示数据 · 待接入用户模块' : '业务用户账号数',
+      note: '业务用户账号数',
       icon: <UserRound size={19} />, tone: 'slate' },
   ];
 

@@ -30,11 +30,13 @@ const log = { id: 1, time: '2026-10-20T08:00:00.000Z', method: 'GET', path: '/ap
 const visit = { id: 1, day: '2026-10-20', visitorId: '7a9e4c72-b061-4ee6-9ed8-d986dbd6c919',
   path: '/', pageTitle: '首页', referrer: '', ip: '127.0.0.1', userAgent: 'Mozilla/5.0',
   createdAt: '2026-10-20T08:00:00.000Z' };
+const user = { id: 1, account: 'example_user', nickname: '示例用户', avatar: null, status: 'active',
+  createdAt: '2026-10-20T08:00:00.000Z', updatedAt: '2026-10-20T08:00:00.000Z' };
 const home = {
   visits: { today: 18, yesterday: 15, last7Days: 102, trend7: [{ day: '2026-10-20', visits: 18 }],
     trend30: [{ day: '2026-10-20', visits: 18 }] },
-  users: { source: 'mock', total: 2680, activeLast7Days: 468, newLast7Days: 302,
-    trend7: [{ day: '2026-10-20', newUsers: 63, activeUsers: 172 }] },
+  users: { source: 'real', total: 1, activeLast7Days: 1, newLast7Days: 1,
+    trend7: [{ day: '2026-10-20', newUsers: 1, activeUsers: 1 }] },
   requestLogs: { total: 24, successRate: 95.8, sources: [{ name: 'example.com', count: 10 }],
     topPaths: [{ path: '/api/v1/site-settings', count: 8 }] },
 };
@@ -88,10 +90,23 @@ const examples: Record<string, EndpointExample> = {
     response: success({ items: [log], total: 1, page: 1, pageSize: 20 }) },
   [`DELETE ${admin}/request-logs`]: { request: { mode: 'keepLatest', count: 100 },
     response: success({ deleted: 12 }, '请求日志已清理') },
+  [`GET ${admin}/operation-logs`]: { requestKind: 'Query', request: { page: 1, pageSize: 20, module: '配置管理', actor: 'admin' },
+    response: success({ items: [{ id: 1, actorType: 'admin', actorId: '1', actorName: 'admin', module: '配置管理',
+      action: 'update', targetType: 'config', targetId: 'contact.email', summary: '修改动态配置', changedFields: [],
+      ip: '127.0.0.1', durationMs: 12, createdAt: '2026-10-20T08:00:00.000Z' }], total: 1, page: 1, pageSize: 20 }) },
+  [`GET ${admin}/system-status`]: { response: success({ nodeVersion: 'v22.0.0', uptimeSeconds: 3600,
+    processMemoryBytes: 90000000, systemMemoryTotalBytes: 16000000000, systemMemoryFreeBytes: 8000000000,
+    cpuLoadPercent: 12.5, databaseBytes: 1048576, diskFreeBytes: 50000000000, sampledAt: '2026-10-20T08:00:00.000Z' }) },
+  [`POST ${admin}/backups/database`]: {},
   [`GET ${admin}/home`]: { response: success(home) },
   [`GET ${admin}/visits`]: { requestKind: 'Query', request: { page: 1, pageSize: 20,
     path: '/', visitorId: visit.visitorId, startDay: '2026-10-01', endDay: '2026-10-20' },
     response: success({ items: [visit], total: 1, page: 1, pageSize: 20 }) },
+  [`GET ${admin}/users`]: { requestKind: 'Query', request: { page: 1, pageSize: 20, search: 'example', status: 'active' },
+    response: success({ items: [user], total: 1, page: 1, pageSize: 20 }) },
+  [`GET ${admin}/users/:id`]: { requestKind: 'Path', request: { id: 1 }, response: success(user) },
+  [`PUT ${admin}/users/:id/status`]: { request: { status: 'disabled' },
+    response: success({ ...user, status: 'disabled' }, '用户已禁用') },
   [`GET ${admin}/files`]: { requestKind: 'Query', request: { page: 1, pageSize: 20, search: 'logo', mimeTypes: 'image/png,image/jpeg' },
     response: success({ items: [file], total: 1, page: 1, pageSize: 20 }) },
   [`POST ${admin}/files`]: { requestKind: '原始文件', request: { contentType: 'image/png',
@@ -103,6 +118,12 @@ const examples: Record<string, EndpointExample> = {
   [`GET ${publicApi}/files/:id/content`]: { requestKind: 'Path', request: { id: file.id } },
   [`POST ${publicApi}/visits`]: { request: { visitorId: visit.visitorId, path: '/', pageTitle: '首页',
     referrer: 'https://example.com/' }, response: success({ recorded: true, day: '2026-10-20' }) },
+  [`POST ${publicApi}/users/register`]: { request: { account: 'example_user', password: '<至少12位密码>', nickname: '示例用户' },
+    response: success(user, '注册成功') },
+  [`POST ${publicApi}/users/login`]: { request: { account: 'example_user', password: '<用户密码>' },
+    response: success({ token: '<用户JWT>', tokenType: 'Bearer', expiresIn: 43200, user }, '登录成功') },
+  [`GET ${publicApi}/users/me`]: { response: success(user) },
+  'GET /health': { response: { status: 'ok' } },
 };
 
 export function getEndpointExample(endpoint: ApiEndpoint): EndpointExample {

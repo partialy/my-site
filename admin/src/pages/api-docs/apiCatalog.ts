@@ -26,6 +26,7 @@ const configItem = '{ key: string; name: string; value: string; enabled: boolean
 const whitelistRule = '{ id: string; name: string; type: "wildcard" | "exact"; path: string; remark: string; createdAt: ISO时间; updatedAt: ISO时间 }';
 const fileItem = '{ id: UUID; name: string; mimeType: string; size: number; url: string; createdAt: ISO时间 }';
 const menuItem = '{ key: string; label: string; type: "group" | "route" | "action"; parentKey: string | null; path: string | null; action: string | null; icon: string | null; sort: number; visible: boolean }';
+const userItem = '{ id: number; account: string; nickname: string; avatar: string | null; status: "active" | "disabled"; createdAt: ISO时间; updatedAt: ISO时间 }';
 
 export const API_GROUPS: readonly ApiGroup[] = [
   { audience: 'admin', module: '初始化与认证', endpoints: [
@@ -100,10 +101,33 @@ export const API_GROUPS: readonly ApiGroup[] = [
       request: 'JSON 五选一: { mode: "ids"; ids: number[](1-500) } | { mode: "timeRange"; startTime: ISO时间; endTime: ISO时间 } | { mode: "beforeTime" | "afterTime"; time: ISO时间 } | { mode: "keepLatest"; count: number }',
       response: '{ deleted: number }', note: '时间段包含起止边界；时间前/后为严格比较；最新按日志 ID 判定。' },
   ] },
+  { audience: 'admin', module: '操作日志', endpoints: [
+    { method: 'GET', path: `${admin}/operation-logs`, title: '查询业务操作审计', auth: true,
+      request: 'Query: page=1；pageSize=20(1-100)；module?；actor?；startTime?；endTime?（带时区 ISO 时间）',
+      response: '{ items: OperationLogItem[]; total: number; page: number; pageSize: number }',
+      note: '仅记录框架内成功的管理员写操作；业务模块可显式调用记录器。审计摘要不含原始敏感值。' },
+  ] },
+  { audience: 'admin', module: '运行状态与备份', endpoints: [
+    { method: 'GET', path: `${admin}/system-status`, title: '获取服务器状态', auth: true,
+      response: '{ nodeVersion: string; uptimeSeconds: number; processMemoryBytes: number; systemMemoryTotalBytes: number; systemMemoryFreeBytes: number; cpuLoadPercent: number | null; databaseBytes: number; diskFreeBytes: number | null; sampledAt: ISO时间 }' },
+    { method: 'POST', path: `${admin}/backups/database`, title: '下载 SQLite 数据库备份', auth: true,
+      response: 'SQLite 数据库二进制文件', binary: true,
+      note: '在线生成并下载 .sqlite.bak；仅包含数据库，不包含上传文件。' },
+  ] },
   { audience: 'admin', module: '首页统计', endpoints: [
     { method: 'GET', path: `${admin}/home`, title: '获取首页数据', auth: true,
-      response: '{ visits: { today: number; yesterday: number; last7Days: number; trend7: { day: string; visits: number }[]; trend30: 同 trend7 }; users: { source: "mock"; total: number; activeLast7Days: number; newLast7Days: number; trend7: { day: string; newUsers: number; activeUsers: number }[] }; requestLogs: { total: number; successRate: number | null; sources: { name: string; count: number }[]; topPaths: { path: string; count: number }[] } }',
-      note: '访问和已记录的接口日志是真实数据；用户相关数据目前为模拟。' },
+      response: '{ visits: { today: number; yesterday: number; last7Days: number; trend7: { day: string; visits: number }[]; trend30: 同 trend7 }; users: { source: "real"; total: number; activeLast7Days: number; newLast7Days: number; trend7: { day: string; newUsers: number; activeUsers: number }[] }; requestLogs: { total: number; successRate: number | null; sources: { name: string; count: number }[]; topPaths: { path: string; count: number }[] } }',
+      note: '用户活跃按认证用户 UTC 日期去重，近 7 日活跃用户数按用户 ID 去重。' },
+  ] },
+  { audience: 'admin', module: '用户管理', endpoints: [
+    { method: 'GET', path: `${admin}/users`, title: '分页查询业务用户', auth: true,
+      request: 'Query: page=1；pageSize=20(1-100)；search?（账号或昵称）；status?=active | disabled',
+      response: `{ items: ${userItem}[]; total: number; page: number; pageSize: number }` },
+    { method: 'GET', path: `${admin}/users/:id`, title: '查看业务用户', auth: true,
+      request: '路径: id=用户 ID', response: userItem },
+    { method: 'PUT', path: `${admin}/users/:id/status`, title: '禁用或启用业务用户', auth: true,
+      request: '路径: id=用户 ID；JSON: { status: "active" | "disabled" }', response: userItem,
+      note: '更改状态时提升 Token 版本；禁用后已有用户 JWT 立即失效。' },
   ] },
   { audience: 'admin', module: '访问日志', endpoints: [
     { method: 'GET', path: `${admin}/visits`, title: '分页查询访问日志', auth: true,
@@ -137,6 +161,20 @@ export const API_GROUPS: readonly ApiGroup[] = [
       request: 'JSON: { visitorId: UUID; path: 站内绝对路径; pageTitle?: string; referrer?: URL }',
       response: '{ recorded: boolean; day: YYYY-MM-DD }',
       note: '同一访客按 UTC 日期每天只记首次访问；新记录 HTTP 201，重复上报 HTTP 200。' },
+  ] },
+  { audience: 'public', module: '业务用户', endpoints: [
+    { method: 'POST', path: `${publicApi}/users/register`, title: '注册业务用户', auth: false,
+      request: 'JSON: { account: string(3-32，字母开头，字母/数字/下划线); password: string(12-128); nickname?: string(1-50) }',
+      response: userItem, note: '账号不区分大小写且唯一；成功时 HTTP 201。' },
+    { method: 'POST', path: `${publicApi}/users/login`, title: '业务用户登录', auth: false,
+      request: 'JSON: { account: string; password: string }',
+      response: `{ token: string; tokenType: "Bearer"; expiresIn: number(秒); user: ${userItem} }` },
+    { method: 'GET', path: `${publicApi}/users/me`, title: '获取当前业务用户', auth: true,
+      response: userItem, note: '使用业务用户 JWT，与管理员 JWT 不通用。' },
+  ] },
+  { audience: 'public', module: '健康检查', endpoints: [
+    { method: 'GET', path: '/health', title: '服务就绪探针', auth: false,
+      response: '{ status: "ok" | "unavailable" }', note: '探针路径位于 API 前缀之外；异常时 HTTP 503。' },
   ] },
 ];
 

@@ -7,7 +7,9 @@ import { DashboardPage } from '../pages/dashboard/DashboardPage';
 import { SystemConfigPage } from '../pages/system-config/SystemConfigPage';
 import { ConfigsPage } from '../pages/configs/ConfigsPage';
 import { RequestLogsPage } from '../pages/request-logs/RequestLogsPage';
+import { OperationLogsPage } from '../pages/operation-logs/OperationLogsPage';
 import { VisitLogsPage } from '../pages/visit-logs/VisitLogsPage';
+import { UsersPage } from '../pages/users/UsersPage';
 import { FilesPage } from '../pages/files/FilesPage';
 import { MenuManagementPage } from '../pages/menus/MenuManagementPage';
 import { ApiDocsPage } from '../pages/api-docs/ApiDocsPage';
@@ -41,8 +43,16 @@ export const router = createBrowserRouter([
         element: <RequestLogsPage />,
       },
       {
+        path: 'operation-logs',
+        element: <OperationLogsPage />,
+      },
+      {
         path: 'visit-logs',
         element: <VisitLogsPage />,
+      },
+      {
+        path: 'users',
+        element: <UsersPage />,
       },
       {
         path: 'files',

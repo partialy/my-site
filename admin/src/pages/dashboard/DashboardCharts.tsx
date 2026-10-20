@@ -66,8 +66,7 @@ export function DashboardCharts({ data }: { data: DashboardData }) {
       </article>
 
       <article className="dashboard-panel dashboard-users-panel">
-        <ChartHeading icon={<UsersRound size={18} />} title="新增用户"
-          subtitle={data.users.source === 'mock' ? '演示数据 · 等待业务用户模块接入' : '近 7 天用户变化'} />
+        <ChartHeading icon={<UsersRound size={18} />} title="新增用户" subtitle="近 7 天用户变化" />
         <div className="dashboard-users-summary"><strong>{data.users.newLast7Days.toLocaleString('zh-CN')}</strong><span>近 7 天累计新增</span></div>
         <div className="dashboard-chart-area">
           <ResponsiveContainer width="100%" height={278}>

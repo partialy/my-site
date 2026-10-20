@@ -119,3 +119,47 @@ export async function request<TData>(
   }
   return result;
 }
+
+export interface DownloadedFile {
+  blob: Blob;
+  fileName: string;
+}
+
+export async function downloadFile(endpoint: string, fallbackName: string, method: 'GET' | 'POST' = 'GET'): Promise<DownloadedFile> {
+  const headers: Record<string, string> = {};
+  const token = getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const url = `${getApiBaseUrl().replace(/\/+$/, '')}/${endpoint.replace(/^\/+/, '')}`;
+  let response: Response;
+  try {
+    response = await fetch(url, { method, headers });
+  } catch {
+    throw new ApiNetworkError();
+  }
+
+  if (!response.ok) {
+    let raw: unknown;
+    try {
+      raw = await response.json();
+    } catch {
+      throw new ApiNetworkError(`HTTP ${response.status} 下载失败`);
+    }
+    const result = parseResponse(raw, (value: unknown) => value);
+    if (result.code === ApiCode.TOKEN_MISSING || result.code === ApiCode.TOKEN_INVALID || result.code === ApiCode.TOKEN_EXPIRED) {
+      notifyUnauthorized();
+    }
+    throw new ApiNetworkError(result.msg);
+  }
+
+  const disposition = response.headers.get('Content-Disposition') ?? '';
+  const encoded = /filename\*=UTF-8''([^;]+)/i.exec(disposition)?.[1];
+  const plain = /filename="?([^";]+)"?/i.exec(disposition)?.[1];
+  let fileName = fallbackName;
+  try {
+    fileName = encoded ? decodeURIComponent(encoded) : plain ?? fallbackName;
+  } catch {
+    fileName = fallbackName;
+  }
+  fileName = fileName.replace(/[\\/]/g, '_');
+  return { blob: await response.blob(), fileName };
+}
