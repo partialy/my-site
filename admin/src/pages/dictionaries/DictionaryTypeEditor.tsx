@@ -39,7 +39,7 @@ export function DictionaryTypeEditor({ open, item, saving, onClose, onSave }: Pr
     <Modal title={item ? '编辑字典类型' : '批量新增字典类型'} open={open} onCancel={onClose}
       onOk={() => form.submit()} okText={item ? '保存' : '批量保存'} cancelText="取消"
       confirmLoading={saving} destroyOnHidden width={780}
-      styles={{ body: { maxHeight: '65vh', overflowY: 'auto', overflowX: 'hidden', paddingInline: '12px 28px' } }}>
+      styles={{ body: { maxHeight: '65vh', overflowY: 'auto', overflowX: 'hidden', paddingInline: '12px 8px' } }}>
       <Form form={form} layout="vertical" initialValues={{ entries: [blank()] }}
         onFinish={(values) => void submit(values)} style={{ marginTop: 24 }}>
         <Form.List name="entries">
@@ -51,10 +51,10 @@ export function DictionaryTypeEditor({ open, item, saving, onClose, onSave }: Pr
                     <Text strong>{item ? '字典类型' : `类型 ${index + 1}`}</Text>
                     <Space size={12} wrap>
                       <Form.Item name={[field.name, 'isPublic']} valuePropName="checked" style={{ marginBottom: 0 }}>
-                        <DictionaryFormSwitch kind="visibility" aria-label="是否公开给用户端" />
+                        <DictionaryFormSwitch kind="visibility" tooltip="公开后，用户端可获取此类型及其启用子项" aria-label="是否公开给用户端" />
                       </Form.Item>
                       <Form.Item name={[field.name, 'enabled']} valuePropName="checked" style={{ marginBottom: 0 }}>
-                        <DictionaryFormSwitch kind="enabled" aria-label="是否启用" />
+                        <DictionaryFormSwitch kind="enabled" tooltip="停用后，此类型及其子项不再对外提供" aria-label="是否启用" />
                       </Form.Item>
                       {!item && <Button type="text" danger size="small" icon={<Trash2 size={14} />}
                         disabled={fields.length === 1} onClick={() => remove(field.name)}>移除</Button>}
