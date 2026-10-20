@@ -30,7 +30,7 @@ import { SystemStatusService } from './services/system-status.service';
 
 function main(): void {
   const config = loadConfig();
-  const db = openDatabase(config.sqlitePath);
+  const db = openDatabase(config.sqlitePath, config.nodeEnv !== 'production');
   const admins = new AdminRepository(db);
   const configManager = new ConfigManager(new ConfigRepository(db));
   const setup = new SetupService(admins, config.setupKey, new SetupRepository(db), configManager);

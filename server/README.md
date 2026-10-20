@@ -1,6 +1,6 @@
 # server
 
-单管理员后台与通用业务用户基础框架。使用 Express 5、TypeScript、Zod、JWT 和 SQLite；表结构由 `migrations/*.sql` 管理，按需创建 `request_log`。
+单管理员后台与通用业务用户基础框架。使用 Express 5、TypeScript、Zod、JWT 和 SQLite；表结构由 `migrations/` 管理，按需创建 `request_log`。
 
 ## 启动
 
@@ -9,9 +9,9 @@
     npm install
     npm run dev
 
-常用命令：npm run typecheck、npm run build、npm start。npm start 使用编译后的 dist/。配置中的 SQLITE_PATH 相对于 server/ 工作目录解析；默认数据库是 server/data/framework.sqlite。全新数据库会在一个事务内按文件名顺序执行 `migrations/*.sql`，随后以 `_migrations` 标记已初始化；已有数据库启动时不会重新执行这些文件或校验文件内容。数据库文件、.env 和构建产物均被根目录 .gitignore 忽略。
+常用命令：npm run typecheck、npm run build、npm start。npm start 使用编译后的 dist/。配置中的 SQLITE_PATH 相对于 server/ 工作目录解析；默认数据库是 server/data/framework.sqlite。正式部署需设置 `NODE_ENV=production`，否则默认按开发环境执行 SQL。数据库文件、.env 和构建产物均被根目录 .gitignore 忽略。
 
-当前处于开发期：`migrations/` 只放建表与初始数据 SQL，表结构变化直接修改对应初始化文件，确保新部署创建的数据库为最新结构。已有开发库需要保留数据时，可将升级 SQL 放在 `dev-sql/` 并手动执行；服务不会自动执行该目录，正式上线前清理这些开发期脚本。若无需保留开发数据，可删除本地数据库后重新初始化。正式上线后应另行建立可追踪的版本升级流程。
+`migrations/sql/` 放新数据库的建表与初始数据 SQL，仅首次启动按文件名顺序在一个事务内执行；开发期表结构变化直接修改这里的文件。`migrations/prod-sql/` 放正式升级脚本，所有环境每次启动都扫描并执行未执行的文件；`migrations/dev-sql/` 放开发库升级脚本，仅非生产环境自动执行，正式上线前可清理。升级脚本按文件名顺序执行，生产脚本先于开发脚本；每个脚本和执行记录同事务提交。新库将当时已有的升级脚本记为基线，避免在最新初始化结构上重复升级；已有数据库会执行未记录的脚本。已记录脚本若被修改，启动会报错，应新增后续脚本。若无需保留开发数据，可删除本地数据库后重新初始化。
 
 `TRUSTED_PROXIES` 默认为空；只有部署在受信任的反向代理后，才填写代理 IP/CIDR。限流与审计依赖正确的来源 IP。内存限流仅适用于单进程，重启会重置计数，多实例部署需要共享计数存储。
 
@@ -97,7 +97,7 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 - src/repositories：SQLite 数据访问。
 - src/security：密码哈希、初始化密钥、JWT。
 - src/middleware：路由鉴权与请求日志。
-- src/db：SQLite 连接与首次初始化；`migrations/` 保存按编号排序的建表和初始数据 SQL。
+- src/db：SQLite 连接、首次初始化与自动升级；`migrations/sql/` 保存初始化 SQL，`migrations/dev-sql/` 和 `migrations/prod-sql/` 保存升级 SQL。
 - src/config：环境变量校验与配置内存管理。
 
 普通业务列表可使用 `src/repositories/table-list.repository.ts` 的 `TableListRepository`。资源在服务端代码中静态声明表、返回列、搜索列、等值/模糊/范围/数组筛选、固定 `IS NULL` 约束和排序；用户、操作日志、访问日志、请求日志、文件列表的配置示例位于 `src/repositories/resources/`。Controller 仍使用专属 Zod Schema 校验查询参数，Service 保留业务规则。表名和列名仅来自代码配置，筛选值使用 SQLite 参数绑定，模糊查询转义通配符。用户列表不会将密码哈希作为列表字段读取；请求日志表未创建时查询仍返回空列表，文件列表固定排除已归档文件。包含副作用的写操作仍由业务 Service 和对应 Repository 实现。

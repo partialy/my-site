@@ -3,6 +3,7 @@ import path from 'node:path';
 import { z } from 'zod';
 
 const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   JWT_SECRET: z.string().min(32).refine((value) => !value.startsWith('replace-with-')),
   SETUP_KEY: z.string().min(16).refine((value) => !value.startsWith('replace-with-')),
@@ -12,6 +13,7 @@ const envSchema = z.object({
 });
 
 export type AppConfig = {
+  nodeEnv: 'development' | 'production' | 'test';
   port: number;
   jwtSecret: string;
   setupKey: string;
@@ -28,6 +30,7 @@ export function loadConfig(): AppConfig {
   }
 
   return {
+    nodeEnv: parsed.data.NODE_ENV,
     port: parsed.data.PORT,
     jwtSecret: parsed.data.JWT_SECRET,
     setupKey: parsed.data.SETUP_KEY,
