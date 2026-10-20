@@ -168,17 +168,24 @@ export function SiteIdentitySection() {
         <Button type="primary" icon={<Save size={16} />} loading={saving} disabled={!dirty} onClick={() => void save()}>保存网站信息</Button>
       </Flex>
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} />}
-      <label className="site-identity-project-name">
-        <Text strong>项目名称</Text>
-        <Input value={draft.projectName} maxLength={100} onChange={(event) => setDraft((current) => ({ ...current, projectName: event.target.value }))}
-          placeholder="当前项目的名称" style={{ maxWidth: 440, marginTop: 8 }} />
-      </label>
-      <label className="site-identity-project-name">
-        <Text strong>版权信息</Text>
-        <Input value={draft.copyright} maxLength={200}
-          onChange={(event) => setDraft((current) => ({ ...current, copyright: event.target.value }))}
-          placeholder="显示在管理后台页脚" style={{ maxWidth: 700, marginTop: 8 }} />
-      </label>
+      <Row gutter={16} style={{ marginBottom: 24 }}>
+        <Col xs={12}>
+          <label className="site-identity-project-name">
+            <Text strong>项目名称</Text>
+            <Input value={draft.projectName} maxLength={100}
+              onChange={(event) => setDraft((current) => ({ ...current, projectName: event.target.value }))}
+              placeholder="当前项目的名称" />
+          </label>
+        </Col>
+        <Col xs={12}>
+          <label className="site-identity-project-name">
+            <Text strong>版权信息</Text>
+            <Input value={draft.copyright} maxLength={200}
+              onChange={(event) => setDraft((current) => ({ ...current, copyright: event.target.value }))}
+              placeholder="显示在管理后台页脚" />
+          </label>
+        </Col>
+      </Row>
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
           <SiteIdentityFields target="admin" title="管理后台" description="用于登录页、后台侧栏和浏览器标签" {...draft.admin} iconUrl={settings.admin.iconUrl} busy={busyTarget === 'admin'} onFieldChange={changeField} onSelect={setPickerTarget} onDelete={(target) => void remove(target)} />
