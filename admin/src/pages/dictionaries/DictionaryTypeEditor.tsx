@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
-import { Button, Col, Form, Input, Modal, Row, Space, Switch, Typography } from 'antd';
+import { Button, Col, Flex, Form, Input, Modal, Row, Space, Typography } from 'antd';
 import { Plus, Trash2 } from 'lucide-react';
 import type { CreateDictTypeInput, DictType } from '../../api/dictionaries';
+import { DictionaryFormSwitch } from './DictionaryFormSwitch';
 
 interface Props {
   open: boolean;
@@ -38,7 +39,7 @@ export function DictionaryTypeEditor({ open, item, saving, onClose, onSave }: Pr
     <Modal title={item ? '编辑字典类型' : '批量新增字典类型'} open={open} onCancel={onClose}
       onOk={() => form.submit()} okText={item ? '保存' : '批量保存'} cancelText="取消"
       confirmLoading={saving} destroyOnHidden width={780}
-      styles={{ body: { maxHeight: '65vh', overflowY: 'auto' } }}>
+      styles={{ body: { maxHeight: '65vh', overflowY: 'auto', overflowX: 'hidden', paddingInline: '12px 28px' } }}>
       <Form form={form} layout="vertical" initialValues={{ entries: [blank()] }}
         onFinish={(values) => void submit(values)} style={{ marginTop: 24 }}>
         <Form.List name="entries">
@@ -46,11 +47,19 @@ export function DictionaryTypeEditor({ open, item, saving, onClose, onSave }: Pr
             <>
               {fields.map((field, index) => (
                 <div key={field.key} style={{ borderBottom: index === fields.length - 1 ? 'none' : '1px solid #edf0f5', marginBottom: 18 }}>
-                  {!item && <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <Text strong>类型 {index + 1}</Text>
-                    <Button type="text" danger size="small" icon={<Trash2 size={14} />}
-                      disabled={fields.length === 1} onClick={() => remove(field.name)}>移除</Button>
-                  </Space>}
+                  <Flex align="center" justify="space-between" wrap gap={12} style={{ marginBottom: 12 }}>
+                    <Text strong>{item ? '字典类型' : `类型 ${index + 1}`}</Text>
+                    <Space size={12} wrap>
+                      <Form.Item name={[field.name, 'isPublic']} valuePropName="checked" style={{ marginBottom: 0 }}>
+                        <DictionaryFormSwitch kind="visibility" aria-label="是否公开给用户端" />
+                      </Form.Item>
+                      <Form.Item name={[field.name, 'enabled']} valuePropName="checked" style={{ marginBottom: 0 }}>
+                        <DictionaryFormSwitch kind="enabled" aria-label="是否启用" />
+                      </Form.Item>
+                      {!item && <Button type="text" danger size="small" icon={<Trash2 size={14} />}
+                        disabled={fields.length === 1} onClick={() => remove(field.name)}>移除</Button>}
+                    </Space>
+                  </Flex>
                   <Row gutter={16}>
                     <Col xs={24} sm={12}>
                       <Form.Item name={[field.name, 'name']} label="名称"
@@ -69,18 +78,6 @@ export function DictionaryTypeEditor({ open, item, saving, onClose, onSave }: Pr
                   <Form.Item name={[field.name, 'remark']} label="备注">
                     <Input.TextArea rows={2} maxLength={500} showCount placeholder="可选" />
                   </Form.Item>
-                  <Row gutter={16}>
-                    <Col xs={12}>
-                      <Form.Item name={[field.name, 'isPublic']} label="公开给用户端" valuePropName="checked">
-                        <Switch checkedChildren="公开" unCheckedChildren="仅后台" />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={12}>
-                      <Form.Item name={[field.name, 'enabled']} label="启用" valuePropName="checked">
-                        <Switch checkedChildren="启用" unCheckedChildren="停用" />
-                      </Form.Item>
-                    </Col>
-                  </Row>
                 </div>
               ))}
               {!item && <Button type="dashed" block icon={<Plus size={16} />} disabled={fields.length >= 20}

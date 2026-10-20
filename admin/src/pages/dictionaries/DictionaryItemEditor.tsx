@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
-import { Button, Col, Form, Input, InputNumber, Modal, Row, Select, Space, Switch, Tag, Typography } from 'antd';
+import { Button, Col, Flex, Form, Input, InputNumber, Modal, Row, Select, Space, Tag, Typography } from 'antd';
 import { Plus, Trash2 } from 'lucide-react';
 import { DICT_COLORS } from '../../api/dictionaries';
 import type { CreateDictItemInput, DictItem } from '../../api/dictionaries';
+import { DictionaryFormSwitch } from './DictionaryFormSwitch';
 
 interface Props {
   open: boolean;
@@ -42,7 +43,7 @@ export function DictionaryItemEditor({ open, item, saving, onClose, onSave }: Pr
     <Modal title={item ? '编辑字典子项' : '批量新增字典子项'} open={open} onCancel={onClose}
       onOk={() => form.submit()} okText={item ? '保存' : '批量保存'} cancelText="取消"
       confirmLoading={saving} destroyOnHidden width={860}
-      styles={{ body: { maxHeight: '65vh', overflowY: 'auto' } }}>
+      styles={{ body: { maxHeight: '65vh', overflowY: 'auto', overflowX: 'hidden', paddingInline: '12px 28px' } }}>
       <Form form={form} layout="vertical" initialValues={{ entries: [blank()] }}
         onFinish={(values) => void submit(values)} style={{ marginTop: 24 }}>
         <Form.List name="entries">
@@ -50,11 +51,20 @@ export function DictionaryItemEditor({ open, item, saving, onClose, onSave }: Pr
             <>
               {fields.map((field, index) => (
                 <div key={field.key} style={{ borderBottom: index === fields.length - 1 ? 'none' : '1px solid #edf0f5', marginBottom: 18 }}>
-                  {!item && <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <Text strong>子项 {index + 1}</Text>
-                    <Button type="text" danger size="small" icon={<Trash2 size={14} />}
-                      disabled={fields.length === 1} onClick={() => remove(field.name)}>移除</Button>
-                  </Space>}
+                  <Flex align="center" justify="space-between" wrap gap={12} style={{ marginBottom: 12 }}>
+                    <Text strong>{item ? '字典子项' : `子项 ${index + 1}`}</Text>
+                    <Space size={12} wrap>
+                      <Text>颜色</Text>
+                      <Form.Item name={[field.name, 'color']} style={{ width: 140, marginBottom: 0 }}>
+                        <Select options={colorOptions} aria-label="徽章颜色" />
+                      </Form.Item>
+                      <Form.Item name={[field.name, 'enabled']} valuePropName="checked" style={{ marginBottom: 0 }}>
+                        <DictionaryFormSwitch kind="enabled" aria-label="是否启用" />
+                      </Form.Item>
+                      {!item && <Button type="text" danger size="small" icon={<Trash2 size={14} />}
+                        disabled={fields.length === 1} onClick={() => remove(field.name)}>移除</Button>}
+                    </Space>
+                  </Flex>
                   <Row gutter={16}>
                     <Col xs={24} sm={9}>
                       <Form.Item name={[field.name, 'label']} label="显示名称"
@@ -73,18 +83,6 @@ export function DictionaryItemEditor({ open, item, saving, onClose, onSave }: Pr
                       <Form.Item name={[field.name, 'sort']} label="排序"
                         rules={[{ required: true, message: '请输入排序值' }]}>
                         <InputNumber min={0} max={1_000_000} precision={0} style={{ width: '100%' }} />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                  <Row gutter={16}>
-                    <Col xs={24} sm={12}>
-                      <Form.Item name={[field.name, 'color']} label="徽章颜色">
-                        <Select options={colorOptions} />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} sm={12}>
-                      <Form.Item name={[field.name, 'enabled']} label="启用" valuePropName="checked">
-                        <Switch checkedChildren="启用" unCheckedChildren="停用" />
                       </Form.Item>
                     </Col>
                   </Row>
