@@ -47,21 +47,19 @@ export function DictionaryExportModal({ open, types, initialTypeId, onClose }: P
     setPickerOpen(false);
   }, [initialTypeId, open]);
 
-  const createFiles = (): GeneratedFile[] => {
+  const createFiles = (outputMode: ExportMode = mode): GeneratedFile[] => {
     const baseName = fileName.trim();
     if (!fileNamePattern.test(baseName)) {
       throw new Error('文件名称须以字母开头，仅使用字母、数字、下划线或连字符');
     }
-    return generateDictionaryFiles(selectedTypes, language, mode, baseName);
+    return generateDictionaryFiles(selectedTypes, language, outputMode, baseName);
   };
 
   const copyCode = async (): Promise<void> => {
     setCopying(true);
     try {
-      const files = createFiles();
-      const code = files.length === 1 ? files[0].content
-        : files.map((file) => `// ===== ${file.name} =====\n${file.content}`).join('\n');
-      await navigator.clipboard.writeText(code);
+      const [file] = createFiles('single');
+      await navigator.clipboard.writeText(file.content);
       message.success('代码已复制');
     } catch (error) {
       message.error(error instanceof Error ? error.message : '复制失败');
@@ -124,9 +122,7 @@ export function DictionaryExportModal({ open, types, initialTypeId, onClose }: P
             options={[{ label: '单文件：全部类型合并', value: 'single' },
               { label: '多文件：每个类型一个文件（ZIP）', value: 'multiple' }]} />
         </Form.Item>
-        {mode === 'multiple' && <Text type="secondary" style={{ fontSize: 12 }}>
-          复制多文件代码时将按文件名分段，请分别粘贴到对应文件。
-        </Text>}
+        <Text type="secondary" style={{ fontSize: 12 }}>复制代码始终合并为单文件，与下载方式无关。</Text>
       </Form>
     </Modal>
     <DictionaryTypePickerModal open={pickerOpen} types={types} selectedIds={selectedIds}
