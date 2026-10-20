@@ -19,6 +19,7 @@ export const PAGE_REGISTRY: readonly PageRecord[] = [
   { path: '/visit-logs', name: '访问日志', defaultKey: 'visit-logs', defaultIcon: 'bar-chart', defaultMenu: false, menuSelectable: true },
   { path: '/files', name: '文件管理', defaultKey: 'files', defaultIcon: 'folder', defaultMenu: true, menuSelectable: true },
   { path: '/menus', name: '菜单管理', defaultKey: 'menu-management', defaultIcon: 'menu', defaultMenu: true, menuSelectable: true },
+  { path: '/api-docs', name: '接口文档', defaultKey: 'api-docs', defaultIcon: 'book', defaultMenu: false, menuSelectable: true },
   { path: '/login', name: '登录', defaultKey: 'login', defaultIcon: null, defaultMenu: false, menuSelectable: false },
   { path: '/setup', name: '初始化管理员', defaultKey: 'setup', defaultIcon: null, defaultMenu: false, menuSelectable: false },
   { path: '/404', name: '页面不存在', defaultKey: 'not-found', defaultIcon: null, defaultMenu: false, menuSelectable: false },

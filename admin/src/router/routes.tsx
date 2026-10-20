@@ -10,6 +10,7 @@ import { RequestLogsPage } from '../pages/request-logs/RequestLogsPage';
 import { VisitLogsPage } from '../pages/visit-logs/VisitLogsPage';
 import { FilesPage } from '../pages/files/FilesPage';
 import { MenuManagementPage } from '../pages/menus/MenuManagementPage';
+import { ApiDocsPage } from '../pages/api-docs/ApiDocsPage';
 import { NotFoundPage } from '../pages/errors/NotFoundPage';
 
 export const router = createBrowserRouter([
@@ -50,6 +51,10 @@ export const router = createBrowserRouter([
       {
         path: 'menus',
         element: <MenuManagementPage />,
+      },
+      {
+        path: 'api-docs',
+        element: <ApiDocsPage />,
       },
     ],
   },
