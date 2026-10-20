@@ -3,6 +3,8 @@ import { Collapse, Empty, Input, Select, Segmented, Tag, Typography } from 'antd
 import { BookOpen, Braces, LockKeyhole, Search } from 'lucide-react';
 import { API_ENDPOINT_COUNT, API_GROUPS } from './apiCatalog';
 import type { ApiAudience, ApiEndpoint, ApiGroup, ApiMethod } from './apiCatalog';
+import { getEndpointExample } from './apiExamples';
+import { JsonCodeBlock } from './JsonCodeBlock';
 import './apiDocs.css';
 
 const { Text } = Typography;
@@ -13,16 +15,19 @@ const methodColors: Record<ApiMethod, string> = {
 };
 
 function EndpointDetail({ endpoint }: { endpoint: ApiEndpoint }) {
+  const example = getEndpointExample(endpoint);
   return <div className="api-doc-detail">
     <p className="api-doc-summary">{endpoint.title}</p>
     <div className="api-doc-detail-grid">
       <div>
-        <div className="api-doc-detail-label">请求</div>
-        <pre>{endpoint.request ?? '无额外参数'}</pre>
+        <JsonCodeBlock label={`请求参数${example.requestKind ? ` · ${example.requestKind}` : example.request ? ' · JSON Body' : ''}`}
+          value={example.request ?? '无额外参数'} json={example.request !== undefined} />
+        {endpoint.request && <p className="api-doc-schema-note">{endpoint.request}</p>}
       </div>
       <div>
-        <div className="api-doc-detail-label">{endpoint.binary ? '响应内容' : '成功时 data 字段'}</div>
-        <pre>{endpoint.response}</pre>
+        <JsonCodeBlock label={endpoint.binary ? '响应内容 · 二进制' : '成功响应 · JSON'}
+          value={endpoint.binary ? endpoint.response : example.response} json={!endpoint.binary} />
+        {!endpoint.binary && <p className="api-doc-schema-note">data 字段：{endpoint.response}</p>}
       </div>
     </div>
     {endpoint.note && <p className="api-doc-note">{endpoint.note}</p>}
@@ -78,7 +83,7 @@ export function ApiDocsPage() {
     <header className="api-doc-header">
       <div className="api-doc-eyebrow"><BookOpen size={16} /> API REFERENCE / 接口目录</div>
       <h1>接口文档</h1>
-      <p>当前服务端接口的请求方式、参数与响应字段。新增或修改接口时同步维护此页面。</p>
+      <p>当前服务端接口的请求方式、参数与响应字段。JSON 为结构示例，示例值不代表实时数据。</p>
     </header>
     <div className="api-doc-overview">
       <div><Braces size={19} /><strong>{API_ENDPOINT_COUNT}</strong><span>当前接口</span></div>
