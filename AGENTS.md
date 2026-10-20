@@ -6,7 +6,7 @@
 
 - server 使用 Express 5、TypeScript、Zod、JWT 和 SQLite。仅管理端使用的接口统一使用 `/api/v1/admin/**` 并放入 `server/src/api/admin/`；admin/client 共用接口使用 `/api/v1/**`，放入公共路由模块。响应结构为 `{code, msg, data, success}`。
 - 框架数据库维护单管理员 `admin`、普通动态配置 `config`、系统配置 `sys_config` 和每日去重的 `visit`；请求日志开启后按需创建 `request_log`。首次 setup 接口在同一事务内创建管理员并写入项目名称、后台/前台站点名称，不预设账号；端口、JWT_SECRET、SETUP_KEY 仍在启动前由 `.env` 配置。setup 不删除已有数据库或上传文件，仓库也不跟踪这些数据。
-- 数据库结构由 `server/migrations/*.sql` 和 `_migrations` 版本表管理；已执行迁移按 SHA-256 校验，禁止修改旧迁移。当前开发版不维护早期数据库结构兼容逻辑，迁移按当前 SQL 定义执行。管理员可下载 SQLite 在线备份，备份不包含 `server/data/uploads/` 与 `server/data/site-icons/`，临时备份文件下载后清理。
+- 开发期 `server/migrations/*.sql` 只存放全新数据库的建表和初始数据 SQL，可直接修改现有文件；`_migrations` 仅标记数据库已初始化，启动时不复查文件校验值，也不自动升级旧开发库。保留数据的开发库可在 `server/dev-sql/` 放一次性升级 SQL 并手动执行；正式上线前清理开发期升级脚本，上线后再单独设计正式数据库升级机制。管理员可下载 SQLite 在线备份，备份不包含 `server/data/uploads/` 与 `server/data/site-icons/`，临时备份文件下载后清理。
 - 通用业务用户保存在 `user`，使用唯一账号及密码注册；用户 JWT 与管理员 JWT 区分，禁用用户会撤销已有用户 Token。`user_activity` 按 UTC 日记录已认证用户活动，首页用户统计从真实用户表聚合。`client/userAuth.ts` 提供框架无关的前台请求模板，Token 存储由业务项目决定。用户管理页路由 `/users`，菜单由管理员手动配置。
 - `operation_log` 独立保存框架管理员成功写操作的摘要、操作者、目标、IP 和耗时；业务 Service 可显式调用 `OperationLogService.record()`。不保存密码、Token、原始请求体和响应体。管理端 `/operation-logs` 页面可按模块、操作人和时间查询，菜单由管理员手动配置。
 - 登录失败按 IP 与账号组合限制，公开注册/访问上报和上传接口分别限流；限流器只适用于单进程部署。`TRUSTED_PROXIES` 只填写可信反向代理。`/health` 为公开就绪探针；管理员 `system-status` 提供缓存的运行状态。安全响应头由 Helmet 设置，公开图片允许跨域加载。
