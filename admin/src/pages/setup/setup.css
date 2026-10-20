@@ -1,0 +1,5 @@
+.setup-auth-card { max-width: 700px; }
+.setup-project-section { padding-bottom: 10px; margin-bottom: 18px; border-bottom: 1px solid #e9eef5; }
+.setup-section-heading { display: flex; align-items: center; gap: 8px; margin: 3px 0 16px; color: #334155; font-size: 15px; font-weight: 700; }
+.setup-section-hint { display: block; margin: -7px 0 15px; font-size: 12px; }
+.setup-site-heading { padding: 8px 0 13px; color: #64748b; font-size: 13px; font-weight: 600; }

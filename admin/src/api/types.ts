@@ -96,6 +96,11 @@ export interface SetupAdminRequest {
   username: string;
   password: string;
   setupKey: string;
+  projectName: string;
+  siteSettings: {
+    admin: { siteTitle: string; systemName: string };
+    client: { siteTitle: string; systemName: string };
+  };
 }
 
 /**

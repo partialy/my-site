@@ -21,7 +21,7 @@ export interface ApiGroup {
 const admin = '/api/v1/admin';
 const publicApi = '/api/v1';
 const adminInfo = '{ id: number; username: string }';
-const siteSettings = '{ admin: { siteTitle: string; systemName: string; iconUrl: string | null }; client: 同 admin }';
+const siteSettings = '{ projectName: string; admin: { siteTitle: string; systemName: string; iconUrl: string | null }; client: 同 admin }';
 const configItem = '{ key: string; name: string; value: string; enabled: boolean; remark: string; createdAt: ISO时间; updatedAt: ISO时间 }';
 const whitelistRule = '{ id: string; name: string; type: "wildcard" | "exact"; path: string; remark: string; createdAt: ISO时间; updatedAt: ISO时间 }';
 const fileItem = '{ id: UUID; name: string; mimeType: string; size: number; url: string; createdAt: ISO时间 }';
@@ -32,7 +32,7 @@ export const API_GROUPS: readonly ApiGroup[] = [
     { method: 'GET', path: `${admin}/setup/status`, title: '查询初始化状态', auth: false,
       response: '{ initialized: boolean }' },
     { method: 'POST', path: `${admin}/setup/admin`, title: '创建初始管理员', auth: false,
-      request: 'JSON: { username: string(3-32, 字母/数字/下划线); password: string(12-128); setupKey: string }',
+      request: 'JSON: { username: string(3-32, 字母/数字/下划线); password: string(12-128); setupKey: string; projectName: string(1-100); siteSettings: { admin: { siteTitle: string; systemName: string }; client: 同 admin } }',
       response: adminInfo, note: '仅首次初始化可用；成功时 HTTP 201。' },
     { method: 'POST', path: `${admin}/auth/login`, title: '管理员登录', auth: false,
       request: 'JSON: { username: string; password: string }',
@@ -80,7 +80,7 @@ export const API_GROUPS: readonly ApiGroup[] = [
     { method: 'GET', path: `${admin}/site-settings`, title: '获取后台与前台站点设置', auth: false,
       response: siteSettings },
     { method: 'PUT', path: `${admin}/site-settings`, title: '保存站点名称', auth: true,
-      request: 'JSON: { admin: { siteTitle: string; systemName: string }; client: { siteTitle: string; systemName: string } }',
+      request: 'JSON: { projectName?: string; admin: { siteTitle: string; systemName: string }; client: { siteTitle: string; systemName: string } }',
       response: siteSettings },
     { method: 'PUT', path: `${admin}/site-settings/:target/icon`, title: '直接上传站点图标', auth: true,
       request: '路径: target=admin | client；Body: 原始图片字节；Content-Type: image/png | image/jpeg | image/webp | image/x-icon',

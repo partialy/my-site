@@ -10,11 +10,13 @@ export interface SiteIdentity {
 }
 
 export interface SiteSettings {
+  projectName: string;
   admin: SiteIdentity;
   client: SiteIdentity;
 }
 
 export interface SiteSettingsInput {
+  projectName?: string;
   admin: Pick<SiteIdentity, 'siteTitle' | 'systemName'>;
   client: Pick<SiteIdentity, 'siteTitle' | 'systemName'>;
 }
@@ -42,10 +44,12 @@ function parseSettings(value: unknown): SiteSettings {
     throw new Error('网站信息格式异常');
   }
   const item = value as Record<string, unknown>;
-  return { admin: parseIdentity(item.admin), client: parseIdentity(item.client) };
+  if (typeof item.projectName !== 'string') throw new Error('项目名称格式异常');
+  return { projectName: item.projectName, admin: parseIdentity(item.admin), client: parseIdentity(item.client) };
 }
 
 export const defaultSiteSettings: SiteSettings = {
+  projectName: 'NodeBase',
   admin: { siteTitle: 'NodeBase Admin', systemName: 'NodeBase Admin', iconUrl: null },
   client: { siteTitle: 'NodeBase Client', systemName: 'NodeBase Client', iconUrl: null },
 };

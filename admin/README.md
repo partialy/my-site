@@ -6,7 +6,7 @@ React + TypeScript + React Router + Ant Design 单管理员后台。直接对接
 
 1. 在 server/ 根据 .env.example 创建 .env，配置 JWT_SECRET 与 SETUP_KEY，然后运行 npm install、npm run dev。
 2. 在 admin/ 运行 npm install、npm run dev，访问 http://localhost:5173/。
-3. 首次访问会从 GET /api/v1/admin/setup/status 判断是否已有管理员。若没有，进入初始化页；初始化密钥填写 server/.env 中的 SETUP_KEY。初始化成功后使用新账号登录。
+3. 首次访问会从 GET /api/v1/admin/setup/status 判断是否已有管理员。若没有，进入初始化页，填写项目名称、后台/前台站点名称和初始管理员；初始化密钥填写 server/.env 中的 SETUP_KEY。初始化成功后使用新账号登录。端口与密钥继续在启动前由 `.env` 配置。
 
 admin/.env.example 给出开发代理配置。VITE_API_BASE_URL 默认 /api/v1/admin；SERVER_PROXY_TARGET 默认 http://127.0.0.1:3000。Vite 开发服务器仅将 /api/v1 请求代理到 server，其他路径由 React Router 页面处理；生产部署需要网关将 /api/v1 转发到 server，并将非接口页面路径回退到 index.html。
 
@@ -69,4 +69,4 @@ admin/.env.example 给出开发代理配置。VITE_API_BASE_URL 默认 /api/v1/a
 
 接口文档页位于 `/api-docs`，按管理端、用户端/公共接口及业务模块展示当前服务端路由，包含请求参数、响应数据、鉴权和业务码，并支持分类与搜索。参数和成功响应提供可复制的格式化 JSON 示例，二进制接口单独标注。接口描述与示例分别维护在 `src/pages/api-docs/apiCatalog.ts` 和 `apiExamples.ts`；新增或修改接口时同步维护。页面已登记在路由与页面清单，侧栏入口由管理员在菜单管理中手动添加。
 
-系统管理页另设“网站信息”区块，左右并排配置管理后台和未来前台的标签名称、系统名称及图标。点击图标选择入口会打开文件选择弹窗，可复用已有图片或在弹窗中上传，支持 PNG、JPG、WebP、ICO，最多 2 MiB。后台设置会同步到登录/初始化页、侧栏品牌和浏览器标签；站点配置由公开读取接口加载，前台项目可复用同一接口。后台内容页最大宽度统一为 1400px。
+系统管理页另设“网站信息”区块，可修改初始化时填写的项目名称，并左右并排配置管理后台和未来前台的标签名称、系统名称及图标。点击图标选择入口会打开文件选择弹窗，可复用已有图片或在弹窗中上传，支持 PNG、JPG、WebP、ICO，最多 2 MiB。后台设置会同步到登录/初始化页、侧栏品牌和浏览器标签；站点配置由公开读取接口加载，前台项目可复用同一接口。后台内容页最大宽度统一为 1400px。

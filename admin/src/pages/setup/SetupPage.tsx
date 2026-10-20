@@ -19,26 +19,23 @@ import { setupAdmin, ApiCode } from '../../api';
 import { useAuth } from '../../auth';
 import { SiteIcon } from '../../components/SiteIcon';
 import { useSiteSettings } from '../../site-settings/SiteSettingsContext';
+import { getSiteSettings } from '../../api/siteSettings';
+import { SetupProjectFields } from './SetupProjectFields';
+import type { SetupFormValues } from './SetupProjectFields';
+import './setup.css';
 
 const { Text } = Typography;
 
-interface FormValues {
-  username: string;
-  password: string;
-  confirmPassword: string;
-  setupKey: string;
-}
-
 export const SetupPage: React.FC = () => {
-  const [form] = Form.useForm<FormValues>();
+  const [form] = Form.useForm<SetupFormValues>();
   const [submitting, setSubmitting] = useState(false);
   const [generalError, setGeneralError] = useState<string | null>(null);
 
   const navigate = useNavigate();
   const { markInitialized, checkStatusAndSession } = useAuth();
-  const { settings } = useSiteSettings();
+  const { settings, setSettings } = useSiteSettings();
 
-  const handleFinish = async (values: FormValues) => {
+  const handleFinish = async (values: SetupFormValues) => {
     setGeneralError(null);
     setSubmitting(true);
 
@@ -48,9 +45,15 @@ export const SetupPage: React.FC = () => {
         username: values.username.trim(),
         password: values.password,
         setupKey: values.setupKey.trim(),
+        projectName: values.projectName.trim(),
+        siteSettings: {
+          admin: { siteTitle: values.siteSettings.admin.siteTitle.trim(), systemName: values.siteSettings.admin.systemName.trim() },
+          client: { siteTitle: values.siteSettings.client.siteTitle.trim(), systemName: values.siteSettings.client.systemName.trim() },
+        },
       });
 
       if (res.success) {
+        void getSiteSettings().then((site) => { if (site.success) setSettings(site.data); }).catch(() => {});
         message.success('系统初始化完成，请使用刚刚创建的管理员账户登录');
         markInitialized();
         navigate('/login', { replace: true });
@@ -80,11 +83,12 @@ export const SetupPage: React.FC = () => {
       // 处理参数校验错误 (1001)
       if (res.code === ApiCode.VALIDATION_ERROR && res.data?.fieldErrors) {
         const fieldErrors = res.data.fieldErrors;
-        const fields = Object.entries(fieldErrors).map(([name, errors]) => ({
-          name: name as keyof FormValues,
+        const fields = Object.entries(fieldErrors).filter(([name]) => name !== 'siteSettings').map(([name, errors]) => ({
+          name: name as keyof SetupFormValues,
           errors,
         }));
         form.setFields(fields);
+        if (fieldErrors.siteSettings) setGeneralError(fieldErrors.siteSettings.join('；'));
         return;
       }
 
@@ -99,15 +103,16 @@ export const SetupPage: React.FC = () => {
 
   return (
     <div className="auth-page-wrapper">
-      <div className="auth-card">
+      <div className="auth-card setup-auth-card">
         <div className="auth-header">
           <div className="auth-logo-badge">
             <SiteIcon url={settings.admin.iconUrl} size={28} />
           </div>
           <h1 className="auth-title">{settings.admin.systemName}初始化</h1>
           <p className="auth-subtitle">
-            检测到系统尚未初始化，请配置单管理员初始账号及初始化密钥
+            配置项目信息并创建初始管理员
           </p>
+          <Text type="secondary" style={{ fontSize: 12 }}>端口与密钥请在启动前通过 server/.env 配置</Text>
         </div>
 
         {generalError && (
@@ -128,6 +133,8 @@ export const SetupPage: React.FC = () => {
           requiredMark="optional"
           scrollToFirstError
         >
+          <SetupProjectFields form={form} />
+          <div className="setup-section-heading"><User size={17} /><span>管理员账户</span></div>
           <Form.Item
             label="管理员用户名"
             name="username"
