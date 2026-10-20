@@ -102,7 +102,7 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 
 ## 配置与请求日志
 
-`config` 存普通动态配置，字段包括名称、键、JSON 值、启用、备注、创建和更新时间；`sys_config` 存系统配置，没有启用字段。`ConfigManager` 启动时加载两类配置，普通配置用 `get(key, defaultValue)` 读取，系统配置用 `getSysConfig().get(key)` 读取；调用写入方法时同步更新 SQLite 与内存。旧版 `config` 表启动时自动补齐字段并保留原有记录。`/api/v1/admin/configs` 提供普通配置增删改查，管理接口将值作为文本编辑，禁用的配置从 `get` 读取时返回默认值。
+`config` 存普通动态配置，字段包括名称、键、JSON 值、启用、备注、创建和更新时间；`sys_config` 存系统配置，没有启用字段。`ConfigManager` 启动时加载两类配置，普通配置用 `get(key, defaultValue)` 读取，系统配置用 `getSysConfig().get(key)` 读取；调用写入方法时同步更新 SQLite 与内存。当前开发版不兼容早期缺少字段的 `config` 表。`/api/v1/admin/configs` 提供普通配置增删改查，管理接口将值作为文本编辑，禁用的配置从 `get` 读取时返回默认值。
 
 系统配置中的 `request_log_mode` 可设为 `off`（默认）、`all`、`white_list`；`request_log_whitelist` 保存规则列表。白名单模式只记录匹配的 `/api/v1` 请求。精准路径必须完整匹配；通配路径必须以 `/**` 结尾。记录模式开启时才创建 `request_log` 表，关闭后保留已有日志。
 
