@@ -159,7 +159,7 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 
 ## 站点设置与图标
 
-`GET /api/v1/site-settings` 和管理端 `GET /api/v1/admin/site-settings` 返回 `{admin:{siteTitle,systemName,iconUrl},client:{siteTitle,systemName,iconUrl}}`，图标未设置时 `iconUrl=null`。默认后台名称为 `NodeBase Admin`，前台名称为 `NodeBase Client`。`PUT /api/v1/admin/site-settings` 提交同样的双端对象，每端只需 `siteTitle`、`systemName` 两个非空字符串，最长 100 字符；响应包含最新 `iconUrl`。
+`GET /api/v1/site-settings` 和管理端 `GET /api/v1/admin/site-settings` 返回 `{projectName,copyright,admin:{siteTitle,systemName,iconUrl},client:{siteTitle,systemName,iconUrl}}`，图标未设置时 `iconUrl=null`。默认后台名称为 `NodeBase Admin`，前台名称为 `NodeBase Client`。`copyright` 用于管理端页脚；尚未配置时按当前管理系统名称和年份生成原有文案。`PUT /api/v1/admin/site-settings` 提交 `copyright`（非空、最长 200 字符）、可选的 `projectName`，以及后台/前台各自的 `siteTitle`、`systemName`（非空、最长 100 字符）；响应包含最新 `iconUrl`。
 
 图标上传以原始图片字节作为请求体，Content-Type 仅支持 `image/png`、`image/jpeg`、`image/webp`、`image/x-icon`，最大 2 MiB。服务端校验文件头，不接受 SVG。图标分别存放在 `server/data/site-icons/admin.icon` 与 `server/data/site-icons/client.icon`，上传时覆盖对应文件；MIME 和版本号保存在 `sys_config`。返回的图标 URL 带版本参数，供页面刷新缓存。图标读取接口返回图片二进制，其余站点设置接口使用统一 JSON 响应格式。
 

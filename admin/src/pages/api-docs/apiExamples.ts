@@ -24,7 +24,8 @@ const dictType = { id: 1, code: 'order_status', name: '订单状态', remark: ''
 const dictOptions = { order_status: { code: dictType.code, name: dictType.name, items: [dictItem] } };
 const menu = { key: 'home', label: '首页', type: 'route', parentKey: null, path: '/', action: null,
   icon: 'layout-dashboard', sort: 1, visible: true };
-const site = { projectName: '示例项目', admin: { siteTitle: '管理后台', systemName: '管理系统', iconUrl: null },
+const site = { projectName: '示例项目', copyright: '管理系统 © 2026 · 保留所有权利',
+  admin: { siteTitle: '管理后台', systemName: '管理系统', iconUrl: null },
   client: { siteTitle: '网站首页', systemName: '前台系统', iconUrl: null } };
 const file = { id: '7a9e4c72-b061-4ee6-9ed8-d986dbd6c919', name: 'logo.png', mimeType: 'image/png',
   size: 12345, url: '/api/v1/files/7a9e4c72-b061-4ee6-9ed8-d986dbd6c919/content',
@@ -98,7 +99,8 @@ const examples: Record<string, EndpointExample> = {
   [`GET ${admin}/menus`]: { response: success([menu]) },
   [`PUT ${admin}/menus`]: { request: { items: [menu] }, response: success([menu], '菜单已保存') },
   [`GET ${admin}/site-settings`]: { response: success(site) },
-  [`PUT ${admin}/site-settings`]: { request: { projectName: '示例项目', admin: { siteTitle: '管理后台', systemName: '管理系统' },
+  [`PUT ${admin}/site-settings`]: { request: { projectName: '示例项目', copyright: site.copyright,
+    admin: { siteTitle: '管理后台', systemName: '管理系统' },
     client: { siteTitle: '网站首页', systemName: '前台系统' } }, response: success(site, '站点配置已保存') },
   [`PUT ${admin}/site-settings/:target/icon`]: { requestKind: '原始文件', request: { target: 'admin',
     contentType: 'image/png', body: '<图片二进制，最大 2 MiB>' }, response: success(site, '图标已上传') },

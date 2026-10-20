@@ -292,7 +292,7 @@ export const AdminLayout: React.FC = () => {
             padding: '14px 24px',
           }}
         >
-          {settings.admin.systemName} © {new Date().getFullYear()} · 可复制的轻量管理端基础框架
+          {settings.copyright}
         </Footer>
       </Layout>
 

@@ -21,7 +21,7 @@ export interface ApiGroup {
 const admin = '/api/v1/admin';
 const publicApi = '/api/v1';
 const adminInfo = '{ id: number; username: string }';
-const siteSettings = '{ projectName: string; admin: { siteTitle: string; systemName: string; iconUrl: string | null }; client: 同 admin }';
+const siteSettings = '{ projectName: string; copyright: string; admin: { siteTitle: string; systemName: string; iconUrl: string | null }; client: 同 admin }';
 const configItem = '{ key: string; name: string; value: string; enabled: boolean; remark: string; createdAt: ISO时间; updatedAt: ISO时间 }';
 const dictItem = '{ id: number; typeId: number; label: string; value: string; sort: number; enabled: boolean; color: string; createdAt: ISO时间; updatedAt: ISO时间 }';
 const dictType = `{ id: number; code: string; name: string; remark: string; isPublic: boolean; enabled: boolean; createdAt: ISO时间; updatedAt: ISO时间; items: ${dictItem}[] }`;
@@ -104,8 +104,8 @@ export const API_GROUPS: readonly ApiGroup[] = [
   { audience: 'admin', module: '站点设置', endpoints: [
     { method: 'GET', path: `${admin}/site-settings`, title: '获取后台与前台站点设置', auth: false,
       response: siteSettings },
-    { method: 'PUT', path: `${admin}/site-settings`, title: '保存站点名称', auth: true,
-      request: 'JSON: { projectName?: string; admin: { siteTitle: string; systemName: string }; client: { siteTitle: string; systemName: string } }',
+    { method: 'PUT', path: `${admin}/site-settings`, title: '保存站点信息', auth: true,
+      request: 'JSON: { projectName?: string; copyright: string(1-200); admin: { siteTitle: string; systemName: string }; client: { siteTitle: string; systemName: string } }',
       response: siteSettings },
     { method: 'PUT', path: `${admin}/site-settings/:target/icon`, title: '直接上传站点图标', auth: true,
       request: '路径: target=admin | client；Body: 原始图片字节；Content-Type: image/png | image/jpeg | image/webp | image/x-icon',

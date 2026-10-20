@@ -6,6 +6,7 @@ export const SysConfigKey = {
   ConsoleLogEnabled: 'console_log_enabled',
   ConsoleLogFormat: 'console_log_format',
   ProjectName: 'project_name',
+  AdminCopyright: 'admin_copyright',
   AdminSiteTitle: 'admin_site_title',
   AdminSystemName: 'admin_system_name',
   AdminIconMime: 'admin_icon_mime',

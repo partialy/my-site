@@ -69,6 +69,7 @@ export function SiteIdentitySection() {
   const { settings, setSettings } = useSiteSettings();
   const [draft, setDraft] = useState<SiteSettingsInput>({
     projectName: settings.projectName,
+    copyright: settings.copyright,
     admin: { siteTitle: settings.admin.siteTitle, systemName: settings.admin.systemName },
     client: { siteTitle: settings.client.siteTitle, systemName: settings.client.systemName },
   });
@@ -80,12 +81,15 @@ export function SiteIdentitySection() {
   useEffect(() => {
     setDraft({
       projectName: settings.projectName,
+      copyright: settings.copyright,
       admin: { siteTitle: settings.admin.siteTitle, systemName: settings.admin.systemName },
       client: { siteTitle: settings.client.siteTitle, systemName: settings.client.systemName },
     });
-  }, [settings.projectName, settings.admin.siteTitle, settings.admin.systemName, settings.client.siteTitle, settings.client.systemName]);
+  }, [settings.projectName, settings.copyright, settings.admin.siteTitle, settings.admin.systemName,
+    settings.client.siteTitle, settings.client.systemName]);
 
-  const dirty = draft.projectName !== settings.projectName || draft.admin.siteTitle !== settings.admin.siteTitle ||
+  const dirty = draft.projectName !== settings.projectName || draft.copyright !== settings.copyright ||
+    draft.admin.siteTitle !== settings.admin.siteTitle ||
     draft.admin.systemName !== settings.admin.systemName ||
     draft.client.siteTitle !== settings.client.siteTitle ||
     draft.client.systemName !== settings.client.systemName;
@@ -97,11 +101,12 @@ export function SiteIdentitySection() {
   const save = async () => {
     const input: SiteSettingsInput = {
       projectName: draft.projectName?.trim(),
+      copyright: draft.copyright.trim(),
       admin: { siteTitle: draft.admin.siteTitle.trim(), systemName: draft.admin.systemName.trim() },
       client: { siteTitle: draft.client.siteTitle.trim(), systemName: draft.client.systemName.trim() },
     };
-    if (!input.projectName || [input.admin, input.client].some((item) => !item.siteTitle || !item.systemName)) {
-      setError('项目名称、网站标签名称和系统名称不能为空');
+    if (!input.projectName || !input.copyright || [input.admin, input.client].some((item) => !item.siteTitle || !item.systemName)) {
+      setError('项目名称、版权信息、网站标签名称和系统名称不能为空');
       return;
     }
     setSaving(true);
@@ -158,7 +163,7 @@ export function SiteIdentitySection() {
       <Flex justify="space-between" align="center" wrap="wrap" gap={16} style={{ marginBottom: 20 }}>
         <div>
           <Title level={4} style={{ margin: '0 0 5px' }}>网站信息</Title>
-          <Text type="secondary">设置项目名称，以及管理后台与前台的标签名称、系统名称和图标。</Text>
+          <Text type="secondary">设置项目名称、版权信息，以及管理后台与前台的标签名称、系统名称和图标。</Text>
         </div>
         <Button type="primary" icon={<Save size={16} />} loading={saving} disabled={!dirty} onClick={() => void save()}>保存网站信息</Button>
       </Flex>
@@ -167,6 +172,12 @@ export function SiteIdentitySection() {
         <Text strong>项目名称</Text>
         <Input value={draft.projectName} maxLength={100} onChange={(event) => setDraft((current) => ({ ...current, projectName: event.target.value }))}
           placeholder="当前项目的名称" style={{ maxWidth: 440, marginTop: 8 }} />
+      </label>
+      <label className="site-identity-project-name">
+        <Text strong>版权信息</Text>
+        <Input value={draft.copyright} maxLength={200}
+          onChange={(event) => setDraft((current) => ({ ...current, copyright: event.target.value }))}
+          placeholder="显示在管理后台页脚" style={{ maxWidth: 700, marginTop: 8 }} />
       </label>
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>

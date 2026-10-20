@@ -50,7 +50,7 @@ admin/.env.example 给出开发代理配置。VITE_API_BASE_URL 默认 /api/v1/a
 | GET、POST | /api/v1/admin/files | 文件列表（支持 page、pageSize、search、mimeTypes、sortBy、sortOrder）与原始文件上传 |
 | GET | /api/v1/files/:id/content | 公开访问文件内容，可直接用于图片和下载链接 |
 | DELETE | /api/v1/admin/files/:id | 从文件库归档文件，已分发的链接继续可用 |
-| GET、PUT | /api/v1/admin/site-settings | 读取和修改后台、前台网站名称 |
+| GET、PUT | /api/v1/admin/site-settings | 读取和修改项目名称、版权信息及后台/前台站点名称 |
 | GET | /api/v1/site-settings | 供前台公开读取站点信息 |
 | GET | /api/v1/site-settings/:target/icon | 公开读取系统图标 |
 | PUT、DELETE | /api/v1/admin/site-settings/:target/icon | 上传、移除系统图标 |
