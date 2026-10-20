@@ -1,4 +1,6 @@
 import type Database from 'better-sqlite3';
+import { TableListRepository } from './table-list.repository';
+import { visitListResource } from './resources/visit-list.resource';
 
 export interface VisitRecord {
   day: string;
@@ -58,33 +60,14 @@ function toItem(row: VisitRow): VisitLogItem {
 }
 
 export class VisitRepository {
-  constructor(private readonly db: Database.Database) {}
+  private readonly tableList: TableListRepository;
+
+  constructor(private readonly db: Database.Database) {
+    this.tableList = new TableListRepository(db);
+  }
 
   list(query: VisitQuery) {
-    const conditions: string[] = [];
-    const params: Record<string, string | number> = {};
-    if (query.path) {
-      conditions.push("path LIKE @path ESCAPE '!'");
-      params.path = `%${query.path.replace(/[!%_]/g, '!$&')}%`;
-    }
-    if (query.visitorId) {
-      conditions.push("visitor_id LIKE @visitorId ESCAPE '!'");
-      params.visitorId = `%${query.visitorId.replace(/[!%_]/g, '!$&')}%`;
-    }
-    if (query.startDay) {
-      conditions.push('visit_day >= @startDay');
-      params.startDay = query.startDay;
-    }
-    if (query.endDay) {
-      conditions.push('visit_day <= @endDay');
-      params.endDay = query.endDay;
-    }
-    const where = conditions.length ? ` WHERE ${conditions.join(' AND ')}` : '';
-    const total = (this.db.prepare(`SELECT COUNT(*) AS count FROM visit${where}`).get(params) as { count: number }).count;
-    const rows = this.db.prepare(`
-      SELECT id, visit_day, visitor_id, path, page_title, referrer, ip, user_agent, created_at
-      FROM visit${where} ORDER BY id DESC LIMIT @limit OFFSET @offset
-    `).all({ ...params, limit: query.pageSize, offset: (query.page - 1) * query.pageSize }) as VisitRow[];
+    const { items: rows, total } = this.tableList.list<VisitRow, VisitQuery>(visitListResource, query);
     return { items: rows.map(toItem), total, page: query.page, pageSize: query.pageSize };
   }
 

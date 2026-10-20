@@ -55,11 +55,11 @@ function parseEmpty(value: unknown): null {
   return null;
 }
 
-export function getFiles(query: FileQuery): Promise<ApiResponse<FilePage>> {
+export function getFiles(query: FileQuery, signal?: AbortSignal): Promise<ApiResponse<FilePage>> {
   const params = new URLSearchParams({ page: String(query.page), pageSize: String(query.pageSize) });
   if (query.search) params.set('search', query.search);
   if (query.mimeTypes?.length) params.set('mimeTypes', query.mimeTypes.join(','));
-  return request(`/files?${params.toString()}`, parseFilePage);
+  return request(`/files?${params.toString()}`, parseFilePage, { signal });
 }
 
 export function uploadFile(file: File): Promise<ApiResponse<FileItem>> {

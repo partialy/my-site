@@ -19,7 +19,7 @@
 - 站点设置保存在 `sys_config`：项目名称，以及后台与前台各自的网站标签名称、系统名称和图标元数据。公开 `GET /api/v1/site-settings` 供未来 `client` 读取，管理端从 `/api/v1/admin/site-settings` 读取并经鉴权写入；图标入口使用文件选择弹窗，支持 PNG、JPEG、WebP、ICO，最大 2 MiB，不接收 SVG；旧版固定图标仍可读取。
 - 前台访问通过公开 `POST /api/v1/visits` 上报；浏览器工具在 `client/visitTracker.ts` 保存访客 UUID 和最近上报的 UTC 日期，服务端以 `(visitor_id, visit_day)` 唯一约束兜底。每日仅记录首次访问的页面，属于尽力去重；清除存储后会生成新访客 ID。`GET /api/v1/admin/visits` 提供分页筛选访问日志。`GET /api/v1/admin/home` 聚合真实访问记录、近 7 天请求日志与业务用户数据。日志关闭时接口来源和热门接口为空。
 - 代码按 API/Controller 边界、Service 业务层、Repository 数据访问层分层；鉴权、校验和安全能力分别放在中间件或独立模块。业务项目自行扩展业务表和 API。
-- 普通业务列表可复用 `TableListRepository`：由服务端静态资源配置声明表、可返回字段、搜索字段、等值筛选和排序字段；请求只提供参数值，不允许选择任意表或列。用户列表已接入该查询模板；注册、禁用等业务写操作仍由 `UserService` 处理。
+- 普通业务列表可复用 `TableListRepository`：由服务端静态资源配置声明表、可返回字段、搜索、模糊/等值/范围/数组筛选、固定空值约束和排序；请求只提供参数值，不允许选择任意表或列。用户、操作日志、访问日志、请求日志和文件列表已接入。请求日志表未创建时仍返回空列表；文件列表固定排除已归档文件。注册、禁用、归档和日志清理等业务写操作仍由各自 Service 处理。
 - 接口、环境变量与启动方式见 `server/README.md`；改动服务端接口时需同步管理端契约。
 
 ## admin 模块
@@ -32,7 +32,7 @@
 - 管理端表格按内容宽度决定是否横向滚动；容器能完整显示所有列时不应出现横向滚动条。
 - 管理端主题将 Input、Select、Button 的默认控件高度统一为 40px，筛选栏不要再单独混用不同高度。
 - 代码按页面（`pages`）、布局（`layouts`）、复用组件（`components`）、API 请求（`api`）、认证状态（`auth`）与路由守卫（`router`）分层。
-- `hooks/useTableQuery.ts` 管理列表 URL 查询状态、分页、防过期响应和刷新；`components/crud/` 提供防抖筛选栏与带二次确认、防重复点击的操作列按钮。用户管理页为首个接入页面；新业务页只声明筛选字段、列和 API 契约，专有写操作保留在业务 Hook/Service。
+- `hooks/useTableQuery.ts` 管理列表 URL 查询状态、分页、防过期响应和刷新；`components/crud/` 提供防抖筛选栏与带二次确认、防重复点击的操作列按钮。用户、操作日志、访问日志、请求日志和文件管理页已接入；文件选择弹窗继续使用局部列表状态，避免弹窗筛选占用页面 URL。新业务页只声明筛选字段、列和 API 契约，专有写操作保留在业务 Hook/Service。
 - 认证状态集中在 `src/auth/` 独立管理，Token 存放于 `sessionStorage`；页面与组件不直接发原始 fetch 请求或拼接 Authorization 头。
 - 严格遵循管理端 `/api/v1/admin` 基础路径和 `{code, msg, data, success}` 契约。服务端 JSON 先按 `unknown` 处理并在请求层收窄，不使用 `any`。
 - 管理端只访问真实 server：开发环境由 Vite 仅将 `/api/v1` 代理到 `SERVER_PROXY_TARGET`，不能使用 `/api` 代理前缀，否则会拦截 `/api-docs` 页面刷新；生产环境由网关配置同路径代理并将非接口页面路径回退到 `index.html`。没有预设管理员或本地模拟接口。

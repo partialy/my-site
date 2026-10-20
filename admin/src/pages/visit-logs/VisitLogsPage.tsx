@@ -1,32 +1,23 @@
 import { useMemo, useState } from 'react';
-import { Alert, Button, Card, Descriptions, Flex, Input, Modal, Space, Table, Typography } from 'antd';
+import { Alert, Button, Card, Descriptions, Flex, Modal, Space, Table, Typography } from 'antd';
 import type { TableProps } from 'antd';
-import { BarChart3, RefreshCw, Search } from 'lucide-react';
-import type { VisitLogItem, VisitLogQuery } from '../../api/visits';
+import { BarChart3, RefreshCw } from 'lucide-react';
+import type { VisitLogItem } from '../../api/visits';
+import { CrudFilterBar, type CrudFilterField } from '../../components/crud/CrudFilterBar';
 import { formatDateTime } from '../../utils/dateTime';
-import { useVisitLogs } from './useVisitLogs';
+import { useVisitLogs, type VisitLogFilters } from './useVisitLogs';
 
 const { Title, Text, Paragraph } = Typography;
+const filterFields: ReadonlyArray<CrudFilterField<VisitLogFilters>> = [
+  { key: 'path', kind: 'text', placeholder: '搜索页面路径', width: 240 },
+  { key: 'visitorId', kind: 'text', placeholder: '搜索访客 ID', width: 240 },
+  { key: 'startDay', kind: 'date', placeholder: '开始日期', width: 155 },
+  { key: 'endDay', kind: 'date', placeholder: '结束日期', width: 155 },
+];
 
 export function VisitLogsPage() {
-  const [path, setPath] = useState('');
-  const [visitorId, setVisitorId] = useState('');
-  const [startDay, setStartDay] = useState('');
-  const [endDay, setEndDay] = useState('');
-  const [query, setQuery] = useState<VisitLogQuery>({ page: 1, pageSize: 10 });
   const [selected, setSelected] = useState<VisitLogItem | null>(null);
-  const { result, loading, error, reload } = useVisitLogs(query);
-
-  const search = () => setQuery((current) => ({ ...current, page: 1,
-    path: path.trim() || undefined, visitorId: visitorId.trim() || undefined,
-    startDay: startDay || undefined, endDay: endDay || undefined }));
-  const reset = () => {
-    setPath('');
-    setVisitorId('');
-    setStartDay('');
-    setEndDay('');
-    setQuery({ page: 1, pageSize: 10 });
-  };
+  const { query, result, loading, error, reload, setFilters, resetFilters, setPage } = useVisitLogs();
 
   const columns = useMemo<TableProps<VisitLogItem>['columns']>(() => [
     { title: '访问时间', dataIndex: 'createdAt', key: 'createdAt', width: 180, render: formatDateTime },
@@ -55,22 +46,13 @@ export function VisitLogsPage() {
         </div>
         <Button icon={<RefreshCw size={16} />} loading={loading} onClick={() => void reload()}>刷新</Button>
       </Flex>
-      <Card style={{ marginBottom: 16, borderRadius: 16 }}>
-        <Flex wrap="wrap" gap={12} align="center">
-          <Input placeholder="搜索页面路径" value={path} onChange={(event) => setPath(event.target.value)} onPressEnter={search} style={{ width: 240 }} allowClear />
-          <Input placeholder="搜索访客 ID" value={visitorId} onChange={(event) => setVisitorId(event.target.value)} onPressEnter={search} style={{ width: 240 }} allowClear />
-          <Input type="date" aria-label="开始日期" value={startDay} onChange={(event) => setStartDay(event.target.value)} style={{ width: 155 }} />
-          <Input type="date" aria-label="结束日期" value={endDay} onChange={(event) => setEndDay(event.target.value)} style={{ width: 155 }} />
-          <Button type="primary" icon={<Search size={16} />} onClick={search}>查询</Button>
-          <Button onClick={reset}>重置</Button>
-        </Flex>
-      </Card>
+      <CrudFilterBar fields={filterFields} values={query} defaultValues={{}} onSearch={setFilters} onReset={resetFilters} />
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} />}
       <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 16, overflow: 'hidden' }}>
         <Table<VisitLogItem> rowKey="id" columns={columns} dataSource={result.items} loading={loading} scroll={{ x: 'max-content' }}
           pagination={{ current: query.page, pageSize: query.pageSize, total: result.total,
             showSizeChanger: true, pageSizeOptions: [10, 20, 50], showTotal: (total) => `共 ${total} 条`,
-            onChange: (page, pageSize) => setQuery((current) => ({ ...current, page, pageSize })) }} />
+            onChange: setPage }} />
       </Card>
       <Modal title="访问详情" open={selected !== null} footer={null} onCancel={() => setSelected(null)} width={680} destroyOnHidden>
         {selected && <Descriptions column={1} bordered size="small" styles={{ label: { width: 110 } }}>

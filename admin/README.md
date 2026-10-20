@@ -69,7 +69,7 @@ admin/.env.example 给出开发代理配置。VITE_API_BASE_URL 默认 /api/v1/a
 
 系统管理页显示服务器状态，并允许管理员下载 SQLite 在线备份；备份不包含上传文件。用户管理页 `/users` 和操作日志页 `/operation-logs` 已注册路由与页面清单，导航菜单由管理员自行添加。
 
-用户管理页已接入通用列表能力：`src/hooks/useTableQuery.ts` 从 URL 维护分页和已提交筛选条件，并处理刷新、请求取消与过期结果；`src/components/crud/CrudFilterBar.tsx` 提供文本防抖和下拉筛选；`CrudRowActions.tsx` 负责单行操作的防重复点击与二次确认。新增普通业务列表时配置筛选项、列表 API 和表格列即可复用；用户禁用等专有写操作仍保留在页面业务 Hook。
+用户管理、操作日志、访问日志、请求日志和文件管理页已接入通用列表能力：`src/hooks/useTableQuery.ts` 从 URL 维护分页和已提交筛选条件，并处理刷新、请求取消与过期结果；`src/components/crud/CrudFilterBar.tsx` 提供文本防抖、下拉与日期筛选；`CrudRowActions.tsx` 负责单行操作的防重复点击与二次确认。新增普通业务列表时配置筛选项、列表 API 和表格列即可复用；用户禁用、文件归档和日志清理等专有写操作仍保留在页面业务逻辑。文件选择弹窗仍使用局部列表状态，避免弹窗筛选改动当前页面 URL。
 
 接口文档页位于 `/api-docs`，按管理端、用户端/公共接口及业务模块展示当前服务端路由，包含请求参数、响应数据、鉴权和业务码，并支持分类与搜索。参数和成功响应提供可复制的格式化 JSON 示例，二进制接口单独标注。接口描述与示例分别维护在 `src/pages/api-docs/apiCatalog.ts` 和 `apiExamples.ts`；新增或修改接口时同步维护。页面已登记在路由与页面清单，侧栏入口由管理员在菜单管理中手动添加。
 

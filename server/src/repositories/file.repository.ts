@@ -1,4 +1,6 @@
 import type Database from 'better-sqlite3';
+import { TableListRepository } from './table-list.repository';
+import { fileListResource } from './resources/file-list.resource';
 
 export interface FileRecord {
   id: string;
@@ -18,16 +20,14 @@ export interface FileListQuery {
 }
 
 export class FileRepository {
-  constructor(private readonly db: Database.Database) {}
+  private readonly tableList: TableListRepository;
+
+  constructor(private readonly db: Database.Database) {
+    this.tableList = new TableListRepository(db);
+  }
 
   list(query: FileListQuery): { items: FileRecord[]; total: number } {
-    const search = query.search ? `%${query.search.replace(/[!%_]/g, '!$&')}%` : null;
-    const where = "archived_at IS NULL AND (@search IS NULL OR name LIKE @search ESCAPE '!') AND (@mimeTypes IS NULL OR mime_type IN (SELECT value FROM json_each(@mimeTypes)))";
-    const params = { search, mimeTypes: query.mimeTypes ? JSON.stringify(query.mimeTypes) : null };
-    const total = (this.db.prepare(`SELECT COUNT(*) AS count FROM file WHERE ${where}`).get(params) as { count: number }).count;
-    const items = this.db.prepare(`SELECT * FROM file WHERE ${where} ORDER BY created_at DESC, id DESC LIMIT @limit OFFSET @offset`)
-      .all({ ...params, limit: query.pageSize, offset: (query.page - 1) * query.pageSize }) as FileRecord[];
-    return { items, total };
+    return this.tableList.list<FileRecord, FileListQuery>(fileListResource, query);
   }
 
   find(id: string): FileRecord | null {

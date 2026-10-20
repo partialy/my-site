@@ -1,34 +1,33 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { getVisitLogs } from '../../api/visits';
-import type { VisitLogPage, VisitLogQuery } from '../../api/visits';
+import { getVisitLogs, type VisitLogItem } from '../../api/visits';
+import { readFilter, writeFilter } from '../../hooks/tableFilterParams';
+import { useTableQuery, type TableQueryOptions } from '../../hooks/useTableQuery';
 
-const emptyPage: VisitLogPage = { items: [], total: 0, page: 1, pageSize: 10 };
+export interface VisitLogFilters {
+  path?: string;
+  visitorId?: string;
+  startDay?: string;
+  endDay?: string;
+}
 
-export function useVisitLogs(query: VisitLogQuery) {
-  const [result, setResult] = useState<VisitLogPage>(emptyPage);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const requestId = useRef(0);
+const options: TableQueryOptions<VisitLogItem, VisitLogFilters> = {
+  defaultPageSize: 10,
+  defaultFilters: {},
+  filters: {
+    read(params) {
+      return {
+        path: readFilter(params, 'path', 500), visitorId: readFilter(params, 'visitorId', 36),
+        startDay: readFilter(params, 'startDay', 10), endDay: readFilter(params, 'endDay', 10),
+      };
+    },
+    write(params, filters) {
+      for (const key of ['path', 'visitorId', 'startDay', 'endDay'] as const) {
+        writeFilter(params, key, filters[key]);
+      }
+    },
+  },
+  fetchPage: (query, signal) => getVisitLogs(query, signal),
+};
 
-  const reload = useCallback(async () => {
-    const currentId = ++requestId.current;
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await getVisitLogs(query);
-      if (!response.success) throw new Error(response.msg);
-      if (currentId === requestId.current) setResult(response.data);
-    } catch (cause) {
-      if (currentId === requestId.current) setError(cause instanceof Error ? cause.message : '加载访问日志失败');
-    } finally {
-      if (currentId === requestId.current) setLoading(false);
-    }
-  }, [query]);
-
-  useEffect(() => {
-    void reload();
-    return () => { requestId.current += 1; };
-  }, [reload]);
-
-  return { result, loading, error, reload };
+export function useVisitLogs() {
+  return useTableQuery(options);
 }

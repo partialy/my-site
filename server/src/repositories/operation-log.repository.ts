@@ -1,4 +1,6 @@
 import type Database from 'better-sqlite3';
+import { TableListRepository } from './table-list.repository';
+import { operationLogListResource } from './resources/operation-log-list.resource';
 
 export interface OperationLogRecord {
   id: number;
@@ -28,7 +30,11 @@ export interface OperationLogQuery {
 }
 
 export class OperationLogRepository {
-  constructor(private readonly db: Database.Database) {}
+  private readonly tableList: TableListRepository;
+
+  constructor(private readonly db: Database.Database) {
+    this.tableList = new TableListRepository(db);
+  }
 
   create(input: OperationLogInsert): number {
     const result = this.db.prepare(`
@@ -44,29 +50,6 @@ export class OperationLogRepository {
   }
 
   list(query: OperationLogQuery): { items: OperationLogRecord[]; total: number } {
-    const conditions: string[] = [];
-    const params: Record<string, string | number> = {};
-    if (query.module) {
-      conditions.push("module LIKE @module ESCAPE '!'");
-      params.module = `%${query.module.replace(/[!%_]/g, '!$&')}%`;
-    }
-    if (query.actor) {
-      conditions.push("actor_name LIKE @actor ESCAPE '!'");
-      params.actor = `%${query.actor.replace(/[!%_]/g, '!$&')}%`;
-    }
-    if (query.startTime) {
-      conditions.push('created_at >= @startTime');
-      params.startTime = query.startTime;
-    }
-    if (query.endTime) {
-      conditions.push('created_at <= @endTime');
-      params.endTime = query.endTime;
-    }
-    const where = conditions.length ? ` WHERE ${conditions.join(' AND ')}` : '';
-    const total = (this.db.prepare(`SELECT COUNT(*) AS total FROM operation_log${where}`).get(params) as { total: number }).total;
-    const items = this.db.prepare(`
-      SELECT * FROM operation_log${where} ORDER BY id DESC LIMIT @limit OFFSET @offset
-    `).all({ ...params, limit: query.pageSize, offset: (query.page - 1) * query.pageSize }) as OperationLogRecord[];
-    return { items, total };
+    return this.tableList.list<OperationLogRecord, OperationLogQuery>(operationLogListResource, query);
   }
 }

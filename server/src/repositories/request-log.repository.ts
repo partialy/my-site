@@ -1,4 +1,6 @@
 import type Database from 'better-sqlite3';
+import { TableListRepository } from './table-list.repository';
+import { requestLogListResource } from './resources/request-log-list.resource';
 
 export interface RequestLogQuery {
   page: number;
@@ -72,7 +74,11 @@ function toItem(record: RequestLogRecord): RequestLogItem {
 }
 
 export class RequestLogRepository {
-  constructor(private readonly db: Database.Database) {}
+  private readonly tableList: TableListRepository;
+
+  constructor(private readonly db: Database.Database) {
+    this.tableList = new TableListRepository(db);
+  }
 
   private exists(): boolean {
     return Boolean(this.db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'request_log'").get());
@@ -143,26 +149,7 @@ export class RequestLogRepository {
 
   list(query: RequestLogQuery): RequestLogPage {
     if (!this.exists()) return { items: [], total: 0, page: query.page, pageSize: query.pageSize };
-
-    const conditions: string[] = [];
-    const params: Record<string, string | number> = {};
-    if (query.method) {
-      conditions.push('method = @method');
-      params.method = query.method;
-    }
-    if (query.path) {
-      conditions.push("path LIKE @path ESCAPE '!'");
-      params.path = `%${query.path.replace(/[!%_]/g, '!$&')}%`;
-    }
-    if (query.status !== undefined) {
-      conditions.push('status = @status');
-      params.status = query.status;
-    }
-    const where = conditions.length ? ` WHERE ${conditions.join(' AND ')}` : '';
-    const total = (this.db.prepare(`SELECT COUNT(*) AS count FROM request_log${where}`).get(params) as { count: number }).count;
-    const records = this.db.prepare(`
-      SELECT * FROM request_log${where} ORDER BY id DESC LIMIT @limit OFFSET @offset
-    `).all({ ...params, limit: query.pageSize, offset: (query.page - 1) * query.pageSize }) as RequestLogRecord[];
+    const { items: records, total } = this.tableList.list<RequestLogRecord, RequestLogQuery>(requestLogListResource, query);
     return { items: records.map(toItem), total, page: query.page, pageSize: query.pageSize };
   }
 }

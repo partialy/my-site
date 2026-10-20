@@ -46,11 +46,11 @@ function parseVisitLogPage(value: unknown): VisitLogPage {
   return page as VisitLogPage;
 }
 
-export function getVisitLogs(query: VisitLogQuery): Promise<ApiResponse<VisitLogPage>> {
+export function getVisitLogs(query: VisitLogQuery, signal?: AbortSignal): Promise<ApiResponse<VisitLogPage>> {
   const params = new URLSearchParams({ page: String(query.page), pageSize: String(query.pageSize) });
   if (query.path) params.set('path', query.path);
   if (query.visitorId) params.set('visitorId', query.visitorId);
   if (query.startDay) params.set('startDay', query.startDay);
   if (query.endDay) params.set('endDay', query.endDay);
-  return request(`/visits?${params.toString()}`, parseVisitLogPage);
+  return request(`/visits?${params.toString()}`, parseVisitLogPage, { signal });
 }

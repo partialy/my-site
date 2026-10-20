@@ -1,40 +1,39 @@
-import { useMemo, useState } from 'react';
-import { Alert, Button, Card, Flex, Input, message, Modal, Select, Space, Table, Tag, Typography } from 'antd';
+import { useCallback, useMemo, useState } from 'react';
+import { Alert, Button, Card, Flex, message, Modal, Space, Table, Tag, Typography } from 'antd';
 import type { TableProps } from 'antd';
-import { FileText, RefreshCw, Search, Trash2 } from 'lucide-react';
+import { FileText, RefreshCw, Trash2 } from 'lucide-react';
 import { cleanupRequestLogs } from '../../api/requestLogs';
-import type { RequestLogCleanup, RequestLogItem, RequestLogQuery } from '../../api/requestLogs';
+import type { RequestLogCleanup, RequestLogItem } from '../../api/requestLogs';
+import { CrudFilterBar, type CrudFilterField } from '../../components/crud/CrudFilterBar';
 import { RequestLogDetail } from './RequestLogDetail';
 import { RequestLogCleanupModal } from './RequestLogCleanupModal';
-import { useRequestLogs } from './useRequestLogs';
+import { useRequestLogs, type RequestLogFilters } from './useRequestLogs';
 import { formatDateTime } from '../../utils/dateTime';
 
 const { Title, Text, Paragraph } = Typography;
 const methodOptions = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'].map((value) => ({ label: value, value }));
+const filterFields: ReadonlyArray<CrudFilterField<RequestLogFilters>> = [
+  { key: 'path', kind: 'text', placeholder: '搜索接口路径', width: 280 },
+  { key: 'method', kind: 'select', placeholder: '请求方法', width: 140, options: methodOptions },
+  { key: 'status', kind: 'text', placeholder: '状态码，如 200', width: 160, maxLength: 3,
+    inputMode: 'numeric', normalize: (value) => value.replace(/\D/g, '').slice(0, 3) },
+];
 
 export function RequestLogsPage() {
-  const [path, setPath] = useState('');
-  const [method, setMethod] = useState<string | undefined>();
-  const [statusDraft, setStatusDraft] = useState('');
-  const [query, setQuery] = useState<RequestLogQuery>({ page: 1, pageSize: 10 });
   const [selected, setSelected] = useState<RequestLogItem | null>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [cleanupOpen, setCleanupOpen] = useState(false);
   const [cleaning, setCleaning] = useState(false);
-  const { result, loading, error, reload } = useRequestLogs(query);
+  const { query, result, loading, error, reload, setFilters, resetFilters, setPage } = useRequestLogs();
 
-  const search = () => {
+  const search = useCallback((filters: RequestLogFilters, replace?: boolean) => {
     setSelectedIds([]);
-    setQuery((current) => ({ ...current, page: 1, path: path.trim() || undefined,
-      method, status: /^\d{3}$/.test(statusDraft) ? Number(statusDraft) : undefined }));
-  };
-  const reset = () => {
+    setFilters(filters, replace);
+  }, [setFilters]);
+  const reset = useCallback(() => {
     setSelectedIds([]);
-    setPath('');
-    setMethod(undefined);
-    setStatusDraft('');
-    setQuery({ page: 1, pageSize: 10 });
-  };
+    resetFilters();
+  }, [resetFilters]);
 
   const cleanup = async (input: RequestLogCleanup) => {
     setCleaning(true);
@@ -44,8 +43,8 @@ export function RequestLogsPage() {
       message.success(`已清理 ${response.data.deleted} 条请求日志`);
       setSelectedIds([]);
       setSelected(null);
-      if (query.page > 1) setQuery((current) => ({ ...current, page: 1 }));
-      else await reload();
+      if (query.page > 1) setPage(1, query.pageSize);
+      else reload();
     } catch (cause) {
       message.error(cause instanceof Error ? cause.message : '清理请求日志失败');
       throw cause;
@@ -94,16 +93,7 @@ export function RequestLogsPage() {
             onClick={confirmSelectedCleanup}>清理选中{selectedIds.length ? `（${selectedIds.length}）` : ''}</Button>
         </Space>
       </Flex>
-      <Card style={{ marginBottom: 16, borderRadius: 16 }}>
-        <Flex wrap="wrap" gap={12} align="center">
-          <Input placeholder="搜索接口路径" value={path} onChange={(event) => setPath(event.target.value)} onPressEnter={search} style={{ width: 280 }} allowClear />
-          <Select placeholder="请求方法" value={method} onChange={setMethod} options={methodOptions} style={{ width: 140 }} allowClear />
-          <Input placeholder="状态码，如 200" value={statusDraft} onChange={(event) => setStatusDraft(event.target.value.replace(/\D/g, '').slice(0, 3))}
-            onPressEnter={search} style={{ width: 160 }} inputMode="numeric" allowClear />
-          <Button type="primary" icon={<Search size={16} />} onClick={search}>查询</Button>
-          <Button onClick={reset}>重置</Button>
-        </Flex>
-      </Card>
+      <CrudFilterBar fields={filterFields} values={query} defaultValues={{}} onSearch={search} onReset={reset} />
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} />}
       <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 16, overflow: 'hidden' }}>
         <Table<RequestLogItem> rowKey="id" columns={columns} dataSource={result.items} loading={loading} scroll={{ x: 'max-content' }}
@@ -111,7 +101,7 @@ export function RequestLogsPage() {
             onChange: (keys) => setSelectedIds(keys.map(Number)) }}
           pagination={{ current: query.page, pageSize: query.pageSize, total: result.total,
             showSizeChanger: true, pageSizeOptions: [10, 20, 50], showTotal: (total) => `共 ${total} 条`,
-            onChange: (page, pageSize) => setQuery((current) => ({ ...current, page, pageSize })) }} />
+            onChange: setPage }} />
       </Card>
       <RequestLogDetail item={selected} onClose={() => setSelected(null)} />
       <RequestLogCleanupModal open={cleanupOpen} onClose={() => setCleanupOpen(false)}

@@ -1,33 +1,40 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { getOperationLogs, type OperationLogPage, type OperationLogQuery } from '../../api/operationLogs';
+import { getOperationLogs, type OperationLogItem } from '../../api/operationLogs';
+import { readFilter, writeFilter } from '../../hooks/tableFilterParams';
+import { useTableQuery, type TableQueryOptions } from '../../hooks/useTableQuery';
 
-const emptyPage: OperationLogPage = { items: [], total: 0, page: 1, pageSize: 10 };
+export interface OperationLogFilters {
+  module?: string;
+  actor?: string;
+  startTime?: string;
+  endTime?: string;
+}
 
-export function useOperationLogs(query: OperationLogQuery) {
-  const [result, setResult] = useState<OperationLogPage>(emptyPage);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const requestId = useRef(0);
+function localToIso(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+}
 
-  const reload = useCallback(async () => {
-    const currentId = ++requestId.current;
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await getOperationLogs(query);
-      if (!response.success) throw new Error(response.msg);
-      if (requestId.current === currentId) setResult(response.data);
-    } catch (cause) {
-      if (requestId.current === currentId) setError(cause instanceof Error ? cause.message : '加载操作日志失败');
-    } finally {
-      if (requestId.current === currentId) setLoading(false);
-    }
-  }, [query]);
+const options: TableQueryOptions<OperationLogItem, OperationLogFilters> = {
+  defaultPageSize: 10,
+  defaultFilters: {},
+  filters: {
+    read(params) {
+      return {
+        module: readFilter(params, 'module', 100), actor: readFilter(params, 'actor', 100),
+        startTime: readFilter(params, 'startTime', 16), endTime: readFilter(params, 'endTime', 16),
+      };
+    },
+    write(params, filters) {
+      for (const key of ['module', 'actor', 'startTime', 'endTime'] as const) {
+        writeFilter(params, key, filters[key]);
+      }
+    },
+  },
+  fetchPage: (query, signal) => getOperationLogs({ ...query,
+    startTime: localToIso(query.startTime), endTime: localToIso(query.endTime) }, signal),
+};
 
-  useEffect(() => {
-    void reload();
-    return () => { requestId.current += 1; };
-  }, [reload]);
-
-  return { result, loading, error, reload };
+export function useOperationLogs() {
+  return useTableQuery(options);
 }

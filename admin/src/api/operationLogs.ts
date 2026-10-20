@@ -56,11 +56,11 @@ function parseOperationLogPage(value: unknown): OperationLogPage {
   return value as unknown as OperationLogPage;
 }
 
-export function getOperationLogs(query: OperationLogQuery): Promise<ApiResponse<OperationLogPage>> {
+export function getOperationLogs(query: OperationLogQuery, signal?: AbortSignal): Promise<ApiResponse<OperationLogPage>> {
   const params = new URLSearchParams({ page: String(query.page), pageSize: String(query.pageSize) });
   if (query.module) params.set('module', query.module);
   if (query.actor) params.set('actor', query.actor);
   if (query.startTime) params.set('startTime', query.startTime);
   if (query.endTime) params.set('endTime', query.endTime);
-  return request(`/operation-logs?${params.toString()}`, parseOperationLogPage);
+  return request(`/operation-logs?${params.toString()}`, parseOperationLogPage, { signal });
 }

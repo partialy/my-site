@@ -1,36 +1,31 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { getRequestLogs } from '../../api/requestLogs';
-import type { RequestLogPage, RequestLogQuery } from '../../api/requestLogs';
+import { getRequestLogs, type RequestLogItem } from '../../api/requestLogs';
+import { readFilter, writeFilter } from '../../hooks/tableFilterParams';
+import { useTableQuery, type TableQueryOptions } from '../../hooks/useTableQuery';
 
-const emptyPage: RequestLogPage = { items: [], total: 0, page: 1, pageSize: 10 };
+export interface RequestLogFilters {
+  path?: string;
+  method?: string;
+  status?: string;
+}
 
-export function useRequestLogs(query: RequestLogQuery) {
-  const [result, setResult] = useState<RequestLogPage>(emptyPage);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const requestId = useRef(0);
+const options: TableQueryOptions<RequestLogItem, RequestLogFilters> = {
+  defaultPageSize: 10,
+  defaultFilters: {},
+  filters: {
+    read(params) {
+      return {
+        path: readFilter(params, 'path', 500), method: readFilter(params, 'method', 16),
+        status: readFilter(params, 'status', 3),
+      };
+    },
+    write(params, filters) {
+      for (const key of ['path', 'method', 'status'] as const) writeFilter(params, key, filters[key]);
+    },
+  },
+  fetchPage: (query, signal) => getRequestLogs({ ...query,
+    status: /^[1-5]\d{2}$/.test(query.status ?? '') ? Number(query.status) : undefined }, signal),
+};
 
-  const reload = useCallback(async () => {
-    const currentId = ++requestId.current;
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await getRequestLogs(query);
-      if (!response.success) throw new Error(response.msg);
-      if (currentId === requestId.current) setResult(response.data);
-    } catch (cause) {
-      if (currentId === requestId.current) {
-        setError(cause instanceof Error ? cause.message : '加载请求日志失败');
-      }
-    } finally {
-      if (currentId === requestId.current) setLoading(false);
-    }
-  }, [query]);
-
-  useEffect(() => {
-    void reload();
-    return () => { requestId.current += 1; };
-  }, [reload]);
-
-  return { result, loading, error, reload };
+export function useRequestLogs() {
+  return useTableQuery(options);
 }

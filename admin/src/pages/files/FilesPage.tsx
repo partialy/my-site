@@ -1,20 +1,22 @@
 import { useMemo, useState } from 'react';
-import { Alert, Button, Card, Flex, Image, Input, message, Modal, Space, Table, Typography, Upload } from 'antd';
+import { Alert, Button, Card, Flex, Image, message, Modal, Space, Table, Typography, Upload } from 'antd';
 import type { TableProps } from 'antd';
-import { Copy, FolderOpen, Search, Trash2, UploadCloud } from 'lucide-react';
-import type { FileItem, FileQuery } from '../../api/files';
+import { Copy, FolderOpen, Trash2, UploadCloud } from 'lucide-react';
+import type { FileItem } from '../../api/files';
 import { archiveFile, uploadFile } from '../../api/files';
+import { CrudFilterBar, type CrudFilterField } from '../../components/crud/CrudFilterBar';
 import { formatFileSize, isImage } from '../../components/file-picker/fileUtils';
-import { useFileLibrary } from '../../components/file-picker/useFileLibrary';
+import { useFilesPage, type FileFilters } from './useFilesPage';
 
 const { Title, Text, Paragraph } = Typography;
+const filterFields: ReadonlyArray<CrudFilterField<FileFilters>> = [
+  { key: 'search', kind: 'text', placeholder: '搜索文件名', width: 360 },
+];
 
 export function FilesPage() {
-  const [searchDraft, setSearchDraft] = useState('');
-  const [query, setQuery] = useState<FileQuery>({ page: 1, pageSize: 20 });
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<FileItem | null>(null);
-  const { result, loading, error, reload } = useFileLibrary(query);
+  const { query, result, loading, error, reload, setFilters, resetFilters, setPage } = useFilesPage();
 
   const handleUpload = async (file: File) => {
     setUploading(true);
@@ -22,11 +24,8 @@ export function FilesPage() {
       const response = await uploadFile(file);
       if (!response.success) throw new Error(response.msg);
       message.success('文件已上传到文件管理器');
-      if (query.page === 1 && !query.search) void reload();
-      else {
-        setSearchDraft('');
-        setQuery({ page: 1, pageSize: 20 });
-      }
+      if (query.page === 1 && !query.search) reload();
+      else resetFilters();
     } catch (cause) {
       message.error(cause instanceof Error ? cause.message : '上传失败');
     } finally {
@@ -54,9 +53,9 @@ export function FilesPage() {
           if (!response.success) throw new Error(response.msg);
           message.success('文件已归档');
           if (result.items.length === 1 && query.page > 1) {
-            setQuery((current) => ({ ...current, page: current.page - 1 }));
+            setPage(query.page - 1, query.pageSize);
           } else {
-            await reload();
+            reload();
           }
         } catch (cause) {
           message.error(cause instanceof Error ? cause.message : '归档失败');
@@ -80,7 +79,7 @@ export function FilesPage() {
       <Button type="link" size="small" icon={<Copy size={14} />} onClick={() => void copyUrl(file)}>复制链接</Button>
       <Button type="link" danger size="small" icon={<Trash2 size={14} />} onClick={() => confirmArchive(file)}>归档</Button>
     </Space> },
-  ], [reload, query.page, result.items.length]);
+  ], [reload, setPage, query.page, query.pageSize, result.items.length]);
 
   return (
     <div style={{ maxWidth: 1400, margin: '0 auto' }}>
@@ -94,19 +93,13 @@ export function FilesPage() {
           <Button type="primary" icon={<UploadCloud size={16} />} loading={uploading}>上传文件</Button>
         </Upload>
       </Flex>
-      <Card style={{ marginBottom: 16, borderRadius: 16 }}>
-        <Space.Compact style={{ width: 360, maxWidth: '100%' }}>
-          <Input placeholder="搜索文件名" value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)}
-            onPressEnter={() => setQuery((current) => ({ ...current, page: 1, search: searchDraft.trim() || undefined }))} allowClear />
-          <Button icon={<Search size={16} />} onClick={() => setQuery((current) => ({ ...current, page: 1, search: searchDraft.trim() || undefined }))}>搜索</Button>
-        </Space.Compact>
-      </Card>
+      <CrudFilterBar fields={filterFields} values={query} defaultValues={{}} onSearch={setFilters} onReset={resetFilters} />
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} />}
       <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 16, overflow: 'hidden' }}>
         <Table<FileItem> rowKey="id" columns={columns} dataSource={result.items} loading={loading} scroll={{ x: 'max-content' }}
           pagination={{ current: query.page, pageSize: query.pageSize, total: result.total, showSizeChanger: true,
             pageSizeOptions: [10, 20, 50], showTotal: (total) => `共 ${total} 个文件`,
-            onChange: (page, pageSize) => setQuery((current) => ({ ...current, page, pageSize })) }} />
+            onChange: setPage }} />
       </Card>
       <Modal title={preview?.name || '文件预览'} open={preview !== null} footer={null} onCancel={() => setPreview(null)}>
         {preview && <Space direction="vertical" style={{ width: '100%' }} size={16}>

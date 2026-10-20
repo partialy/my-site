@@ -8,6 +8,11 @@ export interface TableListResource {
   order: 'ASC' | 'DESC';
   searchColumns?: readonly string[];
   equalityFilters?: Readonly<Record<string, string>>;
+  containsFilters?: Readonly<Record<string, string>>;
+  rangeFilters?: Readonly<Record<string, { column: string; operator: '>=' | '<=' | '>' | '<' }>>;
+  arrayFilters?: Readonly<Record<string, string>>;
+  nullColumns?: readonly string[];
+  orderColumns?: ReadonlyArray<{ column: string; order: 'ASC' | 'DESC' }>;
 }
 
 export interface TableListQuery {
@@ -30,6 +35,20 @@ function quoteIdentifier(value: string): string {
   return `"${value}"`;
 }
 
+function filterValue(query: object, key: string): unknown {
+  return (query as Record<string, unknown>)[key];
+}
+
+function scalar(value: unknown, key: string): string | number {
+  if (typeof value === 'string' || typeof value === 'number') return value;
+  if (typeof value === 'boolean') return Number(value);
+  throw new Error(`无效的筛选参数：${key}`);
+}
+
+function escapeLike(value: string): string {
+  return `%${value.replace(/[!%_]/g, '!$&')}%`;
+}
+
 /** 通用单表列表查询：字段和排序来自服务端静态配置，所有筛选值使用绑定参数。 */
 export class TableListRepository {
   constructor(private readonly db: Database.Database) {}
@@ -38,9 +57,13 @@ export class TableListRepository {
     const table = quoteIdentifier(resource.table);
     const columns = resource.columns.map(quoteIdentifier).join(', ');
     if (!columns) throw new Error('列表资源至少需要一个查询字段');
-    const orderBy = quoteIdentifier(resource.orderBy);
+    const orderBy = resource.orderColumns?.length
+      ? resource.orderColumns.map((item) => `${quoteIdentifier(item.column)} ${item.order}`).join(', ')
+      : `${quoteIdentifier(resource.orderBy)} ${resource.order}`;
     const conditions: string[] = [];
     const args: Array<string | number> = [];
+
+    for (const column of resource.nullColumns ?? []) conditions.push(`${quoteIdentifier(column)} IS NULL`);
 
     if (query.search && resource.searchColumns?.length) {
       const search = resource.searchColumns.map((column) => `instr(lower(${quoteIdentifier(column)}), lower(?)) > 0`);
@@ -48,17 +71,35 @@ export class TableListRepository {
       args.push(...resource.searchColumns.map(() => query.search!));
     }
     for (const [key, column] of Object.entries(resource.equalityFilters ?? {})) {
-      const value = (query as Record<string, unknown>)[key];
+      const value = filterValue(query, key);
       if (value === undefined || value === null || value === '') continue;
-      if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') {
-        throw new Error(`无效的筛选参数：${key}`);
-      }
       conditions.push(`${quoteIdentifier(column)} = ?`);
-      args.push(typeof value === 'boolean' ? Number(value) : value);
+      args.push(scalar(value, key));
+    }
+    for (const [key, column] of Object.entries(resource.containsFilters ?? {})) {
+      const value = filterValue(query, key);
+      if (value === undefined || value === null || value === '') continue;
+      if (typeof value !== 'string') throw new Error(`无效的筛选参数：${key}`);
+      conditions.push(`${quoteIdentifier(column)} LIKE ? ESCAPE '!'`);
+      args.push(escapeLike(value));
+    }
+    for (const [key, rule] of Object.entries(resource.rangeFilters ?? {})) {
+      const value = filterValue(query, key);
+      if (value === undefined || value === null || value === '') continue;
+      conditions.push(`${quoteIdentifier(rule.column)} ${rule.operator} ?`);
+      args.push(scalar(value, key));
+    }
+    for (const [key, column] of Object.entries(resource.arrayFilters ?? {})) {
+      const value = filterValue(query, key);
+      if (value === undefined || value === null) continue;
+      if (!Array.isArray(value)) throw new Error(`无效的筛选参数：${key}`);
+      if (!value.length) { conditions.push('1 = 0'); continue; }
+      conditions.push(`${quoteIdentifier(column)} IN (${value.map(() => '?').join(', ')})`);
+      args.push(...value.map((item) => scalar(item, key)));
     }
     const where = conditions.length ? ` WHERE ${conditions.join(' AND ')}` : '';
     const total = (this.db.prepare(`SELECT COUNT(*) AS total FROM ${table}${where}`).get(...args) as { total: number }).total;
-    const items = this.db.prepare(`SELECT ${columns} FROM ${table}${where} ORDER BY ${orderBy} ${resource.order} LIMIT ? OFFSET ?`)
+    const items = this.db.prepare(`SELECT ${columns} FROM ${table}${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`)
       .all(...args, query.pageSize, (query.page - 1) * query.pageSize) as T[];
     return { items, total, page: query.page, pageSize: query.pageSize };
   }

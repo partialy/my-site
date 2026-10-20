@@ -74,12 +74,12 @@ function parseRequestLogPage(value: unknown): RequestLogPage {
   };
 }
 
-export function getRequestLogs(query: RequestLogQuery): Promise<ApiResponse<RequestLogPage>> {
+export function getRequestLogs(query: RequestLogQuery, signal?: AbortSignal): Promise<ApiResponse<RequestLogPage>> {
   const params = new URLSearchParams({ page: String(query.page), pageSize: String(query.pageSize) });
   if (query.method) params.set('method', query.method);
   if (query.path) params.set('path', query.path);
   if (query.status !== undefined) params.set('status', String(query.status));
-  return request(`/request-logs?${params.toString()}`, parseRequestLogPage);
+  return request(`/request-logs?${params.toString()}`, parseRequestLogPage, { signal });
 }
 
 export function cleanupRequestLogs(input: RequestLogCleanup): Promise<ApiResponse<{ deleted: number }>> {

@@ -98,7 +98,7 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 - src/db：SQLite 连接与版本化迁移；`migrations/` 保存编号 SQL。
 - src/config：环境变量校验与配置内存管理。
 
-普通业务列表可使用 `src/repositories/table-list.repository.ts` 的 `TableListRepository`。资源在服务端代码中静态声明 `table`、返回列、搜索列、等值筛选列和排序列；用户示例位于 `src/repositories/resources/user-list.resource.ts`。Controller 仍使用专属 Zod Schema 校验查询参数，Service 保留业务规则。表名和列名仅来自代码配置，筛选值使用 SQLite 参数绑定。用户列表不会将密码哈希作为列表字段读取。包含副作用的写操作仍由业务 Service 和对应 Repository 实现。
+普通业务列表可使用 `src/repositories/table-list.repository.ts` 的 `TableListRepository`。资源在服务端代码中静态声明表、返回列、搜索列、等值/模糊/范围/数组筛选、固定 `IS NULL` 约束和排序；用户、操作日志、访问日志、请求日志、文件列表的配置示例位于 `src/repositories/resources/`。Controller 仍使用专属 Zod Schema 校验查询参数，Service 保留业务规则。表名和列名仅来自代码配置，筛选值使用 SQLite 参数绑定，模糊查询转义通配符。用户列表不会将密码哈希作为列表字段读取；请求日志表未创建时查询仍返回空列表，文件列表固定排除已归档文件。包含副作用的写操作仍由业务 Service 和对应 Repository 实现。
 
 ## 配置与请求日志
 
