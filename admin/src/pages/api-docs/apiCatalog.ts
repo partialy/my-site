@@ -104,8 +104,6 @@ export const API_GROUPS: readonly ApiGroup[] = [
     { method: 'GET', path: `${admin}/home`, title: '获取首页数据', auth: true,
       response: '{ visits: { today: number; yesterday: number; last7Days: number; trend7: { day: string; visits: number }[]; trend30: 同 trend7 }; users: { source: "mock"; total: number; activeLast7Days: number; newLast7Days: number; trend7: { day: string; newUsers: number; activeUsers: number }[] }; requestLogs: { total: number; successRate: number | null; sources: { name: string; count: number }[]; topPaths: { path: string; count: number }[] } }',
       note: '访问和已记录的接口日志是真实数据；用户相关数据目前为模拟。' },
-    { method: 'GET', path: `${admin}/dashboard`, title: '首页数据兼容接口', auth: true,
-      response: '同 GET /api/v1/admin/home', note: '兼容旧管理端，建议新代码使用 /home。' },
   ] },
   { audience: 'admin', module: '访问日志', endpoints: [
     { method: 'GET', path: `${admin}/visits`, title: '分页查询访问日志', auth: true,

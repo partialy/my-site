@@ -13,7 +13,7 @@
 - 文件库由 `file` 表保存元数据，原文件存于 `server/data/uploads/`；列表、上传、归档需管理员鉴权，稳定文件链接公开访问。归档后文件不再出现在选择器，但旧链接继续可用。管理端的文件选择弹窗支持单选、多选、预览和现场上传；站点图标从文件库选择。
 - 菜单结构存于 `menu` 表，首次运行写入默认一级/二级菜单；启动时不删除或调整已有菜单。修改密码入口在账号下拉菜单。`MenuService` 启动后加载到内存，`GET /api/v1/admin/menus` 读缓存，`PUT /api/v1/admin/menus` 事务写库成功后刷新缓存。菜单配置只控制导航，不作为路由注册或权限控制。
 - 站点设置保存在 `sys_config`：后台与前台分别有网站标签名称、系统名称和图标元数据。公开 `GET /api/v1/site-settings` 供未来 `client` 读取，管理端从 `/api/v1/admin/site-settings` 读取并经鉴权写入；图标入口使用文件选择弹窗，支持 PNG、JPEG、WebP、ICO，最大 2 MiB，不接收 SVG；旧版固定图标仍可读取。
-- 前台访问通过公开 `POST /api/v1/visits` 上报；浏览器工具在 `client/visitTracker.ts` 保存访客 UUID 和最近上报的 UTC 日期，服务端以 `(visitor_id, visit_day)` 唯一约束兜底。每日仅记录首次访问的页面，属于尽力去重；清除存储后会生成新访客 ID。`GET /api/v1/admin/visits` 提供分页筛选访问日志。`GET /api/v1/admin/home` 聚合真实访问记录与近 7 天请求日志；用户总数、近 7 日活跃用户及新增用户趋势暂由 `services/dashboard-demo-data.ts` 提供并标记 `source: 'mock'`，业务项目接入用户表后替换。旧 `/api/v1/admin/dashboard` 保留同结果别名。日志关闭时接口来源和热门接口为空。
+- 前台访问通过公开 `POST /api/v1/visits` 上报；浏览器工具在 `client/visitTracker.ts` 保存访客 UUID 和最近上报的 UTC 日期，服务端以 `(visitor_id, visit_day)` 唯一约束兜底。每日仅记录首次访问的页面，属于尽力去重；清除存储后会生成新访客 ID。`GET /api/v1/admin/visits` 提供分页筛选访问日志。`GET /api/v1/admin/home` 聚合真实访问记录与近 7 天请求日志；用户总数、近 7 日活跃用户及新增用户趋势暂由 `services/dashboard-demo-data.ts` 提供并标记 `source: 'mock'`，业务项目接入用户表后替换。日志关闭时接口来源和热门接口为空。
 - 代码按 API/Controller 边界、Service 业务层、Repository 数据访问层分层；鉴权、校验和安全能力分别放在中间件或独立模块。业务项目自行扩展业务表和 API。
 - 接口、环境变量与启动方式见 `server/README.md`；改动服务端接口时需同步管理端契约。
 
@@ -29,7 +29,7 @@
 - 代码按页面（`pages`）、布局（`layouts`）、复用组件（`components`）、API 请求（`api`）、认证状态（`auth`）与路由守卫（`router`）分层。
 - 认证状态集中在 `src/auth/` 独立管理，Token 存放于 `sessionStorage`；页面与组件不直接发原始 fetch 请求或拼接 Authorization 头。
 - 严格遵循管理端 `/api/v1/admin` 基础路径和 `{code, msg, data, success}` 契约。服务端 JSON 先按 `unknown` 处理并在请求层收窄，不使用 `any`。
-- 管理端只访问真实 server：开发环境由 Vite 将 `/api/v1` 代理到 `SERVER_PROXY_TARGET`，生产环境由网关配置同路径代理。没有预设管理员或本地模拟接口。
+- 管理端只访问真实 server：开发环境由 Vite 仅将 `/api/v1` 代理到 `SERVER_PROXY_TARGET`，不能使用 `/api` 代理前缀，否则会拦截 `/api-docs` 页面刷新；生产环境由网关配置同路径代理并将非接口页面路径回退到 `index.html`。没有预设管理员或本地模拟接口。
 - `SiteSettingsProvider` 集中获取公开站点信息并同步后台浏览器标题、标签图标；登录页、初始化页和侧栏读取后台系统名称与图标。系统管理页用独立区块并排编辑后台、前台站点信息，内容页最大宽度统一为 1400px。
 - 首页仪表盘从 `/api/v1/admin/home` 获取数据：访问统计、接口来源与热门接口来自真实访问记录和请求日志；近 7 日活跃用户、用户总数及新增用户趋势由服务端返回演示数据，并在界面标明，接入业务用户表后替换。管理端时间展示统一通过 `utils/dateTime.ts` 转换为本地 `YYYY-MM-DD HH:mm:ss`。
 - 接口文档页位于 `/api-docs`，由 `pages/api-docs/apiCatalog.ts` 维护现有接口的端、模块、鉴权、参数与返回数据，`apiExamples.ts` 维护可复制的请求与成功响应 JSON 示例；二进制接口单独标注。页面支持分类筛选和搜索。新增或修改服务端接口时同步维护目录与示例；页面已注册路由与页面清单，侧栏菜单仍由管理员手动配置。

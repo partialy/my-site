@@ -85,7 +85,6 @@ const examples: Record<string, EndpointExample> = {
   [`DELETE ${admin}/request-logs`]: { request: { mode: 'keepLatest', count: 100 },
     response: success({ deleted: 12 }, '请求日志已清理') },
   [`GET ${admin}/home`]: { response: success(home) },
-  [`GET ${admin}/dashboard`]: { response: success(home) },
   [`GET ${admin}/visits`]: { requestKind: 'Query', request: { page: 1, pageSize: 20,
     path: '/', visitorId: visit.visitorId, startDay: '2026-10-01', endDay: '2026-10-20' },
     response: success({ items: [visit], total: 1, page: 1, pageSize: 20 }) },

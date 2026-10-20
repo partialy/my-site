@@ -56,7 +56,6 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 | DELETE | /api/v1/admin/site-settings/:target/icon | 删除图标，需要管理员 Token |
 | PUT | /api/v1/admin/site-settings/:target/icon-file | 从文件库选择图标，body 为 `{ "fileId": "UUID" }`，需要管理员 Token |
 | GET | /api/v1/admin/home | 首页访问量、请求日志聚合与用户演示数据，需要管理员 Token |
-| GET | /api/v1/admin/dashboard | 首页数据的兼容别名，需要管理员 Token |
 | GET | /api/v1/admin/visits | 分页筛选访问日志，需要管理员 Token |
 | GET | /api/v1/admin/request-logs | 分页查询请求日志，需要管理员 Token |
 | DELETE | /api/v1/admin/request-logs | 按 ID 或时间范围清理请求日志，需要管理员 Token |
@@ -113,7 +112,7 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 
 前台在页面首次加载时调用 `POST /api/v1/visits`，请求体为 `{visitorId, path, pageTitle?, referrer?}`。`visitorId` 为浏览器持久保存的 UUID；`path` 是不含查询串的站内绝对路径。服务端同时保存请求 IP、User-Agent、首次访问时间和 UTC 日期。`visit` 表对 `(visitor_id, visit_day)` 建唯一约束：当日首次写入返回 `{recorded:true,day}`，重复提交返回 `{recorded:false,day}`。同一访客每天仅记录首次进入的页面，因此路径代表当日入口页。浏览器清除存储或更换设备后会获得新访客 ID，本机制仅用于尽力去重，不是可靠用户身份鉴别。可复用前端工具见 `client/visitTracker.ts`。
 
-`GET /api/v1/admin/home` 需要管理员 JWT，返回今日、昨日和近 7 天访问量，以及近 7 天、近 30 天每日趋势；还聚合近 7 天已记录的接口日志，提供请求数、HTTP 4xx 以下占比、Origin/Referer 来源和请求最多的接口路径。请求日志关闭或白名单未覆盖接口时，相关统计只基于已有日志；日志表不存在时返回空指标。`users` 字段包含用户总数、近 7 日活跃用户、近 7 日新增用户和趋势，目前均为服务端演示数据，`source` 为 `mock`，待业务用户模块接入后替换。`GET /api/v1/admin/dashboard` 暂作为兼容别名返回相同数据。
+`GET /api/v1/admin/home` 需要管理员 JWT，返回今日、昨日和近 7 天访问量，以及近 7 天、近 30 天每日趋势；还聚合近 7 天已记录的接口日志，提供请求数、HTTP 4xx 以下占比、Origin/Referer 来源和请求最多的接口路径。请求日志关闭或白名单未覆盖接口时，相关统计只基于已有日志；日志表不存在时返回空指标。`users` 字段包含用户总数、近 7 日活跃用户、近 7 日新增用户和趋势，目前均为服务端演示数据，`source` 为 `mock`，待业务用户模块接入后替换。
 
 `GET /api/v1/admin/visits` 支持 `page`、`pageSize`（最大 100）、`path`、`visitorId` 子串查询，以及 `startDay`、`endDay`（UTC 日期 `YYYY-MM-DD`）筛选，按最新记录排序，返回 `{items,total,page,pageSize}`。访问日志页面在管理端 `/visit-logs`，导航菜单由管理员自行配置，不自动写入默认菜单。
 

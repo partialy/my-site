@@ -111,7 +111,7 @@ export class RequestLogRepository {
   dashboard(since: string): RequestLogDashboard {
     if (!this.exists()) return { total: 0, successRate: null, sources: [], topPaths: [] };
 
-    const filter = "time >= ? AND path NOT IN ('/api/v1/request-logs', '/api/v1/admin/request-logs', '/api/v1/admin/dashboard', '/api/v1/admin/home')";
+    const filter = "time >= ? AND path NOT IN ('/api/v1/request-logs', '/api/v1/admin/request-logs', '/api/v1/admin/home')";
     const totals = this.db.prepare(`
       SELECT COUNT(*) AS total, SUM(CASE WHEN status < 400 THEN 1 ELSE 0 END) AS success
       FROM request_log WHERE ${filter}

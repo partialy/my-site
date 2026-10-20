@@ -79,8 +79,7 @@ export function requestLogMiddleware(config: SystemConfigService, db: Database.D
       };
 
       if (settings.consoleLogEnabled) console.log(formatLine(settings.consoleLogFormat, values));
-      if (path === '/api/v1/admin/request-logs' || path === '/api/v1/admin/dashboard' ||
-        path === '/api/v1/admin/home' ||
+      if (path === '/api/v1/admin/request-logs' || path === '/api/v1/admin/home' ||
         /^\/api\/v1\/request-logs?\/?$/.test(path)) return;
       if (settings.requestLogMode === 'off') return;
       if (settings.requestLogMode === 'white_list' && !settings.requestLogWhitelist.some((rule) => matches(path, rule))) return;

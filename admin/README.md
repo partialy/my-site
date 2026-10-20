@@ -8,7 +8,7 @@ React + TypeScript + React Router + Ant Design 单管理员后台。直接对接
 2. 在 admin/ 运行 npm install、npm run dev，访问 http://localhost:5173/。
 3. 首次访问会从 GET /api/v1/admin/setup/status 判断是否已有管理员。若没有，进入初始化页；初始化密钥填写 server/.env 中的 SETUP_KEY。初始化成功后使用新账号登录。
 
-admin/.env.example 给出开发代理配置。VITE_API_BASE_URL 默认 /api/v1/admin；SERVER_PROXY_TARGET 默认 http://127.0.0.1:3000。Vite 开发服务器会将 /api 请求代理到 server，生产部署则需要网关将 /api/v1 转发到 server，且 SPA 路由回退到 index.html。
+admin/.env.example 给出开发代理配置。VITE_API_BASE_URL 默认 /api/v1/admin；SERVER_PROXY_TARGET 默认 http://127.0.0.1:3000。Vite 开发服务器仅将 /api/v1 请求代理到 server，其他路径由 React Router 页面处理；生产部署需要网关将 /api/v1 转发到 server，并将非接口页面路径回退到 index.html。
 
 管理员密码与密钥不写入前端构建产物。JWT 存放在当前标签页的 sessionStorage；退出登录清理本地 Token，修改密码会由 server 使旧 Token 失效。
 

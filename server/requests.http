@@ -30,7 +30,7 @@ GET {{baseUrl}}/auth/me
 Authorization: Bearer {{token}}
 
 ### 仪表盘统计
-GET {{baseUrl}}/dashboard
+GET {{baseUrl}}/home
 Authorization: Bearer {{token}}
 
 ### 前台访问上报（同一 visitorId 每个 UTC 日期只记录一次）

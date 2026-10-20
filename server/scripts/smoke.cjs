@@ -98,8 +98,6 @@ async function main() {
     assert.equal((await visitResponse.json()).data.recorded, true);
     visitResponse = await fetch(`${publicBase}/visits`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(visit) });
     assert.equal((await visitResponse.json()).data.recorded, false);
-    result = await request('/dashboard', 'GET', undefined, token);
-    assert.equal(result.body.data.visits.today, 1);
     result = await request('/home', 'GET', undefined, token);
     assert.equal(result.body.data.visits.today, 1);
     assert.equal(result.body.data.users.source, 'mock');
