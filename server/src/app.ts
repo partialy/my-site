@@ -26,6 +26,9 @@ import { operationAuditMiddleware } from './middleware/operation-audit.middlewar
 import { DatabaseBackupService } from './services/database-backup.service';
 import { SystemStatusService } from './services/system-status.service';
 import { loginFailureLimit, requestRateLimit } from './middleware/rate-limit.middleware';
+import { DictionaryService } from './services/dictionary.service';
+import { createDictionaryRoutes } from './api/dictionary-routes';
+import { createAdminDictionaryRoutes } from './api/admin/dictionary-routes';
 
 interface AppServices {
   setup: SetupService;
@@ -42,6 +45,7 @@ interface AppServices {
   operationLogs: OperationLogService;
   backups: DatabaseBackupService;
   status: SystemStatusService;
+  dictionaries: DictionaryService;
 }
 
 export function createApp(config: AppConfig, services: AppServices, db: Database.Database) {
@@ -63,7 +67,7 @@ export function createApp(config: AppConfig, services: AppServices, db: Database
   const publicCors = cors({ origin: '*' });
   app.use((req, res, next) => {
     const publicPath = req.path === '/api/v1/visits' || req.path.startsWith('/api/v1/users/') ||
-      req.path === '/api/v1/site-settings' ||
+      req.path === '/api/v1/site-settings' || req.path === '/api/v1/dictionaries' ||
       /^\/api\/v1\/files\/[^/]+\/content$/.test(req.path) ||
       /^\/api\/v1\/site-settings\/(admin|client)\/icon$/.test(req.path);
     if (publicPath && !req.path.startsWith('/api/v1/admin/')) return publicCors(req, res, next);
@@ -82,7 +86,9 @@ export function createApp(config: AppConfig, services: AppServices, db: Database
     services.operationLogs, services.backups, services.status,
   ));
   app.use('/api/v1/admin/users', createAdminUserRoutes(services.auth, services.users));
+  app.use('/api/v1/admin/dictionaries', createAdminDictionaryRoutes(services.auth, services.dictionaries));
   app.use('/api/v1/users', createUserRoutes(services.users));
+  app.use('/api/v1/dictionaries', createDictionaryRoutes(services.dictionaries));
   app.use('/api/v1', createPublicRoutes(services.siteSettings, services.files, services.visits));
   app.use('/api/v1', (_req, res) => {
     res.status(404).json({ code: ApiCode.NotFound, msg: '接口不存在', data: null, success: false });

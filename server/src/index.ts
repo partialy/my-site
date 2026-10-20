@@ -27,6 +27,8 @@ import { OperationLogRepository } from './repositories/operation-log.repository'
 import { OperationLogService } from './services/operation-log.service';
 import { DatabaseBackupService } from './services/database-backup.service';
 import { SystemStatusService } from './services/system-status.service';
+import { DictionaryRepository } from './repositories/dictionary.repository';
+import { DictionaryService } from './services/dictionary.service';
 
 function main(): void {
   const config = loadConfig();
@@ -46,10 +48,11 @@ function main(): void {
   const operationLogs = new OperationLogService(new OperationLogRepository(db));
   const backups = new DatabaseBackupService(db);
   const status = new SystemStatusService(db, config.sqlitePath);
+  const dictionaries = new DictionaryService(new DictionaryRepository(db));
   const dashboard = new DashboardService(visits, requestLogs, users);
   const app = createApp(config, {
     setup, auth, systemConfig, configs, siteSettings, requestLogs, files, menus, visits, dashboard,
-    users, operationLogs, backups, status,
+    users, operationLogs, backups, status, dictionaries,
   }, db);
   const server = app.listen(config.port, () => {
     console.log(`server 已启动，端口 ${config.port}`);

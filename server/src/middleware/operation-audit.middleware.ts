@@ -41,6 +41,17 @@ function describe(method: string, path: string): OperationDescriptor | null {
       summary: `${method === 'POST' ? '新增' : method === 'PUT' ? '修改' : '删除'}动态配置`,
       changedFields: method === 'DELETE' ? [] : ['name', 'value', 'enabled', 'remark'] };
   }
+  const dictionary = /^\/dictionaries(?:\/(\d+)(?:\/items(?:\/(\d+))?)?)?$/.exec(path);
+  if (dictionary && (method === 'POST' || method === 'PUT')) {
+    const isItem = path.includes('/items');
+    return {
+      module: '数据字典', action: method === 'POST' ? 'create' : 'update',
+      targetType: isItem ? 'dict_item' : 'dict_type',
+      targetId: isItem ? dictionary[3] : dictionary[1],
+      summary: `${method === 'POST' ? '新增' : '修改'}字典${isItem ? '子项' : '类型'}`,
+      changedFields: isItem ? ['label', 'sort', 'enabled', 'color'] : ['name', 'remark', 'isPublic', 'enabled'],
+    };
+  }
   if (method === 'PUT' && path === '/menus') {
     return { module: '菜单管理', action: 'update', targetType: 'menu', summary: '保存菜单结构', changedFields: ['items'] };
   }

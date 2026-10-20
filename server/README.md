@@ -52,6 +52,12 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 | POST | /api/v1/admin/configs | 创建普通配置 |
 | PUT | /api/v1/admin/configs/:key | 更新普通配置，可修改键 |
 | DELETE | /api/v1/admin/configs/:key | 删除普通配置 |
+| GET | /api/v1/admin/dictionaries | 获取字典类型及全部子项，需要管理员 Token |
+| GET | /api/v1/admin/dictionaries/options?codes=a,b | 批量获取后台可用字典选项，需要管理员 Token |
+| POST | /api/v1/admin/dictionaries | 创建字典类型，需要管理员 Token |
+| PUT | /api/v1/admin/dictionaries/:id | 修改字典类型，需要管理员 Token |
+| POST | /api/v1/admin/dictionaries/:id/items | 创建字典子项，需要管理员 Token |
+| PUT | /api/v1/admin/dictionaries/:id/items/:itemId | 修改字典子项，需要管理员 Token |
 | GET | /api/v1/admin/menus | 从内存读取菜单列表，需要管理员 Token |
 | PUT | /api/v1/admin/menus | 原子替换全部菜单，需要管理员 Token |
 | GET | /api/v1/admin/site-settings | 管理端读取后台与前台的站点名称和图标 URL，无需 Token |
@@ -73,6 +79,7 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 | POST | /api/v1/admin/files | 上传原始文件，需要管理员 Token |
 | DELETE | /api/v1/admin/files/:id | 归档文件，需要管理员 Token |
 | GET | /api/v1/site-settings | 公开读取站点名称和图标 URL |
+| GET | /api/v1/dictionaries?codes=a,b | 批量获取公开且启用的字典选项 |
 | GET | /api/v1/site-settings/:target/icon | 公开读取图标二进制 |
 | GET | /api/v1/files/:id/content | 公开读取文件原始内容，保留已分发链接 |
 | POST | /api/v1/visits | 前台访问上报，无需 Token |
@@ -89,6 +96,8 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 参数错误示例：
 
     { "code": 1001, "msg": "参数校验失败", "data": { "fieldErrors": { "username": ["用户名格式错误"] } }, "success": false }
+
+数据字典的类型标识 `code` 与子项值 `value` 创建后不可修改；更新接口仅接受名称、备注、公开/启用状态等可编辑字段。停用的子项保留在管理列表中，但不出现在选项接口。管理端写入成功后刷新服务端字典缓存。新库由 `migrations/sql/0004_dictionary.sql` 建表；已有开发库由 `migrations/dev-sql/0001_dictionary.sql` 自动补建。
 
 ## 目录职责
 
