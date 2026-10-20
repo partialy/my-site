@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Button, Form, Input, Modal, Radio, Space, Tag, Typography, message } from 'antd';
-import { Plus } from 'lucide-react';
+import { Copy, Plus } from 'lucide-react';
 import type { DictType } from '../../api/dictionaries';
 import { DictionaryTypePickerModal } from './DictionaryTypePickerModal';
 import { generateDictionaryFiles } from './generateDictionaryCode';
-import type { ExportLanguage, ExportMode } from './generateDictionaryCode';
+import type { ExportLanguage, ExportMode, GeneratedFile } from './generateDictionaryCode';
 
 interface Props {
   open: boolean;
@@ -34,6 +34,7 @@ export function DictionaryExportModal({ open, types, initialTypeId, onClose }: P
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [copying, setCopying] = useState(false);
   const selectedTypes = selectedIds.map((id) => types.find((type) => type.id === id))
     .filter((type): type is DictType => Boolean(type));
 
@@ -46,22 +47,40 @@ export function DictionaryExportModal({ open, types, initialTypeId, onClose }: P
     setPickerOpen(false);
   }, [initialTypeId, open]);
 
-  const exportCode = async (): Promise<void> => {
+  const createFiles = (): GeneratedFile[] => {
     const baseName = fileName.trim();
     if (!fileNamePattern.test(baseName)) {
-      message.error('文件名称须以字母开头，仅使用字母、数字、下划线或连字符');
-      return;
+      throw new Error('文件名称须以字母开头，仅使用字母、数字、下划线或连字符');
     }
+    return generateDictionaryFiles(selectedTypes, language, mode, baseName);
+  };
+
+  const copyCode = async (): Promise<void> => {
+    setCopying(true);
+    try {
+      const files = createFiles();
+      const code = files.length === 1 ? files[0].content
+        : files.map((file) => `// ===== ${file.name} =====\n${file.content}`).join('\n');
+      await navigator.clipboard.writeText(code);
+      message.success('代码已复制');
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '复制失败');
+    } finally {
+      setCopying(false);
+    }
+  };
+
+  const exportCode = async (): Promise<void> => {
     setExporting(true);
     try {
-      const files = generateDictionaryFiles(selectedTypes, language, mode, baseName);
+      const files = createFiles();
       if (mode === 'single') {
         saveBlob(new Blob([files[0].content], { type: 'text/plain;charset=utf-8' }), files[0].name);
       } else {
         const { default: JSZip } = await import('jszip');
         const zip = new JSZip();
         files.forEach((file) => zip.file(file.name, file.content));
-        saveBlob(await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' }), `${baseName}.zip`);
+        saveBlob(await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' }), `${fileName.trim()}.zip`);
       }
       message.success(`已导出 ${files.length} 个代码文件`);
       onClose();
@@ -73,8 +92,14 @@ export function DictionaryExportModal({ open, types, initialTypeId, onClose }: P
   };
 
   return <>
-    <Modal title="导出字典类型代码" open={open} onCancel={onClose} onOk={() => void exportCode()}
-      okText="生成并下载" confirmLoading={exporting} destroyOnHidden width={680}>
+    <Modal title="导出字典类型代码" open={open} onCancel={onClose} destroyOnHidden width={680}
+      footer={<Space>
+        <Button onClick={onClose}>取消</Button>
+        <Button icon={<Copy size={16} />} loading={copying} disabled={exporting}
+          onClick={() => void copyCode()}>复制代码</Button>
+        <Button type="primary" loading={exporting} disabled={copying}
+          onClick={() => void exportCode()}>生成并下载</Button>
+      </Space>}>
       <Form layout="vertical" style={{ marginTop: 24 }}>
         <Form.Item label="文件名称" required extra="单文件为代码文件名称，多文件为压缩包名称；无需填写扩展名。">
           <Input value={fileName} maxLength={80} onChange={(event) => setFileName(event.target.value)}
@@ -99,6 +124,9 @@ export function DictionaryExportModal({ open, types, initialTypeId, onClose }: P
             options={[{ label: '单文件：全部类型合并', value: 'single' },
               { label: '多文件：每个类型一个文件（ZIP）', value: 'multiple' }]} />
         </Form.Item>
+        {mode === 'multiple' && <Text type="secondary" style={{ fontSize: 12 }}>
+          复制多文件代码时将按文件名分段，请分别粘贴到对应文件。
+        </Text>}
       </Form>
     </Modal>
     <DictionaryTypePickerModal open={pickerOpen} types={types} selectedIds={selectedIds}
