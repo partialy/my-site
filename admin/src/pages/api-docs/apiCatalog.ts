@@ -136,7 +136,7 @@ export const API_GROUPS: readonly ApiGroup[] = [
   ] },
   { audience: 'admin', module: '文件管理', endpoints: [
     { method: 'GET', path: `${admin}/files`, title: '分页查询文件', auth: true,
-      request: 'Query: page=1；pageSize=20(1-100)；search?；mimeTypes?（逗号分隔 MIME 类型）',
+      request: 'Query: page=1；pageSize=20(1-100)；search?；mimeTypes?（逗号分隔 MIME 类型）；sortBy?=createdAt | size（默认 createdAt）；sortOrder?=asc | desc（默认 desc）',
       response: `{ items: ${fileItem}[]; total: number; page: number; pageSize: number }` },
     { method: 'POST', path: `${admin}/files`, title: '上传文件', auth: true,
       request: 'Body: 原始文件字节；Content-Type: image/png | image/jpeg | image/webp | image/x-icon | image/gif | application/pdf；X-File-Name: URL 编码文件名',

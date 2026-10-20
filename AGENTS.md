@@ -33,6 +33,7 @@
 - 管理端主题将 Input、Select、Button 的默认控件高度统一为 40px，筛选栏不要再单独混用不同高度。
 - 代码按页面（`pages`）、布局（`layouts`）、复用组件（`components`）、API 请求（`api`）、认证状态（`auth`）与路由守卫（`router`）分层。
 - `hooks/useTableQuery.ts` 管理列表 URL 查询状态、分页、防过期响应和刷新；`components/crud/` 提供防抖筛选栏与带二次确认、防重复点击的操作列按钮。用户、操作日志、访问日志、请求日志和文件管理页已接入；文件选择弹窗继续使用局部列表状态，避免弹窗筛选占用页面 URL。新业务页只声明筛选字段、列和 API 契约，专有写操作保留在业务 Hook/Service。
+- 文件管理表格支持点击大小、上传时间表头进行升降序排列，排序状态随 URL 保存；服务端文件列表仅接受 `createdAt`/`size` 与 `asc`/`desc` 白名单值，默认上传时间倒序，文件选择弹窗仍使用默认排序。
 - 认证状态集中在 `src/auth/` 独立管理，Token 存放于 `sessionStorage`；页面与组件不直接发原始 fetch 请求或拼接 Authorization 头。
 - 严格遵循管理端 `/api/v1/admin` 基础路径和 `{code, msg, data, success}` 契约。服务端 JSON 先按 `unknown` 处理并在请求层收窄，不使用 `any`。
 - 管理端只访问真实 server：开发环境由 Vite 仅将 `/api/v1` 代理到 `SERVER_PROXY_TARGET`，不能使用 `/api` 代理前缀，否则会拦截 `/api-docs` 页面刷新；生产环境由网关配置同路径代理并将非接口页面路径回退到 `index.html`。没有预设管理员或本地模拟接口。

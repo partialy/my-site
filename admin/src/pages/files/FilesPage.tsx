@@ -6,7 +6,7 @@ import type { FileItem } from '../../api/files';
 import { archiveFile, uploadFile } from '../../api/files';
 import { CrudFilterBar, type CrudFilterField } from '../../components/crud/CrudFilterBar';
 import { formatFileSize, isImage } from '../../components/file-picker/fileUtils';
-import { useFilesPage, type FileFilters } from './useFilesPage';
+import { defaultFileFilters, useFilesPage, type FileFilters } from './useFilesPage';
 
 const { Title, Text, Paragraph } = Typography;
 const filterFields: ReadonlyArray<CrudFilterField<FileFilters>> = [
@@ -25,7 +25,7 @@ export function FilesPage() {
       if (!response.success) throw new Error(response.msg);
       message.success('文件已上传到文件管理器');
       if (query.page === 1 && !query.search) reload();
-      else resetFilters();
+      else setFilters({ ...query, search: undefined });
     } catch (cause) {
       message.error(cause instanceof Error ? cause.message : '上传失败');
     } finally {
@@ -72,14 +72,26 @@ export function FilesPage() {
     { title: '名称', dataIndex: 'name', key: 'name', ellipsis: true,
       render: (name: string, file) => <Button type="link" style={{ padding: 0, height: 'auto' }} onClick={() => setPreview(file)}>{name}</Button> },
     { title: '类型', dataIndex: 'mimeType', key: 'mimeType', width: 190, ellipsis: true },
-    { title: '大小', dataIndex: 'size', key: 'size', width: 110, render: formatFileSize },
+    { title: '大小', dataIndex: 'size', key: 'size', width: 110, render: formatFileSize,
+      sorter: true, sortDirections: ['descend', 'ascend', 'descend'],
+      sortOrder: query.sortBy === 'size' ? (query.sortOrder === 'asc' ? 'ascend' : 'descend') : null },
     { title: '上传时间', dataIndex: 'createdAt', key: 'createdAt', width: 190,
-      render: (value: string) => new Date(value).toLocaleString('zh-CN') },
+      render: (value: string) => new Date(value).toLocaleString('zh-CN'),
+      sortDirections: ['descend', 'ascend', 'descend'],
+      sorter: true, sortOrder: query.sortBy === 'createdAt' ? (query.sortOrder === 'asc' ? 'ascend' : 'descend') : null },
     { title: '操作', key: 'actions', width: 190, render: (_, file) => <Space size={0}>
       <Button type="link" size="small" icon={<Copy size={14} />} onClick={() => void copyUrl(file)}>复制链接</Button>
       <Button type="link" danger size="small" icon={<Trash2 size={14} />} onClick={() => confirmArchive(file)}>归档</Button>
     </Space> },
-  ], [reload, setPage, query.page, query.pageSize, result.items.length]);
+  ], [reload, setPage, query.page, query.pageSize, query.sortBy, query.sortOrder, result.items.length]);
+
+  const onTableChange: TableProps<FileItem>['onChange'] = (_pagination, _filters, sorter, extra) => {
+    if (extra.action !== 'sort') return;
+    const active = Array.isArray(sorter) ? sorter[0] : sorter;
+    const sortBy = active?.field === 'size' ? 'size' : 'createdAt';
+    const sortOrder = active?.order === 'ascend' ? 'asc' : 'desc';
+    setFilters({ ...query, sortBy, sortOrder });
+  };
 
   return (
     <div style={{ maxWidth: 1400, margin: '0 auto' }}>
@@ -93,10 +105,11 @@ export function FilesPage() {
           <Button type="primary" icon={<UploadCloud size={16} />} loading={uploading}>上传文件</Button>
         </Upload>
       </Flex>
-      <CrudFilterBar fields={filterFields} values={query} defaultValues={{}} onSearch={setFilters} onReset={resetFilters} />
+      <CrudFilterBar fields={filterFields} values={query} defaultValues={defaultFileFilters} onSearch={setFilters} onReset={resetFilters} />
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} />}
       <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 16, overflow: 'hidden' }}>
         <Table<FileItem> rowKey="id" columns={columns} dataSource={result.items} loading={loading} scroll={{ x: 'max-content' }}
+          onChange={onTableChange}
           pagination={{ current: query.page, pageSize: query.pageSize, total: result.total, showSizeChanger: true,
             pageSizeOptions: [10, 20, 50], showTotal: (total) => `共 ${total} 个文件`,
             onChange: setPage }} />

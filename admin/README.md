@@ -39,7 +39,7 @@ admin/.env.example 给出开发代理配置。VITE_API_BASE_URL 默认 /api/v1/a
 | DELETE | /api/v1/admin/request-logs | 按选中 ID、时间段、某时间前/后或保留最新 N 条清理请求日志 |
 | GET | /api/v1/admin/home | 访问统计、近 7 天请求日志聚合与真实用户数据 |
 | GET | /api/v1/admin/visits | 分页筛选访问日志，支持路径、访客 ID 与 UTC 日期范围 |
-| GET、POST | /api/v1/admin/files | 文件列表（支持 page、pageSize、search、mimeTypes）与原始文件上传 |
+| GET、POST | /api/v1/admin/files | 文件列表（支持 page、pageSize、search、mimeTypes、sortBy、sortOrder）与原始文件上传 |
 | GET | /api/v1/files/:id/content | 公开访问文件内容，可直接用于图片和下载链接 |
 | DELETE | /api/v1/admin/files/:id | 从文件库归档文件，已分发的链接继续可用 |
 | GET、PUT | /api/v1/admin/site-settings | 读取和修改后台、前台网站名称 |
@@ -59,7 +59,7 @@ admin/.env.example 给出开发代理配置。VITE_API_BASE_URL 默认 /api/v1/a
 
 访问日志页位于 `/visit-logs`，支持按页面路径、访客 ID、UTC 日期范围筛选并查看详情。页面路由已注册；菜单由管理员在菜单管理中自行新增，可设置路径 `/visit-logs`。
 
-文件管理页位于 `/files`，集中上传、预览、搜索、复制链接及归档文件。`FilePickerModal` 是通用文件选择弹窗，支持 MIME 类型过滤、单选或多选、搜索分页，并可直接上传新文件；上传后先选中，用户点击“确定”后才返回选择结果。文件列表与上传通过 `src/api/files.ts` 对接服务端，图片链接按 API 基础地址转换。
+文件管理页位于 `/files`，集中上传、预览、搜索、按文件大小或上传时间升降序排列、复制链接及归档文件；排序写入 URL，翻页和刷新时保留。`FilePickerModal` 是通用文件选择弹窗，支持 MIME 类型过滤、单选或多选、搜索分页，并可直接上传新文件；上传后先选中，用户点击“确定”后才返回选择结果。文件列表与上传通过 `src/api/files.ts` 对接服务端，图片链接按 API 基础地址转换。
 
 侧栏从服务端菜单数据渲染，登录后加载一次并在管理端内存中共享；菜单管理页位于 `/menus`，可添加、编辑、删除页面或分组菜单，明确选择「一级菜单」或所属分组，点击图标选择框后可按名称搜索，并在带小标题的分类区域选择预置 Lucide 图标（悬浮显示英文名称），调整同级顺序后整体保存并立即更新侧栏。新增页面菜单从代码维护的页面清单中选择，未添加页面排在前面，已添加页面标明状态且不能重复选用；选择后只填充空白的标识、名称和图标。预置图标键集中维护在 `src/menus/menuUtils.tsx`，分类维护在 `src/menus/menuIconCategories.ts`，未分类的新图标自动显示在「其他」。首次数据包含独立的「首页」和「系统设置」分组；修改密码从右上角账号菜单进入。旧操作菜单仅兼容展示，可删除，不再提供新增或编辑。隐藏「菜单管理」后仍可直接访问 `/menus` 恢复。登录页显示系统名称和登录表单。
 

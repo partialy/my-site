@@ -22,6 +22,8 @@ export interface FileQuery {
   pageSize: number;
   search?: string;
   mimeTypes?: string[];
+  sortBy?: 'createdAt' | 'size';
+  sortOrder?: 'asc' | 'desc';
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -59,6 +61,8 @@ export function getFiles(query: FileQuery, signal?: AbortSignal): Promise<ApiRes
   const params = new URLSearchParams({ page: String(query.page), pageSize: String(query.pageSize) });
   if (query.search) params.set('search', query.search);
   if (query.mimeTypes?.length) params.set('mimeTypes', query.mimeTypes.join(','));
+  if (query.sortBy) params.set('sortBy', query.sortBy);
+  if (query.sortOrder) params.set('sortOrder', query.sortOrder);
   return request(`/files?${params.toString()}`, parseFilePage, { signal });
 }
 

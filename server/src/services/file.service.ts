@@ -21,6 +21,8 @@ export const fileListQuerySchema = z.strictObject({
   mimeTypes: z.string().max(300).optional()
     .transform((value) => value ? value.split(',').map((mime) => mime.trim()) : undefined)
     .refine((values) => !values || values.every((mime) => fileMimeTypes.includes(mime as FileMimeType)), '文件类型无效'),
+  sortBy: z.enum(['createdAt', 'size']).default('createdAt'),
+  sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });
 export const fileIdSchema = z.uuid();
 export const selectIconFileSchema = z.strictObject({ fileId: fileIdSchema });

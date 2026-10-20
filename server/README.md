@@ -154,7 +154,7 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 
 ## 文件库
 
-`GET /api/v1/admin/files?page=1&pageSize=20&search=关键词&mimeTypes=image/png,image/jpeg` 返回 `{items,total,page,pageSize}`，按上传时间倒序，只列出未归档的文件。`mimeTypes` 可选，使用逗号分隔，在计数和分页前过滤类型。每条 `FileItem` 包含 `{id,name,mimeType,size,url,createdAt}`，其中 `url` 为稳定公开路径 `/api/v1/files/:id/content`，可直接供图片、图标等资源复用。列表、上传、归档需要管理员 JWT；内容链接公开读取。
+`GET /api/v1/admin/files?page=1&pageSize=20&search=关键词&mimeTypes=image/png,image/jpeg&sortBy=size&sortOrder=desc` 返回 `{items,total,page,pageSize}`，只列出未归档的文件。`mimeTypes` 可选，使用逗号分隔，在计数和分页前过滤类型。`sortBy` 仅允许 `createdAt`、`size`，`sortOrder` 仅允许 `asc`、`desc`，默认按上传时间倒序；同值时按 ID 倒序保证分页稳定。每条 `FileItem` 包含 `{id,name,mimeType,size,url,createdAt}`，其中 `url` 为稳定公开路径 `/api/v1/files/:id/content`，可直接供图片、图标等资源复用。列表、上传、归档需要管理员 JWT；内容链接公开读取。
 
 `POST /api/v1/admin/files` 使用原始文件字节作为请求体，设置实际文件 MIME 的 `Content-Type`，并将文件名执行 `encodeURIComponent` 后放入 `X-File-Name`。首版支持 PNG、JPEG、WebP、ICO、GIF、PDF，最大 10 MiB；校验文件头并拒绝 SVG。元数据保存在 SQLite 的 `file` 表，文件本体保存在 `server/data/uploads/`，内置数据库备份不包含文件本体。`DELETE /api/v1/admin/files/:id` 仅归档记录，让列表不再显示；已有内容链接仍可访问，避免业务引用失效。
 

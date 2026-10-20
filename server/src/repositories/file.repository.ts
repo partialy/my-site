@@ -1,6 +1,9 @@
 import type Database from 'better-sqlite3';
 import { TableListRepository } from './table-list.repository';
-import { fileListResource } from './resources/file-list.resource';
+import { fileListResourceForSort } from './resources/file-list.resource';
+
+export type FileSortBy = 'createdAt' | 'size';
+export type FileSortOrder = 'asc' | 'desc';
 
 export interface FileRecord {
   id: string;
@@ -17,6 +20,8 @@ export interface FileListQuery {
   pageSize: number;
   search?: string;
   mimeTypes?: string[];
+  sortBy?: FileSortBy;
+  sortOrder?: FileSortOrder;
 }
 
 export class FileRepository {
@@ -27,7 +32,9 @@ export class FileRepository {
   }
 
   list(query: FileListQuery): { items: FileRecord[]; total: number } {
-    return this.tableList.list<FileRecord, FileListQuery>(fileListResource, query);
+    return this.tableList.list<FileRecord, FileListQuery>(
+      fileListResourceForSort(query.sortBy ?? 'createdAt', query.sortOrder ?? 'desc'), query,
+    );
   }
 
   find(id: string): FileRecord | null {
