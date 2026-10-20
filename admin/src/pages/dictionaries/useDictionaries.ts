@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { message } from 'antd';
 import {
-  createDictionary, createDictionaryItem, getDictionaries, updateDictionary, updateDictionaryItem,
+  createDictionaries, createDictionaryItems, getDictionaries, updateDictionary, updateDictionaryItem,
   type CreateDictItemInput, type CreateDictTypeInput, type DictType,
 } from '../../api/dictionaries';
 import { invalidateDictionary } from '../../dictionaries';
@@ -56,32 +56,36 @@ export function useDictionaries() {
 
   useEffect(() => { void reload(); }, [reload]);
 
-  const runSave = async (operation: () => Promise<{ success: boolean; msg: string }>, code?: string): Promise<DictType[] | null> => {
+  const runSave = async (operation: () => Promise<{ success: boolean; msg: string }>, codes: string[] = []): Promise<DictType[] | null> => {
     setSaving(true);
     setError(null);
     try {
       const result = await operation();
       if (!result.success) throw new Error(result.msg);
-      if (code) invalidateDictionary(code);
+      codes.forEach(invalidateDictionary);
       const latest = await reload();
       message.success('字典已保存');
       return latest;
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '保存字典失败');
+      const errorMessage = cause instanceof Error ? cause.message : '保存字典失败';
+      setError(errorMessage);
+      message.error(errorMessage);
       return null;
     } finally {
       setSaving(false);
     }
   };
 
-  const saveType = async (input: CreateDictTypeInput, current?: DictType): Promise<boolean> => {
-    const { code, ...editable } = input;
+  const saveTypes = async (inputs: CreateDictTypeInput[], current?: DictType): Promise<boolean> => {
+    const first = inputs[0];
+    if (!first) return false;
+    const { code: _code, ...editable } = first;
     const latest = await runSave(
-      () => current ? updateDictionary(current.id, editable) : createDictionary(input),
-      current?.code ?? input.code,
+      () => current ? updateDictionary(current.id, editable) : createDictionaries(inputs),
+      current ? [current.code] : inputs.map((input) => input.code),
     );
     if (latest && !current) {
-      const index = latest.findIndex((type) => type.code === code);
+      const index = latest.findIndex((type) => type.code === inputs[inputs.length - 1].code);
       if (index >= 0) {
         setSearchValue('');
         setPage(Math.ceil((index + 1) / pageSize));
@@ -91,17 +95,19 @@ export function useDictionaries() {
     return latest !== null;
   };
 
-  const saveItem = async (type: DictType, input: CreateDictItemInput, currentItemId?: number): Promise<boolean> => {
-    const { value: _value, ...editable } = input;
+  const saveItems = async (type: DictType, inputs: CreateDictItemInput[], currentItemId?: number): Promise<boolean> => {
+    const first = inputs[0];
+    if (!first) return false;
+    const { value: _value, ...editable } = first;
     const latest = await runSave(() => currentItemId
       ? updateDictionaryItem(type.id, currentItemId, editable)
-      : createDictionaryItem(type.id, input), type.code);
+      : createDictionaryItems(type.id, inputs), [type.code]);
     return latest !== null;
   };
 
   return {
     types, selectedType, selectedId: selectedType?.id ?? null, setSelectedId,
     search, setSearch, currentPage, pageSize, filteredTypes, filteredTotal: filteredTypes.length,
-    changePage, loading, saving, error, reload, saveType, saveItem,
+    changePage, loading, saving, error, reload, saveTypes, saveItems,
   };
 }

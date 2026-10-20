@@ -82,10 +82,17 @@ function parsePublicTypes(value: unknown): Record<string, PublicDictType> {
 export const getDictionaries = (): Promise<ApiResponse<DictType[]>> => request('/dictionaries', parseTypes);
 export const createDictionary = (input: CreateDictTypeInput): Promise<ApiResponse<DictType>> =>
   request('/dictionaries', parseType, { method: 'POST', body: input });
+export const createDictionaries = (items: CreateDictTypeInput[]): Promise<ApiResponse<DictType[]>> =>
+  request('/dictionaries/batch', parseTypes, { method: 'POST', body: { items } });
 export const updateDictionary = (id: number, input: UpdateDictTypeInput): Promise<ApiResponse<DictType>> =>
   request(`/dictionaries/${id}`, parseType, { method: 'PUT', body: input });
 export const createDictionaryItem = (typeId: number, input: CreateDictItemInput): Promise<ApiResponse<DictItem>> =>
   request(`/dictionaries/${typeId}/items`, parseItem, { method: 'POST', body: input });
+export const createDictionaryItems = (typeId: number, items: CreateDictItemInput[]): Promise<ApiResponse<DictItem[]>> =>
+  request(`/dictionaries/${typeId}/items/batch`, (value) => {
+    if (!Array.isArray(value)) throw new Error('字典子项列表响应格式异常');
+    return value.map(parseItem);
+  }, { method: 'POST', body: { items } });
 export const updateDictionaryItem = (typeId: number, itemId: number, input: UpdateDictItemInput): Promise<ApiResponse<DictItem>> =>
   request(`/dictionaries/${typeId}/items/${itemId}`, parseItem, { method: 'PUT', body: input });
 export const getPublicDictionaries = (codes: string[]): Promise<ApiResponse<Record<string, PublicDictType>>> =>

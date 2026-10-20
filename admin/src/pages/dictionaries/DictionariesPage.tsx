@@ -13,7 +13,7 @@ const { Title, Text, Paragraph } = Typography;
 export function DictionariesPage() {
   const {
     selectedType, selectedId, setSelectedId, search, setSearch, currentPage, pageSize,
-    filteredTypes, filteredTotal, changePage, loading, saving, error, reload, saveType, saveItem,
+    filteredTypes, filteredTotal, changePage, loading, saving, error, reload, saveTypes, saveItems,
   } = useDictionaries();
   const [typeEditorOpen, setTypeEditorOpen] = useState(false);
   const [editingType, setEditingType] = useState<DictType | null>(null);
@@ -96,10 +96,10 @@ export function DictionariesPage() {
         </Col>
       </Row>
       <DictionaryTypeEditor open={typeEditorOpen} item={editingType} saving={saving}
-        onClose={() => setTypeEditorOpen(false)} onSave={saveType} />
+        onClose={() => setTypeEditorOpen(false)} onSave={saveTypes} />
       <DictionaryItemEditor open={itemEditorOpen} item={editingItem} saving={saving}
         onClose={() => setItemEditorOpen(false)}
-        onSave={(input, id) => selectedType ? saveItem(selectedType, input, id) : Promise.resolve(false)} />
+        onSave={(inputs, id) => selectedType ? saveItems(selectedType, inputs, id) : Promise.resolve(false)} />
     </div>
   );
 }
