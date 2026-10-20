@@ -15,7 +15,7 @@ CREATE TABLE dict_item (
   value TEXT NOT NULL,
   sort INTEGER NOT NULL DEFAULT 0,
   enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
-  color TEXT NOT NULL DEFAULT 'default' CHECK (color IN ('default', 'blue', 'green', 'orange', 'red', 'purple', 'cyan', 'gold')),
+  color TEXT NOT NULL DEFAULT 'default',
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   UNIQUE (type_id, value)
