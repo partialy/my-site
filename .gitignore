@@ -38,6 +38,7 @@ pnpm-debug.log*
 *.sqlite3-wal
 server/data/site-icons/
 server/data/uploads/
+server/data/backups/
 
 # 编辑器与系统文件
 .idea/

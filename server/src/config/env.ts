@@ -8,6 +8,7 @@ const envSchema = z.object({
   SETUP_KEY: z.string().min(16).refine((value) => !value.startsWith('replace-with-')),
   SQLITE_PATH: z.string().min(1).default('./data/framework.sqlite'),
   ADMIN_ORIGIN: z.url(),
+  TRUSTED_PROXIES: z.string().default(''),
 });
 
 export type AppConfig = {
@@ -16,6 +17,7 @@ export type AppConfig = {
   setupKey: string;
   sqlitePath: string;
   adminOrigin: string;
+  trustedProxies: string;
 };
 
 export function loadConfig(): AppConfig {
@@ -31,5 +33,6 @@ export function loadConfig(): AppConfig {
     setupKey: parsed.data.SETUP_KEY,
     sqlitePath: path.resolve(parsed.data.SQLITE_PATH),
     adminOrigin: parsed.data.ADMIN_ORIGIN.replace(/\/$/, ''),
+    trustedProxies: parsed.data.TRUSTED_PROXIES.trim(),
   };
 }

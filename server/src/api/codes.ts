@@ -11,6 +11,8 @@ export const ApiCode = {
   OldPasswordInvalid: 1008,
   NotFound: 1009,
   ConfigKeyExists: 1010,
+  UserAccountExists: 1011,
+  RateLimited: 1012,
 } as const;
 
 export type ApiCode = (typeof ApiCode)[keyof typeof ApiCode];

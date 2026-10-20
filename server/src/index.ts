@@ -20,6 +20,13 @@ import { MenuService } from './services/menu.service';
 import { VisitRepository } from './repositories/visit.repository';
 import { VisitService } from './services/visit.service';
 import { DashboardService } from './services/dashboard.service';
+import { UserRepository } from './repositories/user.repository';
+import { UserJwtService } from './security/user-jwt.service';
+import { UserService } from './services/user.service';
+import { OperationLogRepository } from './repositories/operation-log.repository';
+import { OperationLogService } from './services/operation-log.service';
+import { DatabaseBackupService } from './services/database-backup.service';
+import { SystemStatusService } from './services/system-status.service';
 
 function main(): void {
   const config = loadConfig();
@@ -35,9 +42,14 @@ function main(): void {
   const requestLogs = new RequestLogService(new RequestLogRepository(db));
   const menus = new MenuService(new MenuRepository(db));
   const visits = new VisitService(new VisitRepository(db));
-  const dashboard = new DashboardService(visits, requestLogs);
+  const users = new UserService(new UserRepository(db), new UserJwtService(config.jwtSecret));
+  const operationLogs = new OperationLogService(new OperationLogRepository(db));
+  const backups = new DatabaseBackupService(db);
+  const status = new SystemStatusService(db, config.sqlitePath);
+  const dashboard = new DashboardService(visits, requestLogs, users);
   const app = createApp(config, {
     setup, auth, systemConfig, configs, siteSettings, requestLogs, files, menus, visits, dashboard,
+    users, operationLogs, backups, status,
   }, db);
   const server = app.listen(config.port, () => {
     console.log(`server 已启动，端口 ${config.port}`);

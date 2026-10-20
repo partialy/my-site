@@ -1,5 +1,6 @@
 import express, { type ErrorRequestHandler } from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import type { AppConfig } from './config/env';
 import { ApiError } from './api/api-error';
 import { ApiCode } from './api/codes';
@@ -17,6 +18,14 @@ import { FileService } from './services/file.service';
 import { MenuService } from './services/menu.service';
 import { VisitService } from './services/visit.service';
 import { DashboardService } from './services/dashboard.service';
+import { UserService } from './services/user.service';
+import { createUserRoutes } from './api/user-routes';
+import { createAdminUserRoutes } from './api/admin/user-routes';
+import { OperationLogService } from './services/operation-log.service';
+import { operationAuditMiddleware } from './middleware/operation-audit.middleware';
+import { DatabaseBackupService } from './services/database-backup.service';
+import { SystemStatusService } from './services/system-status.service';
+import { loginFailureLimit, requestRateLimit } from './middleware/rate-limit.middleware';
 
 interface AppServices {
   setup: SetupService;
@@ -29,11 +38,21 @@ interface AppServices {
   menus: MenuService;
   visits: VisitService;
   dashboard: DashboardService;
+  users: UserService;
+  operationLogs: OperationLogService;
+  backups: DatabaseBackupService;
+  status: SystemStatusService;
 }
 
 export function createApp(config: AppConfig, services: AppServices, db: Database.Database) {
   const app = express();
   app.disable('x-powered-by');
+  if (config.trustedProxies) app.set('trust proxy', config.trustedProxies);
+  app.use(helmet());
+  app.get('/health', (_req, res) => {
+    const ready = services.status.isReady();
+    res.status(ready ? 200 : 503).json({ status: ready ? 'ok' : 'unavailable' });
+  });
   app.use('/api/v1', requestLogMiddleware(services.systemConfig, db));
   const adminCors = cors({
     origin(origin, callback) {
@@ -43,17 +62,27 @@ export function createApp(config: AppConfig, services: AppServices, db: Database
   });
   const publicCors = cors({ origin: '*' });
   app.use((req, res, next) => {
-    const publicPath = req.path === '/api/v1/visits' || req.path === '/api/v1/site-settings' ||
+    const publicPath = req.path === '/api/v1/visits' || req.path.startsWith('/api/v1/users/') ||
+      req.path === '/api/v1/site-settings' ||
       /^\/api\/v1\/files\/[^/]+\/content$/.test(req.path) ||
       /^\/api\/v1\/site-settings\/(admin|client)\/icon$/.test(req.path);
     if (publicPath && !req.path.startsWith('/api/v1/admin/')) return publicCors(req, res, next);
     return adminCors(req, res, next);
   });
   app.use(express.json({ limit: '1mb' }));
+  app.use('/api/v1/admin/auth/login', loginFailureLimit());
+  app.use('/api/v1/users/login', loginFailureLimit());
+  app.use('/api/v1/admin/setup/admin', requestRateLimit(5, 15 * 60_000));
+  app.use('/api/v1/users/register', requestRateLimit(10, 60_000));
+  app.use('/api/v1/visits', requestRateLimit(60, 60_000));
+  app.use('/api/v1/admin', operationAuditMiddleware(services.operationLogs));
   app.use('/api/v1/admin', createAdminRoutes(
     services.setup, services.auth, services.systemConfig, services.configs,
     services.siteSettings, services.requestLogs, services.files, services.menus, services.dashboard, services.visits,
+    services.operationLogs, services.backups, services.status,
   ));
+  app.use('/api/v1/admin/users', createAdminUserRoutes(services.auth, services.users));
+  app.use('/api/v1/users', createUserRoutes(services.users));
   app.use('/api/v1', createPublicRoutes(services.siteSettings, services.files, services.visits));
   app.use('/api/v1', (_req, res) => {
     res.status(404).json({ code: ApiCode.NotFound, msg: '接口不存在', data: null, success: false });

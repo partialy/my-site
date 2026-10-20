@@ -1,6 +1,6 @@
 # server
 
-单管理员后端基础框架。使用 Express 5、TypeScript、Zod、JWT 和 SQLite；框架维护 admin、config、sys_config、file、menu、visit，按需创建 request_log。
+单管理员后台与通用业务用户基础框架。使用 Express 5、TypeScript、Zod、JWT 和 SQLite；表结构由 `migrations/*.sql` 管理，按需创建 `request_log`。
 
 ## 启动
 
@@ -9,7 +9,9 @@
     npm install
     npm run dev
 
-常用命令：npm run typecheck、npm run build、npm start。npm start 使用编译后的 dist/。配置中的 SQLITE_PATH 相对于 server/ 工作目录解析；默认数据库是 server/data/framework.sqlite，启动时自动建表。数据库文件、.env 和构建产物均被根目录 .gitignore 忽略。
+常用命令：npm run typecheck、npm run build、npm start。npm start 使用编译后的 dist/。配置中的 SQLITE_PATH 相对于 server/ 工作目录解析；默认数据库是 server/data/framework.sqlite，启动时按顺序执行未应用迁移。`_migrations` 保存文件校验值，已执行的 SQL 文件不得修改。数据库文件、.env 和构建产物均被根目录 .gitignore 忽略。
+
+`TRUSTED_PROXIES` 默认为空；只有部署在受信任的反向代理后，才填写代理 IP/CIDR。限流与审计依赖正确的来源 IP。内存限流仅适用于单进程，重启会重置计数，多实例部署需要共享计数存储。
 
 ADMIN_ORIGIN 是允许跨域访问管理端 API 的来源，如 http://localhost:5173。公开站点信息、文件内容和访问上报允许跨域读取或提交；没有 Origin 头的命令行请求可以正常访问。生产环境可采用同源反向代理。
 
@@ -55,7 +57,13 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 | PUT | /api/v1/admin/site-settings/:target/icon | 上传图标原始字节，需要管理员 Token |
 | DELETE | /api/v1/admin/site-settings/:target/icon | 删除图标，需要管理员 Token |
 | PUT | /api/v1/admin/site-settings/:target/icon-file | 从文件库选择图标，body 为 `{ "fileId": "UUID" }`，需要管理员 Token |
-| GET | /api/v1/admin/home | 首页访问量、请求日志聚合与用户演示数据，需要管理员 Token |
+| GET | /api/v1/admin/home | 首页访问量、请求日志与真实业务用户统计，需要管理员 Token |
+| GET | /api/v1/admin/operation-logs | 分页筛选操作审计日志，需要管理员 Token |
+| GET | /api/v1/admin/system-status | 获取服务器状态，需要管理员 Token |
+| POST | /api/v1/admin/backups/database | 下载 SQLite 在线备份，需要管理员 Token |
+| GET | /api/v1/admin/users | 分页查询业务用户，需要管理员 Token |
+| GET | /api/v1/admin/users/:id | 查询业务用户详情，需要管理员 Token |
+| PUT | /api/v1/admin/users/:id/status | 禁用或启用业务用户，需要管理员 Token |
 | GET | /api/v1/admin/visits | 分页筛选访问日志，需要管理员 Token |
 | GET | /api/v1/admin/request-logs | 分页查询请求日志，需要管理员 Token |
 | DELETE | /api/v1/admin/request-logs | 按 ID 或时间范围清理请求日志，需要管理员 Token |
@@ -66,6 +74,10 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 | GET | /api/v1/site-settings/:target/icon | 公开读取图标二进制 |
 | GET | /api/v1/files/:id/content | 公开读取文件原始内容，保留已分发链接 |
 | POST | /api/v1/visits | 前台访问上报，无需 Token |
+| POST | /api/v1/users/register | 业务用户账号密码注册 |
+| POST | /api/v1/users/login | 业务用户登录并签发独立 JWT |
+| GET | /api/v1/users/me | 获取当前业务用户，需要用户 Token |
+| GET | /health | 公开服务就绪探针，数据库不可用时返回 HTTP 503 |
 
 初始化与登录的成功响应示例：
 
@@ -83,7 +95,7 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 - src/repositories：SQLite 数据访问。
 - src/security：密码哈希、初始化密钥、JWT。
 - src/middleware：路由鉴权与请求日志。
-- src/db：框架表创建和数据库连接。
+- src/db：SQLite 连接与版本化迁移；`migrations/` 保存编号 SQL。
 - src/config：环境变量校验与配置内存管理。
 
 ## 配置与请求日志
@@ -106,13 +118,27 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 
 时间字段均为带时区的 ISO 时间，服务端先转为 UTC 再按 SQLite 中的 ISO 时间比较。删除后仪表盘的请求日志指标随之变化。日志表不存在时清理返回 0。日志查询、清理与仪表盘查询请求自身不会写入请求日志表。旧白名单中的管理端路径需按新 `/api/v1/admin/` 前缀调整，公开接口路径保持原样。
 
-业务项目自行设计业务数据，不应直接修改框架认证表。
+业务项目可扩展通用用户资料与业务表，管理员认证表继续保持单管理员约束。
+
+## 业务用户与操作审计
+
+业务用户使用不区分大小写的唯一账号和密码注册。`POST /api/v1/users/register` 提交 `{account,password,nickname?}`；`POST /api/v1/users/login` 返回用户 JWT；`GET /api/v1/users/me` 使用该 Token。用户 JWT 与管理员 JWT 的身份声明不同，不能互用。管理员可通过 `/api/v1/admin/users` 查询用户，通过 `PUT /api/v1/admin/users/:id/status` 传 `{status:"active"|"disabled"}` 修改状态；状态变化会撤销旧 Token。登录及认证请求按 UTC 日记录 `user_activity`，供近 7 日活跃用户统计。
+
+`operation_log` 与 HTTP `request_log` 独立，记录成功的框架管理员写操作，包括配置、菜单、站点、文件、用户状态和数据库备份。`GET /api/v1/admin/operation-logs` 支持 `page`、`pageSize`、`module`、`actor`、`startTime`、`endTime`。业务模块在 Service 层显式调用 `OperationLogService.record()`，传操作人、模块、动作、目标与安全摘要；只记涉及的字段名，不保存密码、Token 或完整请求/响应。框架操作在响应成功后尽力写入审计；需要审计与业务数据严格同事务的业务模块，应在自身 Service 事务中显式调用记录器。
+
+## 健康检查、限流与备份
+
+`GET /health` 公开返回 `{status:"ok"}`，数据库不可读时返回 HTTP 503。管理员 `GET /api/v1/admin/system-status` 返回 Node 版本、运行时长、内存、CPU、数据库文件大小与可用磁盘空间；状态最多缓存 5 秒。
+
+管理员 `POST /api/v1/admin/backups/database` 在线生成并下载 `.sqlite.bak`，临时文件在下载结束后删除。**备份只包含 SQLite 数据库，不包含 `server/data/uploads/` 与 `server/data/site-icons/` 中的文件。**需要完整恢复图片与文件链接时，应另行备份这两个目录。
+
+管理员和业务用户登录失败按 IP 限制 15 分钟内最多 5 次；注册、访问上报、管理端上传有独立的分钟级限流，超限返回 HTTP 429、业务码 1012 和 `Retry-After`。服务器默认不信任转发来源 IP；使用反向代理时需配置 `TRUSTED_PROXIES`。Helmet 提供基础安全响应头，公开图片资源允许跨域引用。
 
 ## 访问统计与首页仪表盘
 
 前台在页面首次加载时调用 `POST /api/v1/visits`，请求体为 `{visitorId, path, pageTitle?, referrer?}`。`visitorId` 为浏览器持久保存的 UUID；`path` 是不含查询串的站内绝对路径。服务端同时保存请求 IP、User-Agent、首次访问时间和 UTC 日期。`visit` 表对 `(visitor_id, visit_day)` 建唯一约束：当日首次写入返回 `{recorded:true,day}`，重复提交返回 `{recorded:false,day}`。同一访客每天仅记录首次进入的页面，因此路径代表当日入口页。浏览器清除存储或更换设备后会获得新访客 ID，本机制仅用于尽力去重，不是可靠用户身份鉴别。可复用前端工具见 `client/visitTracker.ts`。
 
-`GET /api/v1/admin/home` 需要管理员 JWT，返回今日、昨日和近 7 天访问量，以及近 7 天、近 30 天每日趋势；还聚合近 7 天已记录的接口日志，提供请求数、HTTP 4xx 以下占比、Origin/Referer 来源和请求最多的接口路径。请求日志关闭或白名单未覆盖接口时，相关统计只基于已有日志；日志表不存在时返回空指标。`users` 字段包含用户总数、近 7 日活跃用户、近 7 日新增用户和趋势，目前均为服务端演示数据，`source` 为 `mock`，待业务用户模块接入后替换。
+`GET /api/v1/admin/home` 需要管理员 JWT，返回今日、昨日和近 7 天访问量，以及近 7 天、近 30 天每日趋势；还聚合近 7 天已记录的接口日志，提供请求数、HTTP 4xx 以下占比、Origin/Referer 来源和请求最多的接口路径。请求日志关闭或白名单未覆盖接口时，相关统计只基于已有日志；日志表不存在时返回空指标。`users` 字段从业务用户表与 `user_activity` 聚合用户总数、近 7 日活跃用户、近 7 日新增用户和趋势，`source` 为 `real`。
 
 `GET /api/v1/admin/visits` 支持 `page`、`pageSize`（最大 100）、`path`、`visitorId` 子串查询，以及 `startDay`、`endDay`（UTC 日期 `YYYY-MM-DD`）筛选，按最新记录排序，返回 `{items,total,page,pageSize}`。访问日志页面在管理端 `/visit-logs`，导航菜单由管理员自行配置，不自动写入默认菜单。
 
@@ -128,7 +154,7 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 
 `GET /api/v1/admin/files?page=1&pageSize=20&search=关键词&mimeTypes=image/png,image/jpeg` 返回 `{items,total,page,pageSize}`，按上传时间倒序，只列出未归档的文件。`mimeTypes` 可选，使用逗号分隔，在计数和分页前过滤类型。每条 `FileItem` 包含 `{id,name,mimeType,size,url,createdAt}`，其中 `url` 为稳定公开路径 `/api/v1/files/:id/content`，可直接供图片、图标等资源复用。列表、上传、归档需要管理员 JWT；内容链接公开读取。
 
-`POST /api/v1/admin/files` 使用原始文件字节作为请求体，设置实际文件 MIME 的 `Content-Type`，并将文件名执行 `encodeURIComponent` 后放入 `X-File-Name`。首版支持 PNG、JPEG、WebP、ICO、GIF、PDF，最大 10 MiB；校验文件头并拒绝 SVG。元数据保存在 SQLite 的 `file` 表，文件本体保存在 `server/data/uploads/`，备份时两者要一起保存。`DELETE /api/v1/admin/files/:id` 仅归档记录，让列表不再显示；已有内容链接仍可访问，避免业务引用失效。
+`POST /api/v1/admin/files` 使用原始文件字节作为请求体，设置实际文件 MIME 的 `Content-Type`，并将文件名执行 `encodeURIComponent` 后放入 `X-File-Name`。首版支持 PNG、JPEG、WebP、ICO、GIF、PDF，最大 10 MiB；校验文件头并拒绝 SVG。元数据保存在 SQLite 的 `file` 表，文件本体保存在 `server/data/uploads/`，内置数据库备份不包含文件本体。`DELETE /api/v1/admin/files/:id` 仅归档记录，让列表不再显示；已有内容链接仍可访问，避免业务引用失效。
 
 ## 菜单管理
 

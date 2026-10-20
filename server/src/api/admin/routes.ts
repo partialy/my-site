@@ -19,8 +19,12 @@ import { FileService, fileIdSchema, fileListQuerySchema, fileMimeTypes, maxFileB
 import { MenuService, menuInputSchema } from '../../services/menu.service';
 import { DashboardService } from '../../services/dashboard.service';
 import { VisitService, visitQuerySchema } from '../../services/visit.service';
+import { OperationLogService, operationLogQuerySchema } from '../../services/operation-log.service';
+import { DatabaseBackupService } from '../../services/database-backup.service';
+import { SystemStatusService } from '../../services/system-status.service';
+import { requestRateLimit } from '../../middleware/rate-limit.middleware';
 
-export function createAdminRoutes(setup: SetupService, auth: AuthService, systemConfig: SystemConfigService, configs: ConfigService, siteSettings: SiteSettingsService, requestLogs: RequestLogService, files: FileService, menus: MenuService, dashboard: DashboardService, visits: VisitService): Router {
+export function createAdminRoutes(setup: SetupService, auth: AuthService, systemConfig: SystemConfigService, configs: ConfigService, siteSettings: SiteSettingsService, requestLogs: RequestLogService, files: FileService, menus: MenuService, dashboard: DashboardService, visits: VisitService, operationLogs: OperationLogService, backups: DatabaseBackupService, status: SystemStatusService): Router {
   const routes = Router();
 
   routes.get('/setup/status', (_req, res) => {
@@ -83,7 +87,9 @@ export function createAdminRoutes(setup: SetupService, auth: AuthService, system
 
   routes.post('/configs', requireAuth(auth), (req, res) => {
     const input = parseInput(configInputSchema, req.body);
-    res.status(201).json(ok(configs.create(input), '配置已创建'));
+    const item = configs.create(input);
+    res.locals.operationTargetId = item.key;
+    res.status(201).json(ok(item, '配置已创建'));
   });
 
   routes.put('/configs/:key', requireAuth(auth), (req, res) => {
@@ -114,7 +120,7 @@ export function createAdminRoutes(setup: SetupService, auth: AuthService, system
     res.json(ok(siteSettings.update(input), '站点配置已保存'));
   });
 
-  routes.put('/site-settings/:target/icon', requireAuth(auth), raw({ type: [...iconMimeTypes], limit: maxIconBytes }), async (req, res) => {
+  routes.put('/site-settings/:target/icon', requireAuth(auth), requestRateLimit(20, 60_000), raw({ type: [...iconMimeTypes], limit: maxIconBytes }), async (req, res) => {
     const target = parseInput(siteTargetSchema, req.params.target);
     const mime = req.get('content-type')?.split(';', 1)[0]?.trim().toLowerCase();
     if (!iconMimeTypes.includes(mime as IconMimeType) || !Buffer.isBuffer(req.body)) {
@@ -139,6 +145,22 @@ export function createAdminRoutes(setup: SetupService, auth: AuthService, system
     res.json(ok(requestLogs.list(query)));
   });
 
+  routes.get('/operation-logs', requireAuth(auth), (req, res) => {
+    res.json(ok(operationLogs.list(parseInput(operationLogQuerySchema, req.query))));
+  });
+
+  routes.get('/system-status', requireAuth(auth), async (_req, res) => {
+    res.json(ok(await status.get()));
+  });
+
+  routes.post('/backups/database', requireAuth(auth), async (_req, res, next) => {
+    const backup = await backups.create();
+    res.download(backup.filePath, backup.fileName, { headers: { 'Cache-Control': 'no-store' } }, (error) => {
+      void backups.remove(backup.filePath).catch((cleanupError) => console.error('备份临时文件清理失败', cleanupError));
+      if (error && !res.headersSent) next(error);
+    });
+  });
+
   routes.delete('/request-logs', requireAuth(auth), (req, res) => {
     const input = parseInput(requestLogCleanupSchema, req.body);
     res.json(ok(requestLogs.cleanup(input), '请求日志已清理'));
@@ -156,7 +178,7 @@ export function createAdminRoutes(setup: SetupService, auth: AuthService, system
     res.json(ok(files.list(parseInput(fileListQuerySchema, req.query))));
   });
 
-  routes.post('/files', requireAuth(auth), raw({ type: () => true, limit: maxFileBytes }), async (req, res) => {
+  routes.post('/files', requireAuth(auth), requestRateLimit(20, 60_000), raw({ type: () => true, limit: maxFileBytes }), async (req, res) => {
     const mime = req.get('content-type')?.split(';', 1)[0]?.trim().toLowerCase();
     if (!fileMimeTypes.includes(mime as FileMimeType) || !Buffer.isBuffer(req.body)) {
       throw new ApiError(415, ApiCode.ValidationError, '不支持的文件类型', { fieldErrors: { file: ['只支持 PNG、JPEG、WebP、ICO、GIF、PDF'] } });
@@ -165,7 +187,9 @@ export function createAdminRoutes(setup: SetupService, auth: AuthService, system
     let name: string;
     try { name = encodedName ? decodeURIComponent(encodedName) : ''; }
     catch { throw new ApiError(400, ApiCode.ValidationError, '文件名编码无效', { fieldErrors: { name: ['文件名编码无效'] } }); }
-    res.status(201).json(ok(await files.upload(name, mime as FileMimeType, req.body), '文件已上传'));
+    const item = await files.upload(name, mime as FileMimeType, req.body);
+    res.locals.operationTargetId = item.id;
+    res.status(201).json(ok(item, '文件已上传'));
   });
 
   routes.delete('/files/:id', requireAuth(auth), (req, res) => {

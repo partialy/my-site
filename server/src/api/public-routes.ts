@@ -16,6 +16,7 @@ export function createPublicRoutes(siteSettings: SiteSettingsService, files: Fil
     const target = parseInput(siteTargetSchema, req.params.target);
     const icon = await siteSettings.readIcon(target);
     res.set('Content-Type', icon.mime);
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
     res.set('X-Content-Type-Options', 'nosniff');
     res.set('Cache-Control', 'no-cache');
     res.send(icon.bytes);
@@ -24,6 +25,7 @@ export function createPublicRoutes(siteSettings: SiteSettingsService, files: Fil
   routes.get('/files/:id/content', async (req, res) => {
     const { item, bytes } = await files.read(parseInput(fileIdSchema, req.params.id));
     res.set('Content-Type', item.mimeType);
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
     res.set('Content-Length', String(item.size));
     res.set('X-Content-Type-Options', 'nosniff');
     res.set('Cache-Control', 'public, max-age=3600');
