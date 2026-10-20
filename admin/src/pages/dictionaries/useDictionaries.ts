@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { message } from 'antd';
 import {
   createDictionary, createDictionaryItem, getDictionaries, updateDictionary, updateDictionaryItem,
@@ -12,6 +12,29 @@ export function useDictionaries() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearchValue] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const filteredTypes = useMemo(() => {
+    const keyword = search.trim().toLocaleLowerCase();
+    if (!keyword) return types;
+    return types.filter((type) => [type.name, type.code, type.remark]
+      .some((value) => value.toLocaleLowerCase().includes(keyword)));
+  }, [search, types]);
+  const currentPage = Math.min(page, Math.max(1, Math.ceil(filteredTypes.length / pageSize)));
+  const pageTypes = filteredTypes.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const selectedType = pageTypes.find((type) => type.id === selectedId) ?? pageTypes[0] ?? null;
+
+  const setSearch = (value: string): void => {
+    setSearchValue(value);
+    setPage(1);
+  };
+
+  const changePage = (nextPage: number, nextPageSize: number): void => {
+    setPage(nextPage);
+    setPageSize(nextPageSize);
+  };
 
   const reload = useCallback(async (): Promise<DictType[]> => {
     setLoading(true);
@@ -58,8 +81,12 @@ export function useDictionaries() {
       current?.code ?? input.code,
     );
     if (latest && !current) {
-      const created = latest.find((type) => type.code === code);
-      if (created) setSelectedId(created.id);
+      const index = latest.findIndex((type) => type.code === code);
+      if (index >= 0) {
+        setSearchValue('');
+        setPage(Math.ceil((index + 1) / pageSize));
+        setSelectedId(latest[index].id);
+      }
     }
     return latest !== null;
   };
@@ -72,5 +99,9 @@ export function useDictionaries() {
     return latest !== null;
   };
 
-  return { types, selectedId, setSelectedId, loading, saving, error, reload, saveType, saveItem };
+  return {
+    types, selectedType, selectedId: selectedType?.id ?? null, setSelectedId,
+    search, setSearch, currentPage, pageSize, filteredTypes, filteredTotal: filteredTypes.length,
+    changePage, loading, saving, error, reload, saveType, saveItem,
+  };
 }

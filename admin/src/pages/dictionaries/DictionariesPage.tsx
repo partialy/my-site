@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Alert, Button, Card, Col, Empty, Flex, Row, Space, Table, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Col, Empty, Flex, Input, Row, Space, Table, Tag, Typography } from 'antd';
 import type { TableProps } from 'antd';
-import { BookOpen, Pencil, Plus, RefreshCw } from 'lucide-react';
+import { BookOpen, Pencil, Plus, RefreshCw, Search } from 'lucide-react';
 import type { DictItem, DictType } from '../../api/dictionaries';
 import { formatDateTime } from '../../utils/dateTime';
 import { DictionaryItemEditor } from './DictionaryItemEditor';
@@ -11,12 +11,14 @@ import { useDictionaries } from './useDictionaries';
 const { Title, Text, Paragraph } = Typography;
 
 export function DictionariesPage() {
-  const { types, selectedId, setSelectedId, loading, saving, error, reload, saveType, saveItem } = useDictionaries();
+  const {
+    selectedType, selectedId, setSelectedId, search, setSearch, currentPage, pageSize,
+    filteredTypes, filteredTotal, changePage, loading, saving, error, reload, saveType, saveItem,
+  } = useDictionaries();
   const [typeEditorOpen, setTypeEditorOpen] = useState(false);
   const [editingType, setEditingType] = useState<DictType | null>(null);
   const [itemEditorOpen, setItemEditorOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<DictItem | null>(null);
-  const selectedType = types.find((type) => type.id === selectedId) ?? null;
 
   const openTypeEditor = (type: DictType | null) => {
     setEditingType(type);
@@ -68,8 +70,14 @@ export function DictionariesPage() {
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={9}>
           <Card title="字典类型" styles={{ body: { padding: 0 } }} style={{ borderRadius: 16 }}>
-            <Table<DictType> rowKey="id" columns={typeColumns} dataSource={types} loading={loading}
-              size="middle" pagination={{ pageSize: 10, hideOnSinglePage: true }}
+            <div style={{ padding: '16px 16px 0' }}>
+              <Input value={search} onChange={(event) => setSearch(event.target.value)}
+                placeholder="搜索名称、标识或备注" prefix={<Search size={16} />} allowClear />
+            </div>
+            <Table<DictType> rowKey="id" columns={typeColumns} dataSource={filteredTypes} loading={loading}
+              size="middle" pagination={{ current: currentPage, pageSize, total: filteredTotal,
+                showSizeChanger: true, pageSizeOptions: [10, 20, 50],
+                showTotal: (total) => `共 ${total} 条`, onChange: changePage }}
               onRow={(type) => ({ onClick: () => setSelectedId(type.id),
                 style: { cursor: 'pointer', background: selectedId === type.id ? '#eff6ff' : undefined } })} />
           </Card>

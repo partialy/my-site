@@ -11,7 +11,7 @@
 - `operation_log` 独立保存框架管理员成功写操作的摘要、操作者、目标、IP 和耗时；业务 Service 可显式调用 `OperationLogService.record()`。不保存密码、Token、原始请求体和响应体。管理端 `/operation-logs` 页面可按模块、操作人和时间查询，菜单由管理员手动配置。
 - 登录失败按 IP 与账号组合限制，公开注册/访问上报和上传接口分别限流；限流器只适用于单进程部署。`TRUSTED_PROXIES` 只填写可信反向代理。`/health` 为公开就绪探针；管理员 `system-status` 提供缓存的运行状态。安全响应头由 Helmet 设置，公开图片允许跨域加载。
 - `ConfigManager` 启动时加载配置并保持内存缓存；普通配置通过 `get(key, defaultValue)` 读取，系统配置通过 `getSysConfig().get(key)` 读取，写入时同步更新数据库和缓存。`config.enabled` 控制普通配置是否生效，`sys_config` 没有启用字段。
-- 数据字典使用 `dict_type` 与 `dict_item` 管理可配置的展示选项。类型 `code` 与子项 `value` 创建后不可修改，已有选项通过停用保留历史值；核心业务状态流转仍由业务代码控制。字典服务启动时加载内存缓存，管理端写入成功后刷新；管理接口位于 `/api/v1/admin/dictionaries`，公共接口 `/api/v1/dictionaries` 仅返回公开且启用的类型与子项。管理端 `/dictionaries` 页面维护字典，`DictSelect`、`DictTag` 复用公共字典请求缓存；页面已注册，侧栏菜单由管理员手动配置。
+- 数据字典使用 `dict_type` 与 `dict_item` 管理可配置的展示选项。类型 `code` 与子项 `value` 创建后不可修改，已有选项通过停用保留历史值；核心业务状态流转仍由业务代码控制。字典服务启动时加载内存缓存，管理端写入成功后刷新；管理接口位于 `/api/v1/admin/dictionaries`，公共接口 `/api/v1/dictionaries` 仅返回公开且启用的类型与子项。管理端 `/dictionaries` 页面维护字典，左侧类型列表支持名称、标识、备注搜索与分页；`DictSelect`、`DictTag` 复用字典请求缓存。页面已注册，侧栏菜单由管理员手动配置。
 - 普通配置的管理接口位于 `/api/v1/admin/configs`，支持列表、新增、更新（含键改名）、删除。管理页以文本值编辑；服务端通过 `ConfigManager` 写库并立即刷新缓存。配置内容不写入请求日志。
 - 请求日志中间件独立于认证：SQLite 记录模式为 `off`、`all`、`white_list`，默认关闭；控制台输出默认开启。白名单规则存在 `sys_config`，只记录匹配路径。日志内容需对密码、密钥、Token 等敏感字段脱敏并限制长度。
 - 请求日志查询通过鉴权接口 `GET /api/v1/admin/request-logs`，支持分页及方法、路径、状态码筛选；日志表未创建时返回空列表，查询不触发建表。`DELETE /api/v1/admin/request-logs` 支持按 ID 列表、时间段、某时间前/后或保留最新 N 条清理，返回删除条数；日志表未创建时返回 0。时间前/后是严格比较，最新按自增 ID 判定。日志中间件不将日志查询、清理和仪表盘接口自身写入 SQLite。管理端请求日志页支持跨分页多选和规则清理，均需确认。
