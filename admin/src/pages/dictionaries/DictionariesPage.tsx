@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Alert, Button, Card, Col, Empty, Flex, Input, Row, Space, Table, Tag, Typography } from 'antd';
 import type { TableProps } from 'antd';
-import { BookOpen, Pencil, Plus, RefreshCw, Search } from 'lucide-react';
+import { BookOpen, Download, Pencil, Plus, RefreshCw, Search } from 'lucide-react';
 import type { DictItem, DictType } from '../../api/dictionaries';
 import { formatDateTime } from '../../utils/dateTime';
 import { DictionaryItemEditor } from './DictionaryItemEditor';
+import { DictionaryExportModal } from './DictionaryExportModal';
 import { DictionaryTypeEditor } from './DictionaryTypeEditor';
 import { useDictionaries } from './useDictionaries';
 
@@ -12,13 +13,14 @@ const { Title, Text, Paragraph } = Typography;
 
 export function DictionariesPage() {
   const {
-    selectedType, selectedId, setSelectedId, search, setSearch, currentPage, pageSize,
+    types, selectedType, selectedId, setSelectedId, search, setSearch, currentPage, pageSize,
     filteredTypes, filteredTotal, changePage, loading, saving, error, reload, saveTypes, saveItems,
   } = useDictionaries();
   const [typeEditorOpen, setTypeEditorOpen] = useState(false);
   const [editingType, setEditingType] = useState<DictType | null>(null);
   const [itemEditorOpen, setItemEditorOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<DictItem | null>(null);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const openTypeEditor = (type: DictType | null) => {
     setEditingType(type);
@@ -61,8 +63,10 @@ export function DictionariesPage() {
           <Title level={2} style={{ margin: 0 }}>数据字典</Title>
           <Paragraph type="secondary" style={{ margin: '8px 0 0' }}>维护可复用的选项与展示颜色；已使用的标识和值通过停用保留。</Paragraph>
         </div>
-        <Space>
+        <Space wrap>
           <Button icon={<RefreshCw size={16} />} loading={loading} onClick={() => void reload()}>刷新</Button>
+          <Button icon={<Download size={16} />} disabled={types.length === 0}
+            onClick={() => setExportOpen(true)}>导出类型</Button>
           <Button type="primary" icon={<Plus size={16} />} onClick={() => openTypeEditor(null)}>新增类型</Button>
         </Space>
       </Flex>
@@ -100,6 +104,8 @@ export function DictionariesPage() {
       <DictionaryItemEditor open={itemEditorOpen} item={editingItem} saving={saving}
         onClose={() => setItemEditorOpen(false)}
         onSave={(inputs, id) => selectedType ? saveItems(selectedType, inputs, id) : Promise.resolve(false)} />
+      <DictionaryExportModal open={exportOpen} types={types} initialTypeId={selectedType?.id ?? null}
+        onClose={() => setExportOpen(false)} />
     </div>
   );
 }
