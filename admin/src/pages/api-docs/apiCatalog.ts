@@ -21,12 +21,12 @@ export interface ApiGroup {
 const admin = '/api/v1/admin';
 const publicApi = '/api/v1';
 const adminInfo = '{ id: number; username: string }';
-const siteSettings = '{ projectName: string; copyright: string; admin: { siteTitle: string; systemName: string; iconUrl: string | null }; client: 同 admin }';
+const siteSettings = '{ projectName: string; copyright: string; admin: { siteTitle: string; systemName: string; iconUrl: string | null }; client: 同 admin; loginAppearance: { backgroundMode: "solid" | "gradient" | "image"; solidColor: string; gradientStartColor: string; gradientEndColor: string; gradientDirection: number; backgroundFileId: UUID | null; backgroundUrl: string | null; cardOpacity: number } }';
 const configItem = '{ key: string; name: string; value: string; enabled: boolean; remark: string; createdAt: ISO时间; updatedAt: ISO时间 }';
 const dictItem = '{ id: number; typeId: number; label: string; value: string; sort: number; enabled: boolean; color: string; createdAt: ISO时间; updatedAt: ISO时间 }';
 const dictType = `{ id: number; code: string; name: string; remark: string; isPublic: boolean; enabled: boolean; createdAt: ISO时间; updatedAt: ISO时间; items: ${dictItem}[] }`;
 const whitelistRule = '{ id: string; name: string; type: "wildcard" | "exact"; path: string; remark: string; createdAt: ISO时间; updatedAt: ISO时间 }';
-const fileItem = '{ id: UUID; name: string; mimeType: string; size: number; url: string; createdAt: ISO时间 }';
+const fileItem = '{ id: UUID; name: string; mimeType: string; size: number; url: string; createdAt: ISO时间; archivedAt: ISO时间 | null }';
 const menuItem = '{ key: string; label: string; type: "group" | "route" | "action"; parentKey: string | null; path: string | null; action: string | null; icon: string | null; sort: number; visible: boolean }';
 const userItem = '{ id: number; account: string; nickname: string; avatar: string | null; status: "active" | "disabled"; createdAt: ISO时间; updatedAt: ISO时间 }';
 
@@ -107,6 +107,9 @@ export const API_GROUPS: readonly ApiGroup[] = [
     { method: 'PUT', path: `${admin}/site-settings`, title: '保存站点信息', auth: true,
       request: 'JSON: { projectName?: string; copyright: string(1-200); admin: { siteTitle: string; systemName: string }; client: { siteTitle: string; systemName: string } }',
       response: siteSettings },
+    { method: 'PUT', path: `${admin}/site-settings/login-appearance`, title: '保存登录外观', auth: true,
+      request: 'JSON: { backgroundMode: "solid" | "gradient" | "image"; solidColor: #RRGGBB; gradientStartColor: #RRGGBB; gradientEndColor: #RRGGBB; gradientDirection: 0-359; backgroundFileId: UUID | null; cardOpacity: 30-100 }',
+      response: siteSettings, note: '图片模式必须选择未归档的 PNG/JPEG/WebP/GIF 文件；切换到纯色或渐变会清除背景图片引用。' },
     { method: 'PUT', path: `${admin}/site-settings/:target/icon`, title: '直接上传站点图标', auth: true,
       request: '路径: target=admin | client；Body: 原始图片字节；Content-Type: image/png | image/jpeg | image/webp | image/x-icon',
       response: siteSettings, note: '最大 2 MiB。' },
@@ -160,13 +163,18 @@ export const API_GROUPS: readonly ApiGroup[] = [
   ] },
   { audience: 'admin', module: '文件管理', endpoints: [
     { method: 'GET', path: `${admin}/files`, title: '分页查询文件', auth: true,
-      request: 'Query: page=1；pageSize=20(1-100)；search?；mimeTypes?（逗号分隔 MIME 类型）；sortBy?=createdAt | size（默认 createdAt）；sortOrder?=asc | desc（默认 desc）',
+      request: 'Query: page=1；pageSize=20(1-100)；search?；mimeTypes?（逗号分隔 MIME 类型）；status?=active | archived | all（默认 active）；sortBy?=createdAt | size（默认 createdAt）；sortOrder?=asc | desc（默认 desc）',
       response: `{ items: ${fileItem}[]; total: number; page: number; pageSize: number }` },
     { method: 'POST', path: `${admin}/files`, title: '上传文件', auth: true,
       request: 'Body: 原始文件字节；Content-Type: image/png | image/jpeg | image/webp | image/x-icon | image/gif | application/pdf；X-File-Name: URL 编码文件名',
       response: fileItem, note: '最大 10 MiB；成功时 HTTP 201。' },
     { method: 'DELETE', path: `${admin}/files/:id`, title: '归档文件', auth: true,
-      request: '路径: id=文件 UUID', response: 'null', note: '归档后不再列出，公开内容链接仍可访问。' },
+      request: '路径: id=可用文件 UUID', response: 'null', note: '归档后仍可在管理页查看，选择器不再显示；公开内容链接仍可访问。' },
+    { method: 'PUT', path: `${admin}/files/:id/restore`, title: '恢复归档文件', auth: true,
+      request: '路径: id=已归档文件 UUID', response: 'null', note: '恢复后重新出现在文件选择器中。' },
+    { method: 'DELETE', path: `${admin}/files/:id/permanent`, title: '永久删除文件', auth: true,
+      request: '路径: id=文件 UUID（含已归档）', response: 'null',
+      note: '同时删除记录和原文件，原链接立即失效；当前站点图标不可删除，业务引用需人工确认。' },
   ] },
   { audience: 'public', module: '站点设置', endpoints: [
     { method: 'GET', path: `${publicApi}/site-settings`, title: '获取公开站点设置', auth: false,

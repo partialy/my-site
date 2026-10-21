@@ -26,10 +26,13 @@ const menu = { key: 'home', label: '首页', type: 'route', parentKey: null, pat
   icon: 'layout-dashboard', sort: 1, visible: true };
 const site = { projectName: '示例项目', copyright: '管理系统 © 2026 · 保留所有权利',
   admin: { siteTitle: '管理后台', systemName: '管理系统', iconUrl: null },
-  client: { siteTitle: '网站首页', systemName: '前台系统', iconUrl: null } };
+  client: { siteTitle: '网站首页', systemName: '前台系统', iconUrl: null },
+  loginAppearance: { backgroundMode: 'solid', solidColor: '#f4f7fc', gradientStartColor: '#e9f0ff',
+    gradientEndColor: '#f8fafc', gradientDirection: 135, backgroundFileId: null,
+    backgroundUrl: null, cardOpacity: 95 } };
 const file = { id: '7a9e4c72-b061-4ee6-9ed8-d986dbd6c919', name: 'logo.png', mimeType: 'image/png',
   size: 12345, url: '/api/v1/files/7a9e4c72-b061-4ee6-9ed8-d986dbd6c919/content',
-  createdAt: '2026-10-20T08:00:00.000Z' };
+  createdAt: '2026-10-20T08:00:00.000Z', archivedAt: null };
 const log = { id: 1, time: '2026-10-20T08:00:00.000Z', method: 'GET', path: '/api/v1/site-settings',
   url: '/api/v1/site-settings', requestData: null, responseData: '{"code":0}', status: 200,
   durationMs: 12, ip: '127.0.0.1', origin: null, referer: null, userAgent: 'Mozilla/5.0' };
@@ -102,6 +105,11 @@ const examples: Record<string, EndpointExample> = {
   [`PUT ${admin}/site-settings`]: { request: { projectName: '示例项目', copyright: site.copyright,
     admin: { siteTitle: '管理后台', systemName: '管理系统' },
     client: { siteTitle: '网站首页', systemName: '前台系统' } }, response: success(site, '站点配置已保存') },
+  [`PUT ${admin}/site-settings/login-appearance`]: { request: { backgroundMode: 'gradient',
+    solidColor: '#f4f7fc', gradientStartColor: '#e9f0ff', gradientEndColor: '#f8fafc',
+    gradientDirection: 135, backgroundFileId: null, cardOpacity: 90 },
+    response: success({ ...site, loginAppearance: { ...site.loginAppearance,
+      backgroundMode: 'gradient', cardOpacity: 90 } }, '登录外观已保存') },
   [`PUT ${admin}/site-settings/:target/icon`]: { requestKind: '原始文件', request: { target: 'admin',
     contentType: 'image/png', body: '<图片二进制，最大 2 MiB>' }, response: success(site, '图标已上传') },
   [`PUT ${admin}/site-settings/:target/icon-file`]: { request: { fileId: file.id },
@@ -131,12 +139,16 @@ const examples: Record<string, EndpointExample> = {
   [`PUT ${admin}/users/:id/status`]: { request: { status: 'disabled' },
     response: success({ ...user, status: 'disabled' }, '用户已禁用') },
   [`GET ${admin}/files`]: { requestKind: 'Query', request: { page: 1, pageSize: 20, search: 'logo',
-    mimeTypes: 'image/png,image/jpeg', sortBy: 'size', sortOrder: 'desc' },
+    mimeTypes: 'image/png,image/jpeg', status: 'all', sortBy: 'size', sortOrder: 'desc' },
     response: success({ items: [file], total: 1, page: 1, pageSize: 20 }) },
   [`POST ${admin}/files`]: { requestKind: '原始文件', request: { contentType: 'image/png',
     xFileName: 'logo.png', body: '<文件二进制，最大 10 MiB>' }, response: success(file, '文件已上传') },
   [`DELETE ${admin}/files/:id`]: { requestKind: 'Path', request: { id: file.id },
     response: success(null, '文件已归档') },
+  [`PUT ${admin}/files/:id/restore`]: { requestKind: 'Path', request: { id: file.id },
+    response: success(null, '文件已恢复') },
+  [`DELETE ${admin}/files/:id/permanent`]: { requestKind: 'Path', request: { id: file.id },
+    response: success(null, '文件已永久删除') },
   [`GET ${publicApi}/site-settings`]: { response: success(site) },
   [`GET ${publicApi}/dictionaries`]: { requestKind: 'Query', request: { codes: 'order_status' },
     response: success(dictOptions) },

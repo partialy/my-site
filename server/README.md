@@ -64,6 +64,7 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 | PUT | /api/v1/admin/menus | 原子替换全部菜单，需要管理员 Token |
 | GET | /api/v1/admin/site-settings | 管理端读取后台与前台的站点名称和图标 URL，无需 Token |
 | PUT | /api/v1/admin/site-settings | 修改后台与前台的站点名称，需要管理员 Token |
+| PUT | /api/v1/admin/site-settings/login-appearance | 修改后台登录页背景和卡片透明度，需要管理员 Token |
 | PUT | /api/v1/admin/site-settings/:target/icon | 上传图标原始字节，需要管理员 Token |
 | DELETE | /api/v1/admin/site-settings/:target/icon | 删除图标，需要管理员 Token |
 | PUT | /api/v1/admin/site-settings/:target/icon-file | 从文件库选择图标，body 为 `{ "fileId": "UUID" }`，需要管理员 Token |
@@ -80,6 +81,8 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 | GET | /api/v1/admin/files | 分页查询文件库，需要管理员 Token |
 | POST | /api/v1/admin/files | 上传原始文件，需要管理员 Token |
 | DELETE | /api/v1/admin/files/:id | 归档文件，需要管理员 Token |
+| PUT | /api/v1/admin/files/:id/restore | 恢复归档文件，需要管理员 Token |
+| DELETE | /api/v1/admin/files/:id/permanent | 永久删除文件及元数据，需要管理员 Token |
 | GET | /api/v1/site-settings | 公开读取站点名称和图标 URL |
 | GET | /api/v1/dictionaries?codes=a,b | 批量获取公开且启用的字典选项 |
 | GET | /api/v1/site-settings/:target/icon | 公开读取图标二进制 |
@@ -111,7 +114,7 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 - src/db：SQLite 连接、首次初始化与自动升级；`migrations/sql/` 保存初始化 SQL，`migrations/dev-sql/` 和 `migrations/prod-sql/` 保存升级 SQL。
 - src/config：环境变量校验与配置内存管理。
 
-普通业务列表可使用 `src/repositories/table-list.repository.ts` 的 `TableListRepository`。资源在服务端代码中静态声明表、返回列、搜索列、等值/模糊/范围/数组筛选、固定 `IS NULL` 约束和排序；用户、操作日志、访问日志、请求日志、文件列表的配置示例位于 `src/repositories/resources/`。Controller 仍使用专属 Zod Schema 校验查询参数，Service 保留业务规则。表名和列名仅来自代码配置，筛选值使用 SQLite 参数绑定，模糊查询转义通配符。用户列表不会将密码哈希作为列表字段读取；请求日志表未创建时查询仍返回空列表，文件列表固定排除已归档文件。包含副作用的写操作仍由业务 Service 和对应 Repository 实现。
+普通业务列表可使用 `src/repositories/table-list.repository.ts` 的 `TableListRepository`。资源在服务端代码中静态声明表、返回列、搜索列、等值/模糊/范围/数组筛选、固定 `IS NULL` / `IS NOT NULL` 约束和排序；用户、操作日志、访问日志、请求日志、文件列表的配置示例位于 `src/repositories/resources/`。Controller 仍使用专属 Zod Schema 校验查询参数，Service 保留业务规则。表名和列名仅来自代码配置，筛选值使用 SQLite 参数绑定，模糊查询转义通配符。用户列表不会将密码哈希作为列表字段读取；请求日志表未创建时查询仍返回空列表，文件列表默认排除已归档文件，可显式查询全部或仅归档文件。包含副作用的写操作仍由业务 Service 和对应 Repository 实现。
 
 ## 配置与请求日志
 
@@ -159,7 +162,9 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 
 ## 站点设置与图标
 
-`GET /api/v1/site-settings` 和管理端 `GET /api/v1/admin/site-settings` 返回 `{projectName,copyright,admin:{siteTitle,systemName,iconUrl},client:{siteTitle,systemName,iconUrl}}`，图标未设置时 `iconUrl=null`。默认后台名称为 `NodeBase Admin`，前台名称为 `NodeBase Client`。`copyright` 用于管理端页脚；尚未配置时按当前管理系统名称和年份生成原有文案。`PUT /api/v1/admin/site-settings` 提交 `copyright`（非空、最长 200 字符）、可选的 `projectName`，以及后台/前台各自的 `siteTitle`、`systemName`（非空、最长 100 字符）；响应包含最新 `iconUrl`。
+`GET /api/v1/site-settings` 和管理端 `GET /api/v1/admin/site-settings` 返回 `{projectName,copyright,admin:{siteTitle,systemName,iconUrl},client:{siteTitle,systemName,iconUrl},loginAppearance}`，图标未设置时 `iconUrl=null`。默认后台名称为 `NodeBase Admin`，前台名称为 `NodeBase Client`。`copyright` 用于管理端页脚；尚未配置时按当前管理系统名称和年份生成原有文案。`PUT /api/v1/admin/site-settings` 提交 `copyright`（非空、最长 200 字符）、可选的 `projectName`，以及后台/前台各自的 `siteTitle`、`systemName`（非空、最长 100 字符）；响应包含最新 `iconUrl`。
+
+`PUT /api/v1/admin/site-settings/login-appearance` 单独保存管理端登录外观到 `sys_config`：`backgroundMode` 为 `solid`、`gradient` 或 `image`；纯色和渐变颜色使用 `#RRGGBB`；`gradientDirection` 为 0–359 度；`cardOpacity` 为 30–100；图片模式需提供未归档图片的 `backgroundFileId`（PNG/JPEG/WebP/GIF）。公开站点设置返回同名字段和可直接显示的 `backgroundUrl`。纯色或渐变模式清除图片引用。当前作为登录背景的文件不能永久删除；业务引用仍需人工确认。
 
 图标上传以原始图片字节作为请求体，Content-Type 仅支持 `image/png`、`image/jpeg`、`image/webp`、`image/x-icon`，最大 2 MiB。服务端校验文件头，不接受 SVG。图标分别存放在 `server/data/site-icons/admin.icon` 与 `server/data/site-icons/client.icon`，上传时覆盖对应文件；MIME 和版本号保存在 `sys_config`。返回的图标 URL 带版本参数，供页面刷新缓存。图标读取接口返回图片二进制，其余站点设置接口使用统一 JSON 响应格式。
 
@@ -167,9 +172,9 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 
 ## 文件库
 
-`GET /api/v1/admin/files?page=1&pageSize=20&search=关键词&mimeTypes=image/png,image/jpeg&sortBy=size&sortOrder=desc` 返回 `{items,total,page,pageSize}`，只列出未归档的文件。`mimeTypes` 可选，使用逗号分隔，在计数和分页前过滤类型。`sortBy` 仅允许 `createdAt`、`size`，`sortOrder` 仅允许 `asc`、`desc`，默认按上传时间倒序；同值时按 ID 倒序保证分页稳定。每条 `FileItem` 包含 `{id,name,mimeType,size,url,createdAt}`，其中 `url` 为稳定公开路径 `/api/v1/files/:id/content`，可直接供图片、图标等资源复用。列表、上传、归档需要管理员 JWT；内容链接公开读取。
+`GET /api/v1/admin/files?page=1&pageSize=20&search=关键词&mimeTypes=image/png,image/jpeg&sortBy=size&sortOrder=desc&status=all` 返回 `{items,total,page,pageSize}`。`status` 可选 `active`、`archived`、`all`，默认 `active`，文件管理页传 `all`，文件选择器只查询 `active`。`mimeTypes` 可选，使用逗号分隔，在计数和分页前过滤类型。`sortBy` 仅允许 `createdAt`、`size`，`sortOrder` 仅允许 `asc`、`desc`，默认按上传时间倒序；同值时按 ID 倒序保证分页稳定。每条 `FileItem` 包含 `{id,name,mimeType,size,url,createdAt,archivedAt}`，其中 `url` 为稳定公开路径 `/api/v1/files/:id/content`，`archivedAt` 为 `null` 表示可用。列表、上传、归档、恢复和永久删除需要管理员 JWT；内容链接公开读取。
 
-`POST /api/v1/admin/files` 使用原始文件字节作为请求体，设置实际文件 MIME 的 `Content-Type`，并将文件名执行 `encodeURIComponent` 后放入 `X-File-Name`。首版支持 PNG、JPEG、WebP、ICO、GIF、PDF，最大 10 MiB；校验文件头并拒绝 SVG。元数据保存在 SQLite 的 `file` 表，文件本体保存在 `server/data/uploads/`，内置数据库备份不包含文件本体。`DELETE /api/v1/admin/files/:id` 仅归档记录，让列表不再显示；已有内容链接仍可访问，避免业务引用失效。
+`POST /api/v1/admin/files` 使用原始文件字节作为请求体，设置实际文件 MIME 的 `Content-Type`，并将文件名执行 `encodeURIComponent` 后放入 `X-File-Name`。首版支持 PNG、JPEG、WebP、ICO、GIF、PDF，最大 10 MiB；校验文件头并拒绝 SVG。元数据保存在 SQLite 的 `file` 表，文件本体保存在 `server/data/uploads/`，内置数据库备份不包含文件本体。`DELETE /api/v1/admin/files/:id` 仅归档记录，不再出现在选择器中；已有内容链接仍可访问。`PUT /api/v1/admin/files/:id/restore` 恢复文件可选状态。`DELETE /api/v1/admin/files/:id/permanent` 永久删除文件的元数据与原文件，当前用作后台/前台站点图标或登录背景的文件返回 409；业务表或外部保存的链接无法自动检测，删除前需确认没有其他引用。
 
 ## 菜单管理
 
