@@ -25,6 +25,28 @@ export const siteSettingsInputSchema = z.strictObject({
 
 export type SiteSettingsInput = z.infer<typeof siteSettingsInputSchema>;
 
+const loginAppearanceSchema = z.strictObject({
+  backgroundMode: z.enum(['solid', 'gradient', 'image']),
+  solidColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  gradientStartColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  gradientEndColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  gradientDirection: z.number().int().min(0).max(359),
+  backgroundFileId: z.uuid().nullable(),
+  cardOpacity: z.number().int().min(30).max(100),
+});
+export type LoginAppearanceInput = z.infer<typeof loginAppearanceSchema>;
+export const loginAppearanceInputSchema = loginAppearanceSchema;
+
+export interface LoginAppearance extends LoginAppearanceInput {
+  backgroundUrl: string | null;
+}
+
+const defaultLoginAppearance: LoginAppearanceInput = {
+  backgroundMode: 'solid', solidColor: '#f4f7fc',
+  gradientStartColor: '#e9f0ff', gradientEndColor: '#f8fafc', gradientDirection: 135,
+  backgroundFileId: null, cardOpacity: 95,
+};
+
 type SiteIdentity = SiteSettingsInput['admin'] & {
   iconUrl: string | null;
 };
@@ -34,6 +56,7 @@ export interface SiteSettingsData {
   copyright: string;
   admin: SiteIdentity;
   client: SiteIdentity;
+  loginAppearance: LoginAppearance;
 }
 
 export const maxIconBytes = 2 * 1024 * 1024;
@@ -84,7 +107,7 @@ export class SiteSettingsService {
       projectName: String(this.manager.getSysConfig().get(SysConfigKey.ProjectName)),
       copyright: typeof configuredCopyright === 'string' ? configuredCopyright
         : `${admin.systemName} © ${new Date().getFullYear()} · 可复制的轻量管理端基础框架`,
-      admin, client: this.getSite('client'),
+      admin, client: this.getSite('client'), loginAppearance: this.getLoginAppearance(),
     };
   }
 
@@ -98,6 +121,28 @@ export class SiteSettingsService {
       { key: SysConfigKey.ClientSystemName, name: '前台系统名称', value: input.client.systemName },
     ]);
     return this.get();
+  }
+
+  updateLoginAppearance(input: LoginAppearanceInput): SiteSettingsData {
+    if (input.backgroundMode === 'image' && !input.backgroundFileId) {
+      throw new ApiError(400, ApiCode.ValidationError, '请选择登录背景图片');
+    }
+    const backgroundFileId = input.backgroundMode === 'image' ? input.backgroundFileId : null;
+    if (backgroundFileId) {
+      const file = this.files.findActive(backgroundFileId);
+      if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(file.mimeType)) {
+        throw new ApiError(400, ApiCode.ValidationError, '请选择 PNG、JPEG、WebP 或 GIF 图片');
+      }
+    }
+    this.manager.setSysConfig(SysConfigKey.AdminLoginAppearance, '管理端登录外观', { ...input, backgroundFileId });
+    return this.get();
+  }
+
+  private getLoginAppearance(): LoginAppearance {
+    const saved = loginAppearanceSchema.safeParse(this.manager.getSysConfig().get(SysConfigKey.AdminLoginAppearance));
+    const appearance = saved.success ? saved.data : defaultLoginAppearance;
+    return { ...appearance, backgroundUrl: appearance.backgroundFileId
+      ? this.files.find(appearance.backgroundFileId).url : null };
   }
 
   async uploadIcon(target: SiteTarget, mime: IconMimeType, bytes: Buffer): Promise<SiteSettingsData> {

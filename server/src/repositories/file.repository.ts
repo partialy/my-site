@@ -4,6 +4,7 @@ import { fileListResourceForSort } from './resources/file-list.resource';
 
 export type FileSortBy = 'createdAt' | 'size';
 export type FileSortOrder = 'asc' | 'desc';
+export type FileListStatus = 'active' | 'archived' | 'all';
 
 export interface FileRecord {
   id: string;
@@ -22,6 +23,7 @@ export interface FileListQuery {
   mimeTypes?: string[];
   sortBy?: FileSortBy;
   sortOrder?: FileSortOrder;
+  status?: FileListStatus;
 }
 
 export class FileRepository {
@@ -33,7 +35,7 @@ export class FileRepository {
 
   list(query: FileListQuery): { items: FileRecord[]; total: number } {
     return this.tableList.list<FileRecord, FileListQuery>(
-      fileListResourceForSort(query.sortBy ?? 'createdAt', query.sortOrder ?? 'desc'), query,
+      fileListResourceForSort(query.sortBy ?? 'createdAt', query.sortOrder ?? 'desc', query.status ?? 'active'), query,
     );
   }
 
@@ -53,5 +55,19 @@ export class FileRepository {
   archive(id: string): boolean {
     return this.db.prepare('UPDATE file SET archived_at = ? WHERE id = ? AND archived_at IS NULL')
       .run(new Date().toISOString(), id).changes > 0;
+  }
+
+  restore(id: string): boolean {
+    return this.db.prepare('UPDATE file SET archived_at = NULL WHERE id = ? AND archived_at IS NOT NULL')
+      .run(id).changes > 0;
+  }
+
+  delete(id: string): boolean {
+    return this.db.prepare('DELETE FROM file WHERE id = ?').run(id).changes > 0;
+  }
+
+  restoreDeleted(record: FileRecord): void {
+    this.db.prepare(`INSERT INTO file (id, name, mime_type, size, storage_name, created_at, archived_at)
+      VALUES (@id, @name, @mime_type, @size, @storage_name, @created_at, @archived_at)`).run(record);
   }
 }

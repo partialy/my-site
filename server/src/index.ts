@@ -39,7 +39,7 @@ function main(): void {
   const auth = new AuthService(admins, new JwtService(config.jwtSecret));
   const systemConfig = new SystemConfigService(configManager, db);
   const configs = new ConfigService(configManager);
-  const files = new FileService(new FileRepository(db));
+  const files = new FileService(new FileRepository(db), configManager);
   const siteSettings = new SiteSettingsService(configManager, files);
   const requestLogs = new RequestLogService(new RequestLogRepository(db));
   const menus = new MenuService(new MenuRepository(db));

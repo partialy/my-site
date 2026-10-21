@@ -65,6 +65,11 @@ function describe(method: string, path: string): OperationDescriptor | null {
     return { module: '站点设置', action: 'update', targetType: 'site_settings', summary: '修改站点设置',
       changedFields: ['projectName', 'admin.siteTitle', 'admin.systemName', 'client.siteTitle', 'client.systemName'] };
   }
+  if (method === 'PUT' && path === '/site-settings/login-appearance') {
+    return { module: '外观设置', action: 'update', targetType: 'site_settings', summary: '修改管理端登录外观',
+      changedFields: ['backgroundMode', 'solidColor', 'gradientStartColor', 'gradientEndColor',
+        'gradientDirection', 'backgroundFileId', 'cardOpacity'] };
+  }
   const icon = /^\/site-settings\/(admin|client)\/icon(?:-file)?$/.exec(path);
   if (icon && ['PUT', 'DELETE'].includes(method)) {
     return { module: '站点设置', action: method === 'PUT' ? 'update' : 'delete', targetType: 'site_icon',
@@ -76,6 +81,14 @@ function describe(method: string, path: string): OperationDescriptor | null {
   const file = /^\/files\/([^/]+)$/.exec(path);
   if (method === 'DELETE' && file) {
     return { module: '文件管理', action: 'archive', targetType: 'file', targetId: file[1], summary: '归档文件' };
+  }
+  const restoredFile = /^\/files\/([^/]+)\/restore$/.exec(path);
+  if (method === 'PUT' && restoredFile) {
+    return { module: '文件管理', action: 'update', targetType: 'file', targetId: restoredFile[1], summary: '恢复归档文件' };
+  }
+  const permanentFile = /^\/files\/([^/]+)\/permanent$/.exec(path);
+  if (method === 'DELETE' && permanentFile) {
+    return { module: '文件管理', action: 'delete', targetType: 'file', targetId: permanentFile[1], summary: '永久删除文件' };
   }
   return null;
 }

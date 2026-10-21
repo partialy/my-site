@@ -12,6 +12,7 @@ export interface TableListResource {
   rangeFilters?: Readonly<Record<string, { column: string; operator: '>=' | '<=' | '>' | '<' }>>;
   arrayFilters?: Readonly<Record<string, string>>;
   nullColumns?: readonly string[];
+  notNullColumns?: readonly string[];
   orderColumns?: ReadonlyArray<{ column: string; order: 'ASC' | 'DESC' }>;
 }
 
@@ -64,6 +65,7 @@ export class TableListRepository {
     const args: Array<string | number> = [];
 
     for (const column of resource.nullColumns ?? []) conditions.push(`${quoteIdentifier(column)} IS NULL`);
+    for (const column of resource.notNullColumns ?? []) conditions.push(`${quoteIdentifier(column)} IS NOT NULL`);
 
     if (query.search && resource.searchColumns?.length) {
       const search = resource.searchColumns.map((column) => `instr(lower(${quoteIdentifier(column)}), lower(?)) > 0`);

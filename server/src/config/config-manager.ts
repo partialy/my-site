@@ -12,6 +12,7 @@ export const SysConfigKey = {
   AdminIconMime: 'admin_icon_mime',
   AdminIconVersion: 'admin_icon_version',
   AdminIconFileId: 'admin_icon_file_id',
+  AdminLoginAppearance: 'admin_login_appearance',
   ClientSiteTitle: 'client_site_title',
   ClientSystemName: 'client_system_name',
   ClientIconMime: 'client_icon_mime',

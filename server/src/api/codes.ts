@@ -14,6 +14,7 @@ export const ApiCode = {
   UserAccountExists: 1011,
   RateLimited: 1012,
   DictionaryValueExists: 1013,
+  FileInUse: 1014,
 } as const;
 
 export type ApiCode = (typeof ApiCode)[keyof typeof ApiCode];

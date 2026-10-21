@@ -8,7 +8,7 @@ import { AuthService } from '../../services/auth.service';
 import { SystemConfigService, systemConfigInputSchema, whitelistInputSchema } from '../../services/system-config.service';
 import { ConfigService, configInputSchema } from '../../services/config.service';
 import {
-  iconMimeTypes, maxIconBytes, SiteSettingsService, siteSettingsInputSchema, siteTargetSchema,
+  iconMimeTypes, loginAppearanceInputSchema, maxIconBytes, SiteSettingsService, siteSettingsInputSchema, siteTargetSchema,
   type IconMimeType,
 } from '../../services/site-settings.service';
 import { ApiError } from '../api-error';
@@ -120,6 +120,10 @@ export function createAdminRoutes(setup: SetupService, auth: AuthService, system
     res.json(ok(siteSettings.update(input), '站点配置已保存'));
   });
 
+  routes.put('/site-settings/login-appearance', requireAuth(auth), (req, res) => {
+    res.json(ok(siteSettings.updateLoginAppearance(parseInput(loginAppearanceInputSchema, req.body)), '登录外观已保存'));
+  });
+
   routes.put('/site-settings/:target/icon', requireAuth(auth), requestRateLimit(20, 60_000), raw({ type: [...iconMimeTypes], limit: maxIconBytes }), async (req, res) => {
     const target = parseInput(siteTargetSchema, req.params.target);
     const mime = req.get('content-type')?.split(';', 1)[0]?.trim().toLowerCase();
@@ -195,6 +199,16 @@ export function createAdminRoutes(setup: SetupService, auth: AuthService, system
   routes.delete('/files/:id', requireAuth(auth), (req, res) => {
     files.archive(parseInput(fileIdSchema, req.params.id));
     res.json(ok(null, '文件已归档'));
+  });
+
+  routes.put('/files/:id/restore', requireAuth(auth), (req, res) => {
+    files.restore(parseInput(fileIdSchema, req.params.id));
+    res.json(ok(null, '文件已恢复'));
+  });
+
+  routes.delete('/files/:id/permanent', requireAuth(auth), (req, res) => {
+    files.deletePermanently(parseInput(fileIdSchema, req.params.id));
+    res.json(ok(null, '文件已永久删除'));
   });
 
   return routes;

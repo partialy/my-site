@@ -1,9 +1,11 @@
 import { randomUUID } from 'node:crypto';
+import { existsSync, renameSync, unlinkSync } from 'node:fs';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
 import { ApiError } from '../api/api-error';
 import { ApiCode } from '../api/codes';
+import { ConfigManager, SysConfigKey } from '../config/config-manager';
 import { FileRepository, type FileRecord } from '../repositories/file.repository';
 
 export const maxFileBytes = 10 * 1024 * 1024;
@@ -23,6 +25,7 @@ export const fileListQuerySchema = z.strictObject({
     .refine((values) => !values || values.every((mime) => fileMimeTypes.includes(mime as FileMimeType)), '文件类型无效'),
   sortBy: z.enum(['createdAt', 'size']).default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
+  status: z.enum(['active', 'archived', 'all']).default('active'),
 });
 export const fileIdSchema = z.uuid();
 export const selectIconFileSchema = z.strictObject({ fileId: fileIdSchema });
@@ -34,6 +37,7 @@ export interface FileItem {
   size: number;
   url: string;
   createdAt: string;
+  archivedAt: string | null;
 }
 
 function hasValidSignature(bytes: Buffer, mime: FileMimeType): boolean {
@@ -49,13 +53,13 @@ function hasValidSignature(bytes: Buffer, mime: FileMimeType): boolean {
 
 function toItem(record: FileRecord): FileItem {
   return { id: record.id, name: record.name, mimeType: record.mime_type, size: record.size,
-    url: `/api/v1/files/${record.id}/content`, createdAt: record.created_at };
+    url: `/api/v1/files/${record.id}/content`, createdAt: record.created_at, archivedAt: record.archived_at };
 }
 
 export class FileService {
   private readonly directory = path.resolve(__dirname, '../../data/uploads');
 
-  constructor(private readonly repository: FileRepository) {}
+  constructor(private readonly repository: FileRepository, private readonly configManager: ConfigManager) {}
 
   list(query: z.infer<typeof fileListQuerySchema>) {
     const result = this.repository.list(query);
@@ -111,5 +115,38 @@ export class FileService {
 
   archive(id: string): void {
     if (!this.repository.archive(id)) throw new ApiError(404, ApiCode.NotFound, '文件不存在或已归档');
+  }
+
+  restore(id: string): void {
+    if (!this.repository.restore(id)) throw new ApiError(404, ApiCode.NotFound, '文件不存在或未归档');
+  }
+
+  deletePermanently(id: string): void {
+    const record = this.repository.find(id);
+    if (!record) throw new ApiError(404, ApiCode.NotFound, '文件不存在');
+    const sysConfig = this.configManager.getSysConfig();
+    if (sysConfig.get(SysConfigKey.AdminIconFileId) === id || sysConfig.get(SysConfigKey.ClientIconFileId) === id) {
+      throw new ApiError(409, ApiCode.FileInUse, '文件正在用作站点图标，请先更换或移除图标');
+    }
+    const loginAppearance = sysConfig.get(SysConfigKey.AdminLoginAppearance);
+    if (typeof loginAppearance === 'object' && loginAppearance !== null &&
+      'backgroundFileId' in loginAppearance && loginAppearance.backgroundFileId === id) {
+      throw new ApiError(409, ApiCode.FileInUse, '文件正在用作登录背景，请先更换或移除背景图片');
+    }
+
+    const original = path.join(this.directory, record.storage_name);
+    const temporary = `${original}.${randomUUID()}.deleting`;
+    const hasContent = existsSync(original);
+    if (hasContent) renameSync(original, temporary);
+    let deleted = false;
+    try {
+      deleted = this.repository.delete(id);
+      if (!deleted) throw new ApiError(404, ApiCode.NotFound, '文件不存在');
+      if (hasContent) unlinkSync(temporary);
+    } catch (error) {
+      if (deleted) this.repository.restoreDeleted(record);
+      if (hasContent) renameSync(temporary, original);
+      throw error;
+    }
   }
 }
