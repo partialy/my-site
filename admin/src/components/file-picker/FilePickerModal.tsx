@@ -20,7 +20,7 @@ export interface FilePickerModalProps {
 export function FilePickerModal({ open, multiple = false, accept, onCancel, onConfirm }: FilePickerModalProps) {
   const mimeKey = accept?.join(',') ?? '';
   const [searchDraft, setSearchDraft] = useState('');
-  const [query, setQuery] = useState<FileQuery>({ page: 1, pageSize: 20, mimeTypes: accept });
+  const [query, setQuery] = useState<FileQuery>({ page: 1, pageSize: 20, mimeTypes: accept, status: 'active' });
   const [selected, setSelected] = useState<Map<string, FileItem>>(new Map());
   const [uploading, setUploading] = useState(false);
   const pendingUploads = useRef(0);
@@ -31,7 +31,7 @@ export function FilePickerModal({ open, multiple = false, accept, onCancel, onCo
     if (open) return;
     setSelected(new Map());
     setSearchDraft('');
-    setQuery({ page: 1, pageSize: 20, mimeTypes: accept });
+    setQuery({ page: 1, pageSize: 20, mimeTypes: accept, status: 'active' });
   }, [open]);
 
   useEffect(() => {
@@ -65,7 +65,7 @@ export function FilePickerModal({ open, multiple = false, accept, onCancel, onCo
       if (query.page === 1 && !query.search) void reload();
       else {
         setSearchDraft('');
-        setQuery({ page: 1, pageSize: 20, mimeTypes: accept });
+        setQuery({ page: 1, pageSize: 20, mimeTypes: accept, status: 'active' });
       }
     } catch (cause) {
       message.error(cause instanceof Error ? cause.message : '上传失败');

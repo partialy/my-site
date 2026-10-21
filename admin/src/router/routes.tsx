@@ -15,6 +15,7 @@ import { MenuManagementPage } from '../pages/menus/MenuManagementPage';
 import { ApiDocsPage } from '../pages/api-docs/ApiDocsPage';
 import { NotFoundPage } from '../pages/errors/NotFoundPage';
 import { DictionariesPage } from '../pages/dictionaries/DictionariesPage';
+import { AppearancePage } from '../pages/appearance/AppearancePage';
 
 export const router = createBrowserRouter([
   {
@@ -34,6 +35,10 @@ export const router = createBrowserRouter([
       {
         path: 'system-config',
         element: <SystemConfigPage />,
+      },
+      {
+        path: 'appearance',
+        element: <AppearancePage />,
       },
       {
         path: 'configs',

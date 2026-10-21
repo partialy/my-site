@@ -14,6 +14,21 @@ export interface SiteSettings {
   copyright: string;
   admin: SiteIdentity;
   client: SiteIdentity;
+  loginAppearance: LoginAppearance;
+}
+
+export interface LoginAppearanceInput {
+  backgroundMode: 'solid' | 'gradient' | 'image';
+  solidColor: string;
+  gradientStartColor: string;
+  gradientEndColor: string;
+  gradientDirection: number;
+  backgroundFileId: string | null;
+  cardOpacity: number;
+}
+
+export interface LoginAppearance extends LoginAppearanceInput {
+  backgroundUrl: string | null;
 }
 
 export interface SiteSettingsInput {
@@ -50,14 +65,43 @@ function parseSettings(value: unknown): SiteSettings {
     throw new Error('项目名称或版权信息格式异常');
   }
   return { projectName: item.projectName, copyright: item.copyright,
-    admin: parseIdentity(item.admin), client: parseIdentity(item.client) };
+    admin: parseIdentity(item.admin), client: parseIdentity(item.client),
+    loginAppearance: parseLoginAppearance(item.loginAppearance) };
 }
+
+function parseLoginAppearance(value: unknown): LoginAppearance {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error('登录外观格式异常');
+  const item = value as Record<string, unknown>;
+  if (!['solid', 'gradient', 'image'].includes(String(item.backgroundMode)) ||
+    typeof item.solidColor !== 'string' || typeof item.gradientStartColor !== 'string' ||
+    typeof item.gradientEndColor !== 'string' || typeof item.gradientDirection !== 'number' ||
+    (item.backgroundFileId !== null && typeof item.backgroundFileId !== 'string') ||
+    (item.backgroundUrl !== null && typeof item.backgroundUrl !== 'string') ||
+    typeof item.cardOpacity !== 'number') throw new Error('登录外观格式异常');
+  const apiBase = getPublicApiBaseUrl().replace(/\/+$/, '');
+  const url = item.backgroundUrl as string | null;
+  return {
+    backgroundMode: item.backgroundMode as LoginAppearance['backgroundMode'],
+    solidColor: item.solidColor, gradientStartColor: item.gradientStartColor,
+    gradientEndColor: item.gradientEndColor, gradientDirection: item.gradientDirection,
+    backgroundFileId: item.backgroundFileId as string | null,
+    backgroundUrl: url?.startsWith('/api/v1/') ? `${apiBase}${url.slice('/api/v1'.length)}` : url,
+    cardOpacity: item.cardOpacity,
+  };
+}
+
+export const defaultLoginAppearance: LoginAppearance = {
+  backgroundMode: 'solid', solidColor: '#f4f7fc', gradientStartColor: '#e9f0ff',
+  gradientEndColor: '#f8fafc', gradientDirection: 135, backgroundFileId: null,
+  backgroundUrl: null, cardOpacity: 95,
+};
 
 export const defaultSiteSettings: SiteSettings = {
   projectName: 'NodeBase',
   copyright: `NodeBase Admin © ${new Date().getFullYear()} · 可复制的轻量管理端基础框架`,
   admin: { siteTitle: 'NodeBase Admin', systemName: 'NodeBase Admin', iconUrl: null },
   client: { siteTitle: 'NodeBase Client', systemName: 'NodeBase Client', iconUrl: null },
+  loginAppearance: defaultLoginAppearance,
 };
 
 export function getSiteSettings(): Promise<ApiResponse<SiteSettings>> {
@@ -66,6 +110,10 @@ export function getSiteSettings(): Promise<ApiResponse<SiteSettings>> {
 
 export function updateSiteSettings(input: SiteSettingsInput): Promise<ApiResponse<SiteSettings>> {
   return request('/site-settings', parseSettings, { method: 'PUT', body: input });
+}
+
+export function updateLoginAppearance(input: LoginAppearanceInput): Promise<ApiResponse<SiteSettings>> {
+  return request('/site-settings/login-appearance', parseSettings, { method: 'PUT', body: input });
 }
 
 export function uploadSiteIcon(target: SiteTarget, file: File): Promise<ApiResponse<SiteSettings>> {

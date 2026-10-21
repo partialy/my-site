@@ -6,6 +6,7 @@ import { ApiCode } from '../../api';
 import { useAuth } from '../../auth';
 import { SiteIcon } from '../../components/SiteIcon';
 import { useSiteSettings } from '../../site-settings/SiteSettingsContext';
+import { loginBackgroundStyle, loginCardStyle } from '../../site-settings/loginAppearance';
 import type { LoginRequest } from '../../api/types';
 
 export const LoginPage: React.FC = () => {
@@ -59,8 +60,8 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="auth-page-wrapper">
-      <div className="auth-card">
+    <div className="auth-page-wrapper login-auth-page" style={loginBackgroundStyle(settings.loginAppearance)}>
+      <div className="auth-card" style={loginCardStyle(settings.loginAppearance)}>
         <div className="auth-header">
           <div className="auth-logo-badge">
             <SiteIcon url={settings.admin.iconUrl} size={28} />

@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Alert, Button, Card, Flex, Image, message, Modal, Space, Table, Typography, Upload } from 'antd';
+import { Alert, Button, Card, Flex, Image, message, Modal, Space, Table, Tag, Typography, Upload } from 'antd';
 import type { TableProps } from 'antd';
-import { Copy, FolderOpen, Trash2, UploadCloud } from 'lucide-react';
+import { Archive, Copy, FolderOpen, RotateCcw, Trash2, UploadCloud } from 'lucide-react';
 import type { FileItem } from '../../api/files';
-import { archiveFile, uploadFile } from '../../api/files';
+import { archiveFile, deleteFilePermanently, restoreFile, uploadFile } from '../../api/files';
 import { CrudFilterBar, type CrudFilterField } from '../../components/crud/CrudFilterBar';
 import { formatFileSize, isImage } from '../../components/file-picker/fileUtils';
 import { defaultFileFilters, useFilesPage, type FileFilters } from './useFilesPage';
@@ -11,6 +11,9 @@ import { defaultFileFilters, useFilesPage, type FileFilters } from './useFilesPa
 const { Title, Text, Paragraph } = Typography;
 const filterFields: ReadonlyArray<CrudFilterField<FileFilters>> = [
   { key: 'search', kind: 'text', placeholder: '搜索文件名', width: 360 },
+  { key: 'status', kind: 'select', placeholder: '归档状态', width: 150, options: [
+    { label: '全部文件', value: 'all' }, { label: '可用', value: 'active' }, { label: '已归档', value: 'archived' },
+  ] },
 ];
 
 export function FilesPage() {
@@ -24,8 +27,8 @@ export function FilesPage() {
       const response = await uploadFile(file);
       if (!response.success) throw new Error(response.msg);
       message.success('文件已上传到文件管理器');
-      if (query.page === 1 && !query.search) reload();
-      else setFilters({ ...query, search: undefined });
+      if (query.page === 1 && !query.search && query.status !== 'archived') reload();
+      else setFilters({ ...query, search: undefined, status: 'all' });
     } catch (cause) {
       message.error(cause instanceof Error ? cause.message : '上传失败');
     } finally {
@@ -44,21 +47,62 @@ export function FilesPage() {
 
   const confirmArchive = (file: FileItem) => {
     Modal.confirm({
-      title: '从文件管理器归档？',
-      content: `归档「${file.name}」后将不再出现在文件列表中，已使用的链接仍可访问。`,
+      title: '归档文件？',
+      content: `归档「${file.name}」后仍可在文件管理中查看和恢复，但不会出现在文件选择器中；已有链接仍可访问。`,
       okText: '归档', okType: 'danger', cancelText: '取消',
       onOk: async () => {
         try {
           const response = await archiveFile(file.id);
           if (!response.success) throw new Error(response.msg);
           message.success('文件已归档');
-          if (result.items.length === 1 && query.page > 1) {
+          if (query.status === 'active' && result.items.length === 1 && query.page > 1) {
             setPage(query.page - 1, query.pageSize);
           } else {
             reload();
           }
         } catch (cause) {
           message.error(cause instanceof Error ? cause.message : '归档失败');
+          throw cause;
+        }
+      },
+    });
+  };
+
+  const confirmRestore = (file: FileItem) => {
+    Modal.confirm({
+      title: '恢复文件？',
+      content: `恢复「${file.name}」后，它会重新出现在文件选择器中。`,
+      okText: '恢复', cancelText: '取消',
+      onOk: async () => {
+        try {
+          const response = await restoreFile(file.id);
+          if (!response.success) throw new Error(response.msg);
+          message.success('文件已恢复');
+          if (query.status === 'archived' && result.items.length === 1 && query.page > 1) {
+            setPage(query.page - 1, query.pageSize);
+          } else reload();
+        } catch (cause) {
+          message.error(cause instanceof Error ? cause.message : '恢复失败');
+          throw cause;
+        }
+      },
+    });
+  };
+
+  const confirmDelete = (file: FileItem) => {
+    Modal.confirm({
+      title: '永久删除文件？',
+      content: `将删除「${file.name}」的文件和记录，原链接会立即失效。系统会拦截当前站点图标；业务页面或外部保存的链接无法自动检测，请确认不再使用。`,
+      okText: '永久删除', okType: 'danger', cancelText: '取消',
+      onOk: async () => {
+        try {
+          const response = await deleteFilePermanently(file.id);
+          if (!response.success) throw new Error(response.msg);
+          message.success('文件已永久删除');
+          if (result.items.length === 1 && query.page > 1) setPage(query.page - 1, query.pageSize);
+          else reload();
+        } catch (cause) {
+          message.error(cause instanceof Error ? cause.message : '删除失败');
           throw cause;
         }
       },
@@ -79,11 +123,16 @@ export function FilesPage() {
       render: (value: string) => new Date(value).toLocaleString('zh-CN'),
       sortDirections: ['descend', 'ascend', 'descend'],
       sorter: true, sortOrder: query.sortBy === 'createdAt' ? (query.sortOrder === 'asc' ? 'ascend' : 'descend') : null },
-    { title: '操作', key: 'actions', width: 190, render: (_, file) => <Space size={0}>
+    { title: '状态', dataIndex: 'archivedAt', key: 'archivedAt', width: 95,
+      render: (value: string | null) => value ? <Tag color="default">已归档</Tag> : <Tag color="success">可用</Tag> },
+    { title: '操作', key: 'actions', width: 275, render: (_, file) => <Space size={0}>
       <Button type="link" size="small" icon={<Copy size={14} />} onClick={() => void copyUrl(file)}>复制链接</Button>
-      <Button type="link" danger size="small" icon={<Trash2 size={14} />} onClick={() => confirmArchive(file)}>归档</Button>
+      {file.archivedAt
+        ? <Button type="link" size="small" icon={<RotateCcw size={14} />} onClick={() => confirmRestore(file)}>恢复</Button>
+        : <Button type="link" size="small" icon={<Archive size={14} />} onClick={() => confirmArchive(file)}>归档</Button>}
+      <Button type="link" danger size="small" icon={<Trash2 size={14} />} onClick={() => confirmDelete(file)}>删除</Button>
     </Space> },
-  ], [reload, setPage, query.page, query.pageSize, query.sortBy, query.sortOrder, result.items.length]);
+  ], [reload, setPage, query.page, query.pageSize, query.status, query.sortBy, query.sortOrder, result.items.length]);
 
   const onTableChange: TableProps<FileItem>['onChange'] = (_pagination, _filters, sorter, extra) => {
     if (extra.action !== 'sort') return;

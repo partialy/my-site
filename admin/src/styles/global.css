@@ -60,6 +60,11 @@ body,
   pointer-events: none;
 }
 
+.login-auth-page::before,
+.login-auth-page::after {
+  display: none;
+}
+
 .auth-card {
   width: 100%;
   max-width: 440px;

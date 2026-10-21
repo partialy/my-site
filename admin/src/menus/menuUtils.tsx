@@ -8,7 +8,7 @@ import {
   Gift, GitBranch, GitPullRequest, Globe, GraduationCap, Grid2X2, HandCoins, HardDrive, Headset, Heart,
   HeartPulse, History, Hourglass, House, IdCard, Image, Images, Key, KeyRound, Layers3, LayoutDashboard, Link2,
   LifeBuoy, List, ListTodo, LockKeyhole, Mail, Map, MapPin, Megaphone, Menu, MessageSquare, Monitor, Music2,
-  Network, Package, PackageCheck, PackageOpen, Percent, Phone, Printer, QrCode, Radio, ReceiptText, Route,
+  Network, Package, PackageCheck, PackageOpen, Palette, Percent, Phone, Printer, QrCode, Radio, ReceiptText, Route,
   ScanBarcode, Search, Send, Server, Settings, Settings2, ShieldAlert, ShieldCheck, ShoppingBag,
   ShoppingBasket, ShoppingCart, SlidersHorizontal, Smartphone, Sparkles, Star, Store, Table2, Tag,
   Tags, Terminal, Ticket, TicketPercent, Timer, TrendingDown, TrendingUp, TriangleAlert, Trophy, Truck, Upload,
@@ -20,7 +20,7 @@ import type { MenuItem } from '../api/menus';
 const menuIcons: Record<string, LucideIcon> = {
   'layout-dashboard': LayoutDashboard, settings: Settings2, appstore: AppWindow,
   setting: SlidersHorizontal, database: Database, 'file-text': FileText,
-  folder: FolderOpen, menu: Menu, lock: KeyRound,
+  folder: FolderOpen, menu: Menu, lock: KeyRound, palette: Palette,
   house: House, user: UserRound, users: UsersRound, 'shield-check': ShieldCheck,
   bell: Bell, mail: Mail, calendar: CalendarDays, clock: Clock3, search: Search,
   filter: Filter, 'bar-chart': BarChart3, 'pie-chart': ChartPie, activity: Activity,

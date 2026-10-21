@@ -14,6 +14,7 @@ export interface PageRecord {
 export const PAGE_REGISTRY: readonly PageRecord[] = [
   { path: '/', name: '首页', defaultKey: 'home', defaultIcon: 'layout-dashboard', defaultMenu: true, menuSelectable: true },
   { path: '/system-config', name: '系统管理', defaultKey: 'system-config', defaultIcon: 'setting', defaultMenu: true, menuSelectable: true },
+  { path: '/appearance', name: '外观设置', defaultKey: 'appearance', defaultIcon: 'palette', defaultMenu: false, menuSelectable: true },
   { path: '/configs', name: '配置管理', defaultKey: 'configs', defaultIcon: 'database', defaultMenu: true, menuSelectable: true },
   { path: '/dictionaries', name: '数据字典', defaultKey: 'dictionaries', defaultIcon: 'book', defaultMenu: false, menuSelectable: true },
   { path: '/request-logs', name: '请求日志', defaultKey: 'request-logs', defaultIcon: 'file-text', defaultMenu: true, menuSelectable: true },

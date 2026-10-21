@@ -9,7 +9,7 @@ const categories: readonly IconCategory[] = [
     'search', 'filter', 'link', 'globe', 'map', 'map-pin', 'route', 'eye',
   ] },
   { title: '系统与设置', keys: [
-    'settings', 'setting', 'cog', 'settings-gear', 'database', 'server', 'cloud',
+    'settings', 'setting', 'cog', 'settings-gear', 'palette', 'database', 'server', 'cloud',
     'hard-drive', 'monitor', 'smartphone', 'cpu', 'terminal', 'code', 'network',
     'workflow', 'git-branch', 'git-pull-request', 'printer', 'wrench',
   ] },
