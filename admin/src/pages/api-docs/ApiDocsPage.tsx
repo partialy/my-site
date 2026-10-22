@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Collapse, Empty, Input, Select, Segmented, Tag, Typography } from 'antd';
-import { BookOpen, Braces, LockKeyhole, Search } from 'lucide-react';
+import { Button, Collapse, Empty, Input, Select, Segmented, Tag, Typography } from 'antd';
+import { BookOpen, Braces, Download, LockKeyhole, Search } from 'lucide-react';
 import { API_ENDPOINT_COUNT, API_GROUPS } from './apiCatalog';
 import type { ApiAudience, ApiEndpoint, ApiGroup, ApiMethod } from './apiCatalog';
 import { getEndpointExample } from './apiExamples';
+import { API_RESPONSE_CODES, downloadApiDocsMarkdown } from './exportApiDocs';
 import { JsonCodeBlock } from './JsonCodeBlock';
 import './apiDocs.css';
 
@@ -82,7 +83,10 @@ export function ApiDocsPage() {
   return <main className="api-doc-page">
     <header className="api-doc-header">
       <div className="api-doc-eyebrow"><BookOpen size={16} /> API REFERENCE / 接口目录</div>
-      <h1>接口文档</h1>
+      <div className="api-doc-title-row">
+        <h1>接口文档</h1>
+        <Button icon={<Download size={16} />} onClick={downloadApiDocsMarkdown}>导出完整文档</Button>
+      </div>
       <p>当前服务端接口的请求方式、参数与响应字段。JSON 为结构示例，示例值不代表实时数据。</p>
     </header>
     <div className="api-doc-overview">
@@ -116,9 +120,7 @@ export function ApiDocsPage() {
       <p>JSON 接口统一返回 <code>{'{ code: number, msg: string, data: T | null, success: boolean }'}</code>。
         参数错误的 <code>data</code> 为 <code>{'{ fieldErrors: Record<string, string[]> }'}</code>；文件内容和图标接口返回二进制。</p>
       <div className="api-doc-code-list">
-        {['0 成功', '-1 服务端失败', '1001 参数校验失败', '1002 初始化密钥错误', '1003 已初始化',
-          '1004 登录凭证错误', '1005 未登录', '1006 Token 无效', '1007 Token 过期',
-          '1008 原密码错误', '1009 资源不存在', '1010 配置键已存在'].map((item) =>
+        {API_RESPONSE_CODES.map((item) =>
           <span key={item}>{item}</span>)}
       </div>
     </section>

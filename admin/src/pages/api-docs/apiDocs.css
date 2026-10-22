@@ -2,6 +2,7 @@
 .api-doc-header { margin-bottom: 24px; }
 .api-doc-eyebrow { display: flex; align-items: center; gap: 8px; color: #2563eb; font-size: 13px; font-weight: 700; letter-spacing: .04em; margin-bottom: 10px; }
 .api-doc-header h1 { font-size: 30px; line-height: 1.2; color: #1e293b; margin: 0; }
+.api-doc-title-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 .api-doc-header p { margin: 10px 0 0; color: #8290a6; }
 .api-doc-overview { display: flex; align-items: center; gap: 24px; padding: 20px 24px; margin-bottom: 20px; border: 1px solid #dce7fa; border-radius: 16px; background: linear-gradient(110deg, #f1f6ff, #fff 60%); }
 .api-doc-overview > div { display: flex; align-items: center; gap: 8px; flex-shrink: 0; color: #2563eb; }
