@@ -89,7 +89,9 @@ export function requestLogMiddleware(config: SystemConfigService, db: Database.D
       try {
         const hidesConfigValues = path === '/api/v1/admin/configs' || path.startsWith('/api/v1/admin/configs/') ||
           path === '/api/v1/admin/site-settings' || path.startsWith('/api/v1/admin/site-settings/') ||
-          path === '/api/v1/site-settings' || path.startsWith('/api/v1/site-settings/');
+          path === '/api/v1/site-settings' || path.startsWith('/api/v1/site-settings/') ||
+          path === '/api/v1/admin/upload-settings' ||
+          path === '/api/v1/uploads/token';
         insert().run({
           time: time.toISOString(), method: req.method, path, url,
           requestData: hidesConfigValues ? '"[配置内容已隐藏]"' : serialize({

@@ -12,6 +12,9 @@ export interface FileRecord {
   mime_type: string;
   size: number;
   storage_name: string;
+  storage_provider: 'local' | 'qiniu';
+  storage_bucket: string | null;
+  storage_domain: string | null;
   created_at: string;
   archived_at: string | null;
 }
@@ -48,8 +51,8 @@ export class FileRepository {
   }
 
   create(record: Omit<FileRecord, 'archived_at'>): void {
-    this.db.prepare(`INSERT INTO file (id, name, mime_type, size, storage_name, created_at)
-      VALUES (@id, @name, @mime_type, @size, @storage_name, @created_at)`).run(record);
+    this.db.prepare(`INSERT INTO file (id, name, mime_type, size, storage_name, storage_provider, storage_bucket, storage_domain, created_at)
+      VALUES (@id, @name, @mime_type, @size, @storage_name, @storage_provider, @storage_bucket, @storage_domain, @created_at)`).run(record);
   }
 
   archive(id: string): boolean {
@@ -67,7 +70,7 @@ export class FileRepository {
   }
 
   restoreDeleted(record: FileRecord): void {
-    this.db.prepare(`INSERT INTO file (id, name, mime_type, size, storage_name, created_at, archived_at)
-      VALUES (@id, @name, @mime_type, @size, @storage_name, @created_at, @archived_at)`).run(record);
+    this.db.prepare(`INSERT INTO file (id, name, mime_type, size, storage_name, storage_provider, storage_bucket, storage_domain, created_at, archived_at)
+      VALUES (@id, @name, @mime_type, @size, @storage_name, @storage_provider, @storage_bucket, @storage_domain, @created_at, @archived_at)`).run(record);
   }
 }

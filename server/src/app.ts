@@ -29,6 +29,8 @@ import { loginFailureLimit, requestRateLimit } from './middleware/rate-limit.mid
 import { DictionaryService } from './services/dictionary.service';
 import { createDictionaryRoutes } from './api/dictionary-routes';
 import { createAdminDictionaryRoutes } from './api/admin/dictionary-routes';
+import { UploadSettingsService } from './services/upload-settings.service';
+import { createUploadRoutes } from './api/upload-routes';
 
 interface AppServices {
   setup: SetupService;
@@ -46,6 +48,7 @@ interface AppServices {
   backups: DatabaseBackupService;
   status: SystemStatusService;
   dictionaries: DictionaryService;
+  uploadSettings: UploadSettingsService;
 }
 
 export function createApp(config: AppConfig, services: AppServices, db: Database.Database) {
@@ -67,6 +70,7 @@ export function createApp(config: AppConfig, services: AppServices, db: Database
   const publicCors = cors({ origin: '*' });
   app.use((req, res, next) => {
     const publicPath = req.path === '/api/v1/visits' || req.path.startsWith('/api/v1/users/') ||
+      req.path.startsWith('/api/v1/uploads/') ||
       req.path === '/api/v1/site-settings' || req.path === '/api/v1/dictionaries' ||
       /^\/api\/v1\/files\/[^/]+\/content$/.test(req.path) ||
       /^\/api\/v1\/site-settings\/(admin|client)\/icon$/.test(req.path);
@@ -83,12 +87,13 @@ export function createApp(config: AppConfig, services: AppServices, db: Database
   app.use('/api/v1/admin', createAdminRoutes(
     services.setup, services.auth, services.systemConfig, services.configs,
     services.siteSettings, services.requestLogs, services.files, services.menus, services.dashboard, services.visits,
-    services.operationLogs, services.backups, services.status,
+    services.operationLogs, services.backups, services.status, services.uploadSettings,
   ));
   app.use('/api/v1/admin/users', createAdminUserRoutes(services.auth, services.users));
   app.use('/api/v1/admin/dictionaries', createAdminDictionaryRoutes(services.auth, services.dictionaries));
   app.use('/api/v1/users', createUserRoutes(services.users));
   app.use('/api/v1/dictionaries', createDictionaryRoutes(services.dictionaries));
+  app.use('/api/v1/uploads', createUploadRoutes(services.files));
   app.use('/api/v1', createPublicRoutes(services.siteSettings, services.files, services.visits));
   app.use('/api/v1', (_req, res) => {
     res.status(404).json({ code: ApiCode.NotFound, msg: '接口不存在', data: null, success: false });

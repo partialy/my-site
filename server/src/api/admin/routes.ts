@@ -23,8 +23,9 @@ import { OperationLogService, operationLogQuerySchema } from '../../services/ope
 import { DatabaseBackupService } from '../../services/database-backup.service';
 import { SystemStatusService } from '../../services/system-status.service';
 import { requestRateLimit } from '../../middleware/rate-limit.middleware';
+import { UploadSettingsService, uploadSettingsSchema } from '../../services/upload-settings.service';
 
-export function createAdminRoutes(setup: SetupService, auth: AuthService, systemConfig: SystemConfigService, configs: ConfigService, siteSettings: SiteSettingsService, requestLogs: RequestLogService, files: FileService, menus: MenuService, dashboard: DashboardService, visits: VisitService, operationLogs: OperationLogService, backups: DatabaseBackupService, status: SystemStatusService): Router {
+export function createAdminRoutes(setup: SetupService, auth: AuthService, systemConfig: SystemConfigService, configs: ConfigService, siteSettings: SiteSettingsService, requestLogs: RequestLogService, files: FileService, menus: MenuService, dashboard: DashboardService, visits: VisitService, operationLogs: OperationLogService, backups: DatabaseBackupService, status: SystemStatusService, uploadSettings: UploadSettingsService): Router {
   const routes = Router();
 
   routes.get('/setup/status', (_req, res) => {
@@ -182,6 +183,14 @@ export function createAdminRoutes(setup: SetupService, auth: AuthService, system
     res.json(ok(files.list(parseInput(fileListQuerySchema, req.query))));
   });
 
+  routes.get('/upload-settings', requireAuth(auth), (_req, res) => {
+    res.json(ok(uploadSettings.get()));
+  });
+
+  routes.put('/upload-settings', requireAuth(auth), (req, res) => {
+    res.json(ok(uploadSettings.update(parseInput(uploadSettingsSchema, req.body)), '上传设置已保存'));
+  });
+
   routes.post('/files', requireAuth(auth), requestRateLimit(20, 60_000), raw({ type: () => true, limit: maxFileBytes }), async (req, res) => {
     const mime = req.get('content-type')?.split(';', 1)[0]?.trim().toLowerCase();
     if (!fileMimeTypes.includes(mime as FileMimeType) || !Buffer.isBuffer(req.body)) {
@@ -206,8 +215,8 @@ export function createAdminRoutes(setup: SetupService, auth: AuthService, system
     res.json(ok(null, '文件已恢复'));
   });
 
-  routes.delete('/files/:id/permanent', requireAuth(auth), (req, res) => {
-    files.deletePermanently(parseInput(fileIdSchema, req.params.id));
+  routes.delete('/files/:id/permanent', requireAuth(auth), async (req, res) => {
+    await files.deletePermanently(parseInput(fileIdSchema, req.params.id));
     res.json(ok(null, '文件已永久删除'));
   });
 

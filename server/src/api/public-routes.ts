@@ -23,7 +23,13 @@ export function createPublicRoutes(siteSettings: SiteSettingsService, files: Fil
   });
 
   routes.get('/files/:id/content', async (req, res) => {
-    const { item, bytes } = await files.read(parseInput(fileIdSchema, req.params.id));
+    const id = parseInput(fileIdSchema, req.params.id);
+    const remoteUrl = files.remoteUrl(id);
+    if (remoteUrl) {
+      res.redirect(302, remoteUrl.startsWith('//') ? `https:${remoteUrl}` : remoteUrl);
+      return;
+    }
+    const { item, bytes } = await files.read(id);
     res.set('Content-Type', item.mimeType);
     res.set('Cross-Origin-Resource-Policy', 'cross-origin');
     res.set('Content-Length', String(item.size));

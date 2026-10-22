@@ -3,7 +3,7 @@ import type { FileListStatus, FileSortBy, FileSortOrder } from '../file.reposito
 
 const fileListResource: TableListResource = {
   table: 'file',
-  columns: ['id', 'name', 'mime_type', 'size', 'storage_name', 'created_at', 'archived_at'],
+  columns: ['id', 'name', 'mime_type', 'size', 'storage_name', 'storage_provider', 'storage_bucket', 'storage_domain', 'created_at', 'archived_at'],
   orderBy: 'created_at', order: 'DESC',
   orderColumns: [{ column: 'created_at', order: 'DESC' }, { column: 'id', order: 'DESC' }],
   containsFilters: { search: 'name' },

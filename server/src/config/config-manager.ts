@@ -18,6 +18,7 @@ export const SysConfigKey = {
   ClientIconMime: 'client_icon_mime',
   ClientIconVersion: 'client_icon_version',
   ClientIconFileId: 'client_icon_file_id',
+  UploadSettings: 'upload_settings',
 } as const;
 
 const defaults = [

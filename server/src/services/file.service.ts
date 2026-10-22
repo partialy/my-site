@@ -3,10 +3,12 @@ import { existsSync, renameSync, unlinkSync } from 'node:fs';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
+import * as qiniu from 'qiniu';
 import { ApiError } from '../api/api-error';
 import { ApiCode } from '../api/codes';
 import { ConfigManager, SysConfigKey } from '../config/config-manager';
 import { FileRepository, type FileRecord } from '../repositories/file.repository';
+import { UploadSettingsService } from './upload-settings.service';
 
 export const maxFileBytes = 10 * 1024 * 1024;
 export const fileMimeTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/x-icon', 'image/gif', 'application/pdf'] as const;
@@ -29,6 +31,11 @@ export const fileListQuerySchema = z.strictObject({
 });
 export const fileIdSchema = z.uuid();
 export const selectIconFileSchema = z.strictObject({ fileId: fileIdSchema });
+export const prepareUploadSchema = z.strictObject({
+  name: z.string().trim().min(1).max(255), mimeType: z.enum(fileMimeTypes),
+  size: z.number().int().min(1).max(maxFileBytes),
+});
+export const completeUploadSchema = prepareUploadSchema.extend({ id: fileIdSchema, key: z.string().min(1).max(500) });
 
 export interface FileItem {
   id: string;
@@ -51,34 +58,84 @@ function hasValidSignature(bytes: Buffer, mime: FileMimeType): boolean {
   }
 }
 
-function toItem(record: FileRecord): FileItem {
+function toItem(record: FileRecord, localDomain: string): FileItem {
+  const url = record.storage_provider === 'qiniu' && record.storage_domain
+    ? `${record.storage_domain.replace(/\/+$/, '')}/${record.storage_name.split('/').map(encodeURIComponent).join('/')}`
+    : `${localDomain.replace(/\/+$/, '')}/api/v1/files/${record.id}/content`;
   return { id: record.id, name: record.name, mimeType: record.mime_type, size: record.size,
-    url: `/api/v1/files/${record.id}/content`, createdAt: record.created_at, archivedAt: record.archived_at };
+    url, createdAt: record.created_at, archivedAt: record.archived_at };
 }
 
 export class FileService {
   private readonly directory = path.resolve(__dirname, '../../data/uploads');
 
-  constructor(private readonly repository: FileRepository, private readonly configManager: ConfigManager) {}
+  constructor(private readonly repository: FileRepository, private readonly configManager: ConfigManager,
+    private readonly uploadSettings: UploadSettingsService) {}
+
+  uploadStrategy() { return { strategy: this.uploadSettings.getStrategy() }; }
+
+  private toItem(record: FileRecord): FileItem { return toItem(record, this.uploadSettings.getLocalDomain()); }
+
+  prepareUpload(input: z.infer<typeof prepareUploadSchema>) {
+    const settings = this.uploadSettings.getQiniu();
+    if (settings.strategy !== 'qiniu') throw new ApiError(409, ApiCode.Failure, '当前未启用七牛云上传');
+    const id = randomUUID();
+    const root = settings.root.replace(/^\/+|\/+$/g, '');
+    const day = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const key = [root, day, `${id}${extensions[input.mimeType]}`].filter(Boolean).join('/');
+    const mac = new qiniu.auth.digest.Mac(settings.accessKey, settings.secretKey);
+    const token = new qiniu.rs.PutPolicy({ scope: `${settings.bucket}:${key}`, expires: 3600,
+      insertOnly: 1, fsizeLimit: maxFileBytes, mimeLimit: input.mimeType }).uploadToken(mac);
+    return { id, key, token, uploadUrl: settings.uploadUrl };
+  }
+
+  async completeUpload(input: z.infer<typeof completeUploadSchema>): Promise<FileItem> {
+    const settings = this.uploadSettings.getQiniu();
+    const expectedSuffix = `/${input.id}${extensions[input.mimeType]}`;
+    if (!input.key.endsWith(expectedSuffix) || input.key.includes('..') || input.key.startsWith('/')) {
+      throw new ApiError(400, ApiCode.ValidationError, '文件标识无效', { fieldErrors: { key: ['文件标识无效'] } });
+    }
+    const manager = new qiniu.rs.BucketManager(new qiniu.auth.digest.Mac(settings.accessKey, settings.secretKey),
+      new qiniu.conf.Config({ useHttpsDomain: true }));
+    let remote: Awaited<ReturnType<typeof manager.stat>>;
+    try { remote = await manager.stat(settings.bucket, input.key); }
+    catch { throw new ApiError(400, ApiCode.ValidationError, '七牛云文件不存在或无法校验', { fieldErrors: { key: ['上传未完成'] } }); }
+    if (remote.data.fsize !== input.size || remote.data.mimeType !== input.mimeType) {
+      throw new ApiError(400, ApiCode.ValidationError, '七牛云文件信息与上传请求不一致', { fieldErrors: { file: ['大小或类型不一致'] } });
+    }
+    const record = { id: input.id, name: input.name.replace(/[\\/\x00-\x1f\x7f]/g, '_'),
+      mime_type: input.mimeType, size: input.size, storage_name: input.key,
+      storage_provider: 'qiniu' as const, storage_bucket: settings.bucket, storage_domain: settings.domain,
+      created_at: new Date().toISOString() };
+    this.repository.create(record);
+    return this.toItem({ ...record, archived_at: null });
+  }
 
   list(query: z.infer<typeof fileListQuerySchema>) {
     const result = this.repository.list(query);
-    return { items: result.items.map(toItem), total: result.total, page: query.page, pageSize: query.pageSize };
+    return { items: result.items.map((record) => this.toItem(record)), total: result.total, page: query.page, pageSize: query.pageSize };
   }
 
   find(id: string): FileItem {
     const record = this.repository.find(id);
     if (!record) throw new ApiError(404, ApiCode.NotFound, '文件不存在');
-    return toItem(record);
+    return this.toItem(record);
+  }
+
+  remoteUrl(id: string): string | null {
+    const record = this.repository.find(id);
+    if (!record) throw new ApiError(404, ApiCode.NotFound, '文件不存在');
+    return record.storage_provider === 'qiniu' ? this.toItem(record).url : null;
   }
 
   findActive(id: string): FileItem {
     const record = this.repository.findActive(id);
     if (!record) throw new ApiError(404, ApiCode.NotFound, '文件不存在或已归档');
-    return toItem(record);
+    return this.toItem(record);
   }
 
   async upload(name: string, mime: FileMimeType, bytes: Buffer): Promise<FileItem> {
+    if (this.uploadSettings.getStrategy() !== 'local') throw new ApiError(409, ApiCode.Failure, '当前未启用本地上传');
     const safeName = name.trim().replace(/[\\/\x00-\x1f\x7f]/g, '_');
     if (!safeName || safeName.length > 255) {
       throw new ApiError(400, ApiCode.ValidationError, '文件名无效', { fieldErrors: { name: ['文件名长度需为 1 至 255'] } });
@@ -89,7 +146,8 @@ export class FileService {
     const id = randomUUID();
     const storageName = `${id}${extensions[mime]}`;
     const record = { id, name: safeName, mime_type: mime, size: bytes.length,
-      storage_name: storageName, created_at: new Date().toISOString() };
+      storage_name: storageName, storage_provider: 'local' as const, storage_bucket: null,
+      storage_domain: null, created_at: new Date().toISOString() };
     await mkdir(this.directory, { recursive: true });
     const diskPath = path.join(this.directory, storageName);
     await writeFile(diskPath, bytes, { flag: 'wx' });
@@ -99,14 +157,14 @@ export class FileService {
       await rm(diskPath, { force: true });
       throw error;
     }
-    return toItem({ ...record, archived_at: null });
+    return this.toItem({ ...record, archived_at: null });
   }
 
   async read(id: string): Promise<{ item: FileItem; bytes: Buffer }> {
     const record = this.repository.find(id);
     if (!record) throw new ApiError(404, ApiCode.NotFound, '文件不存在');
     try {
-      return { item: toItem(record), bytes: await readFile(path.join(this.directory, record.storage_name)) };
+      return { item: this.toItem(record), bytes: await readFile(path.join(this.directory, record.storage_name)) };
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') throw new ApiError(404, ApiCode.NotFound, '文件内容不存在');
       throw error;
@@ -121,7 +179,7 @@ export class FileService {
     if (!this.repository.restore(id)) throw new ApiError(404, ApiCode.NotFound, '文件不存在或未归档');
   }
 
-  deletePermanently(id: string): void {
+  async deletePermanently(id: string): Promise<void> {
     const record = this.repository.find(id);
     if (!record) throw new ApiError(404, ApiCode.NotFound, '文件不存在');
     const sysConfig = this.configManager.getSysConfig();
@@ -134,6 +192,15 @@ export class FileService {
       throw new ApiError(409, ApiCode.FileInUse, '文件正在用作登录背景，请先更换或移除背景图片');
     }
 
+    if (record.storage_provider === 'qiniu') {
+      const settings = this.uploadSettings.getQiniu();
+      const manager = new qiniu.rs.BucketManager(new qiniu.auth.digest.Mac(settings.accessKey, settings.secretKey),
+        new qiniu.conf.Config({ useHttpsDomain: true }));
+      try { await manager.delete(record.storage_bucket ?? settings.bucket, record.storage_name); }
+      catch { throw new ApiError(502, ApiCode.Failure, '七牛云文件删除失败，记录未删除'); }
+      this.repository.delete(id);
+      return;
+    }
     const original = path.join(this.directory, record.storage_name);
     const temporary = `${original}.${randomUUID()}.deleting`;
     const hasContent = existsSync(original);

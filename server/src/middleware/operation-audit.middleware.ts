@@ -28,6 +28,10 @@ function describe(method: string, path: string): OperationDescriptor | null {
     return { module: '系统配置', action: 'update', targetType: 'sys_config', summary: '修改日志设置',
       changedFields: ['requestLogMode', 'consoleLogEnabled', 'consoleLogFormat'] };
   }
+  if (method === 'PUT' && path === '/upload-settings') {
+    return { module: '上传设置', action: 'update', targetType: 'sys_config', summary: '修改上传策略与存储配置',
+      changedFields: ['strategy', 'accessKey', 'secretKey', 'bucket', 'root', 'uploadUrl', 'domain'] };
+  }
   const whitelist = /^\/system-config\/whitelist(?:\/([^/]+))?$/.exec(path);
   if (whitelist && ((method === 'POST' && !whitelist[1]) || (['PUT', 'DELETE'].includes(method) && whitelist[1]))) {
     const action = method === 'POST' ? 'create' : method === 'PUT' ? 'update' : 'delete';

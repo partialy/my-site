@@ -29,6 +29,7 @@ import { DatabaseBackupService } from './services/database-backup.service';
 import { SystemStatusService } from './services/system-status.service';
 import { DictionaryRepository } from './repositories/dictionary.repository';
 import { DictionaryService } from './services/dictionary.service';
+import { UploadSettingsService } from './services/upload-settings.service';
 
 function main(): void {
   const config = loadConfig();
@@ -39,7 +40,8 @@ function main(): void {
   const auth = new AuthService(admins, new JwtService(config.jwtSecret));
   const systemConfig = new SystemConfigService(configManager, db);
   const configs = new ConfigService(configManager);
-  const files = new FileService(new FileRepository(db), configManager);
+  const uploadSettings = new UploadSettingsService(configManager);
+  const files = new FileService(new FileRepository(db), configManager, uploadSettings);
   const siteSettings = new SiteSettingsService(configManager, files);
   const requestLogs = new RequestLogService(new RequestLogRepository(db));
   const menus = new MenuService(new MenuRepository(db));
@@ -52,7 +54,7 @@ function main(): void {
   const dashboard = new DashboardService(visits, requestLogs, users);
   const app = createApp(config, {
     setup, auth, systemConfig, configs, siteSettings, requestLogs, files, menus, visits, dashboard,
-    users, operationLogs, backups, status, dictionaries,
+    users, operationLogs, backups, status, dictionaries, uploadSettings,
   }, db);
   const server = app.listen(config.port, () => {
     console.log(`server 已启动，端口 ${config.port}`);

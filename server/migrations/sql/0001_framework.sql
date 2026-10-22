@@ -28,6 +28,9 @@ CREATE TABLE IF NOT EXISTS file (
   mime_type TEXT NOT NULL,
   size INTEGER NOT NULL,
   storage_name TEXT NOT NULL UNIQUE,
+  storage_provider TEXT NOT NULL DEFAULT 'local',
+  storage_bucket TEXT,
+  storage_domain TEXT,
   created_at TEXT NOT NULL,
   archived_at TEXT
 );
