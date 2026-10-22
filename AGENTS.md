@@ -23,9 +23,11 @@
 - 普通业务列表可复用 `TableListRepository`：由服务端静态资源配置声明表、可返回字段、搜索、模糊/等值/范围/数组筛选、固定空值与非空约束和排序；请求只提供参数值，不允许选择任意表或列。用户、操作日志、访问日志、请求日志和文件列表已接入。请求日志表未创建时仍返回空列表；文件列表默认只返回可用文件，管理页显式传 `status=all`，选择器仍只取可用文件。注册、禁用、归档、恢复和日志清理等业务写操作仍由各自 Service 处理。
 - 接口、环境变量与启动方式见 `server/README.md`；改动服务端接口时需同步管理端契约。
 
+支付可选模块位于 `server/src/shared/alipay-pay/` 和 `server/src/shared/wechat-pay/`，从 web-order 复制并改为显式传入数据库配置。模块只提供下单、查单、退款与通知处理能力，不注册业务路由或订单表；业务项目自行接入订单、金额校验、通知幂等和接口鉴权。支付配置由 `PaymentSettingsService` 从 `sys_config.alipay_settings`、`sys_config.wechat_pay_settings` 读取，管理端 `/api/v1/admin/payment-settings/{alipay,wechat}` 鉴权读写；读取时不返回密钥、证书原文。微信商户私钥、商户证书和平台公钥由管理端选文件上传并保存到数据库，不配置文件路径；数据库备份包含这些凭据。
+
 ## admin 模块
 
-- admin 使用 React 18、TypeScript、React Router v6、Ant Design v5，采用 Vite 构建独立 SPA。
+- admin 使用 React 18、TypeScript、React Router v6、Ant Design v5，采用 Vite 构建独立 SPA。支付设置页面位于 `/payment-settings`，分支付宝和微信支付两栏，菜单由管理员手动添加。
 - 只做单管理员后台通用流程：初始化向导（`/setup`，项目/站点名称与初始管理员一并配置）、登录（`/login`）、自适应管理端布局、首页仪表盘、系统管理（`/system-config`）、外观设置（`/appearance`）、配置管理（`/configs`）、上传设置（`/upload-settings`）、请求日志（`/request-logs`）、操作日志（`/operation-logs`）、访问日志（`/visit-logs`）、用户管理（`/users`）、文件管理（`/files`）、修改密码、退出登录和 404 兜底页。业务菜单与页面留给复制后的项目添加。
 - 初始菜单中「首页」为独立一级菜单；系统管理、配置管理、请求日志、文件管理和菜单管理归入「系统设置」分组。访问日志页面已注册，菜单由管理员在后台自行配置，建议路径 `/visit-logs`。修改密码从右上角账号菜单进入。
 - 菜单管理页（`/menus`）支持页面、分组两类新菜单，明确选择「一级菜单」或所属分组、通过可搜索、分类展示的弹出式图标面板选择预置 Lucide 图标及调整同级排序；侧栏与管理页共用菜单状态，保存后立即更新。旧版操作菜单只作兼容展示，可删除，不再提供新增或编辑入口。图标键在 `menus/menuUtils.tsx` 统一映射，分类在 `menus/menuIconCategories.ts` 维护，未分类的新图标自动进入「其他」，已有键需保持兼容。隐藏或删除菜单管理入口后仍可直接访问 `/menus` 恢复。

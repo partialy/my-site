@@ -81,6 +81,10 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 | GET | /api/v1/admin/files | 分页查询文件库，需要管理员 Token |
 | GET | /api/v1/admin/upload-settings | 读取上传策略和七牛配置，Secret Key 仅返回是否已配置 |
 | PUT | /api/v1/admin/upload-settings | 保存本地或七牛上传策略及七牛配置，Secret Key 留空则保留原值 |
+| GET | /api/v1/admin/payment-settings/alipay | 读取支付宝配置；密钥仅返回已配置状态，需要管理员 Token |
+| PUT | /api/v1/admin/payment-settings/alipay | 保存支付宝配置；密钥留空保持原值，需要管理员 Token |
+| GET | /api/v1/admin/payment-settings/wechat | 读取微信支付配置；密钥和证书仅返回已配置状态，需要管理员 Token |
+| PUT | /api/v1/admin/payment-settings/wechat | 保存微信支付配置及上传的 PEM 文件内容，需要管理员 Token |
 | GET | /api/v1/uploads/strategy | 公开获取当前上传策略 |
 | POST | /api/v1/uploads/local | 公开上传本地文件，按 IP 限流 |
 | POST | /api/v1/uploads/token | 公开签发七牛直传凭证，按 IP 限流 |
@@ -185,6 +189,25 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 上传策略在管理端 `/upload-settings` 设置，默认为本地。七牛 Access Key、Secret Key、Bucket、根目录、上传域名及访问域名存于 SQLite `sys_config`，不放入 `.env`；读取接口不返回 Secret Key，数据库备份仍包含该密钥，应妥善保管。七牛策略下，先调用公开 `POST /api/v1/uploads/token` 提交 `{name,mimeType,size}`，返回 `{id,key,token,uploadUrl}`；浏览器携带 token、key、file 直传七牛，再调用公开 `POST /api/v1/uploads/complete` 提交 `{id,key,name,mimeType,size}`。服务端向七牛核对文件存在且大小、类型匹配后登记。`admin/src/api/uploadFile.ts` 与 `client/uploadFile.ts` 各自提供独立的 `uploadFile(file)`，封装相同的策略选择与上传流程；业务前端可复制 client 模板，返回的 `url` 可直接写入业务表：本地是可访问的文件接口 URL，七牛是配置的访问域名直链，不经 server 代理。公开上传接口不要求登录，以 IP 每分钟最多 20 次限流；七牛上传凭证仅允许写入生成的 objectKey，并限制 MIME 和大小。切换策略不会迁移旧文件；七牛旧文件的访问域名保存在文件记录中。永久删除七牛文件需要当前 AK/SK 仍可管理该文件原 Bucket。
 
 本地文件访问域名也在上传设置中配置。生产环境建议填直接对外提供 `/api/v1/files/:id/content` 的 HTTPS 域名；留空时返回同源相对路径，管理端 `uploadFile` 会按当前站点域名补成完整 URL。
+
+## 可选支付能力
+
+`src/shared/alipay-pay/` 和 `src/shared/wechat-pay/` 提供从 web-order 复制并适配的支付服务，分别封装下单、查单、退款和通知验签。两套模块不注册业务支付路由，也不创建订单表；具体项目接入时由业务 Service 创建订单、核对金额和状态、处理支付及退款通知，再注册受保护的支付接口。通知需要传入原始请求体，并由业务回调在同一事务内完成幂等更新。
+
+支付配置存于 SQLite 的 `sys_config.alipay_settings` 和 `sys_config.wechat_pay_settings`，通过管理端 `/payment-settings` 维护，不读取支付相关 `.env` 变量。微信商户私钥、商户证书和微信支付平台公钥由管理端选择 PEM/CRT/KEY 文件上传，内容直接保存在数据库，不配置服务器文件路径；GET 接口只返回是否已配置。数据库备份包含支付密钥和证书，需按密钥材料保管。配置可以分步保存，调用前会检查必需字段；商户证书序列号可由证书自动提取。
+
+当前复制的 `wechatpay-node-v3` SDK 固定请求微信支付官方域名，且不读取 `gateway`、`timeoutMs`；管理页保留这两项供具体项目改用自定义客户端时接入。
+
+```ts
+import { createAlipayPaymentService } from './shared/alipay-pay';
+import { createWechatPaymentService } from './shared/wechat-pay';
+import { PaymentSettingsService } from './services/payment-settings.service';
+
+// 在当前项目的服务初始化处复用已有 configManager。
+const paymentSettings = new PaymentSettingsService(configManager);
+const alipay = createAlipayPaymentService({ config: paymentSettings.getAlipayConfig() });
+const wechat = createWechatPaymentService({ config: paymentSettings.getWechatConfig() });
+```
 
 ## 菜单管理
 
