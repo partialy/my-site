@@ -91,6 +91,7 @@ export function requestLogMiddleware(config: SystemConfigService, db: Database.D
           path === '/api/v1/admin/site-settings' || path.startsWith('/api/v1/admin/site-settings/') ||
           path === '/api/v1/site-settings' || path.startsWith('/api/v1/site-settings/') ||
           path === '/api/v1/admin/upload-settings' ||
+          path.startsWith('/api/v1/admin/payment-settings/') ||
           path === '/api/v1/uploads/token';
         insert().run({
           time: time.toISOString(), method: req.method, path, url,

@@ -31,6 +31,8 @@ import { createDictionaryRoutes } from './api/dictionary-routes';
 import { createAdminDictionaryRoutes } from './api/admin/dictionary-routes';
 import { UploadSettingsService } from './services/upload-settings.service';
 import { createUploadRoutes } from './api/upload-routes';
+import { PaymentSettingsService } from './services/payment-settings.service';
+import { createPaymentSettingsRoutes } from './api/admin/payment-settings.routes';
 
 interface AppServices {
   setup: SetupService;
@@ -49,6 +51,7 @@ interface AppServices {
   status: SystemStatusService;
   dictionaries: DictionaryService;
   uploadSettings: UploadSettingsService;
+  paymentSettings: PaymentSettingsService;
 }
 
 export function createApp(config: AppConfig, services: AppServices, db: Database.Database) {
@@ -89,6 +92,7 @@ export function createApp(config: AppConfig, services: AppServices, db: Database
     services.siteSettings, services.requestLogs, services.files, services.menus, services.dashboard, services.visits,
     services.operationLogs, services.backups, services.status, services.uploadSettings,
   ));
+  app.use('/api/v1/admin/payment-settings', createPaymentSettingsRoutes(services.auth, services.paymentSettings));
   app.use('/api/v1/admin/users', createAdminUserRoutes(services.auth, services.users));
   app.use('/api/v1/admin/dictionaries', createAdminDictionaryRoutes(services.auth, services.dictionaries));
   app.use('/api/v1/users', createUserRoutes(services.users));

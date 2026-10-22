@@ -19,6 +19,8 @@ export const SysConfigKey = {
   ClientIconVersion: 'client_icon_version',
   ClientIconFileId: 'client_icon_file_id',
   UploadSettings: 'upload_settings',
+  AlipaySettings: 'alipay_settings',
+  WechatPaySettings: 'wechat_pay_settings',
 } as const;
 
 const defaults = [

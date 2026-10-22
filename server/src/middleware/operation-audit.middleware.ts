@@ -32,6 +32,11 @@ function describe(method: string, path: string): OperationDescriptor | null {
     return { module: '上传设置', action: 'update', targetType: 'sys_config', summary: '修改上传策略与存储配置',
       changedFields: ['strategy', 'accessKey', 'secretKey', 'bucket', 'root', 'uploadUrl', 'domain'] };
   }
+  if (method === 'PUT' && /^\/payment-settings\/(alipay|wechat)$/.test(path)) {
+    return { module: '支付设置', action: 'update', targetType: 'sys_config',
+      targetId: path.endsWith('/alipay') ? 'alipay_settings' : 'wechat_pay_settings',
+      summary: path.endsWith('/alipay') ? '修改支付宝支付设置' : '修改微信支付设置' };
+  }
   const whitelist = /^\/system-config\/whitelist(?:\/([^/]+))?$/.exec(path);
   if (whitelist && ((method === 'POST' && !whitelist[1]) || (['PUT', 'DELETE'].includes(method) && whitelist[1]))) {
     const action = method === 'POST' ? 'create' : method === 'PUT' ? 'update' : 'delete';
