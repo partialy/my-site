@@ -117,6 +117,7 @@ export class SystemConfigService {
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS request_log (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid TEXT NOT NULL UNIQUE,
         time TEXT NOT NULL,
         method TEXT NOT NULL,
         path TEXT NOT NULL,

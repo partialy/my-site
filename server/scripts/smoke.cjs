@@ -1,4 +1,5 @@
 const assert = require('node:assert/strict');
+const { randomUUID } = require('node:crypto');
 const jwt = require('jsonwebtoken');
 const { openDatabase } = require('../dist/db/database');
 const { createApp } = require('../dist/app');
@@ -124,9 +125,14 @@ async function main() {
     assert.equal(result.body.data.items[0].visitorId, visit.visitorId);
     systemConfig.update({ requestLogMode: 'all', consoleLogEnabled: false, consoleLogFormat: '[${time}] ${url}' });
     systemConfig.update({ requestLogMode: 'off', consoleLogEnabled: false, consoleLogFormat: '[${time}] ${url}' });
-    const insertLog = db.prepare('INSERT INTO request_log (time, method, path, url, status, duration_ms) VALUES (?, ?, ?, ?, ?, ?)');
-    const selectedId = Number(insertLog.run('2026-01-01T00:00:00.000Z', 'GET', '/api/v1/demo', '/api/v1/demo', 200, 1).lastInsertRowid);
-    insertLog.run('2026-02-01T00:00:00.000Z', 'GET', '/api/v1/demo', '/api/v1/demo', 200, 1);
+    const insertLogStatement = db.prepare('INSERT INTO request_log (uuid, time, method, path, url, status, duration_ms) VALUES (?, ?, ?, ?, ?, ?, ?)');
+    const insertLog = (time) => {
+      const uuid = randomUUID().replaceAll('-', '');
+      insertLogStatement.run(uuid, time, 'GET', '/api/v1/demo', '/api/v1/demo', 200, 1);
+      return uuid;
+    };
+    const selectedId = insertLog('2026-01-01T00:00:00.000Z');
+    insertLog('2026-02-01T00:00:00.000Z');
     result = await request('/request-logs', 'DELETE', { mode: 'ids', ids: [selectedId] });
     assert.equal(result.body.code, 1005);
     result = await request('/request-logs', 'DELETE', { mode: 'ids', ids: [selectedId] }, token);
@@ -136,19 +142,19 @@ async function main() {
     }, token);
     assert.equal(result.body.data.deleted, 1);
     for (const second of ['00', '01', '02']) {
-      insertLog.run(`2026-03-01T00:00:${second}.000Z`, 'GET', '/api/v1/demo', '/api/v1/demo', 200, 1);
+      insertLog(`2026-03-01T00:00:${second}.000Z`);
     }
     result = await request('/request-logs', 'DELETE', { mode: 'beforeTime', time: '2026-03-01T00:00:01.000Z' }, token);
     assert.equal(result.body.data.deleted, 1);
     result = await request('/request-logs', 'DELETE', { mode: 'afterTime', time: '2026-03-01T00:00:01.000Z' }, token);
     assert.equal(result.body.data.deleted, 1);
-    insertLog.run('2026-03-01T00:00:03.000Z', 'GET', '/api/v1/demo', '/api/v1/demo', 200, 1);
-    const newestId = Number(insertLog.run('2026-03-01T00:00:04.000Z', 'GET', '/api/v1/demo', '/api/v1/demo', 200, 1).lastInsertRowid);
+    insertLog('2026-03-01T00:00:03.000Z');
+    const newestId = insertLog('2026-03-01T00:00:04.000Z');
     result = await request('/request-logs', 'DELETE', { mode: 'keepLatest', count: 1 }, token);
     assert.equal(result.body.data.deleted, 2);
     result = await request('/request-logs', 'GET', undefined, token);
     assert.equal(result.body.data.total, 1);
-    assert.equal(result.body.data.items[0].id, newestId);
+    assert.equal(result.body.data.items[0].uuid, newestId);
     result = await request('/auth/me');
     assert.equal(result.body.code, 1005);
     const expired = jwt.sign({ ver: 0, exp: Math.floor(Date.now() / 1000) - 1 }, config.jwtSecret, {

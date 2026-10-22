@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { ApiError } from '../api/api-error';
 import { ApiCode } from '../api/codes';
 import { DictionaryRepository, type DictionaryItem, type DictionaryType } from '../repositories/dictionary.repository';
+import { createPublicId, publicIdSchema } from '../shared/public-id';
 
 const identifier = z.string().trim().min(1).max(80)
   .regex(/^[A-Za-z][A-Za-z0-9_-]*$/, '只能以字母开头，包含字母、数字、下划线或连字符');
@@ -9,7 +10,7 @@ const dictionaryValue = z.string().trim().min(1).max(80)
   .regex(/^[A-Za-z0-9][A-Za-z0-9_-]*$/, '只能包含字母、数字、下划线或连字符');
 const color = z.enum(['default', 'blue', 'green', 'orange', 'red', 'purple', 'cyan', 'gold']);
 
-export const dictionaryIdSchema = z.coerce.number().int().positive();
+export const dictionaryIdSchema = publicIdSchema;
 export const dictionaryCodesSchema = z.strictObject({
   codes: z.string().min(1).max(2000).transform((text) => text.split(',').map((code) => code.trim()))
     .pipe(z.array(identifier).min(1).max(30)),
@@ -71,29 +72,29 @@ export class DictionaryService {
     return result;
   }
 
-  private getType(id: number): DictionaryType {
-    const type = this.types.find((item) => item.id === id);
+  private getType(uuid: string): DictionaryType {
+    const type = this.types.find((item) => item.uuid === uuid);
     if (!type) throw new ApiError(404, ApiCode.NotFound, '字典类型不存在');
     return type;
   }
 
-  private getItem(typeId: number, itemId: number): DictionaryItem {
-    const item = this.getType(typeId).items.find((entry) => entry.id === itemId);
+  private getItem(typeUuid: string, itemUuid: string): DictionaryItem {
+    const item = this.getType(typeUuid).items.find((entry) => entry.uuid === itemUuid);
     if (!item) throw new ApiError(404, ApiCode.NotFound, '字典子项不存在');
     return item;
   }
 
   createType(input: CreateDictionaryInput): DictionaryType {
     if (this.byCode.has(input.code)) throw new ApiError(409, ApiCode.DictionaryValueExists, '字典类型标识已存在');
-    let id: number;
+    const uuid = createPublicId();
     try {
-      id = this.repository.createType(input);
+      this.repository.createType({ uuid, ...input });
     } catch (error) {
       if (isUniqueConflict(error)) throw new ApiError(409, ApiCode.DictionaryValueExists, '字典类型标识已存在');
       throw error;
     }
     this.reload();
-    return this.getType(id);
+    return this.getType(uuid);
   }
 
   createTypes(inputs: CreateDictionaryInput[]): DictionaryType[] {
@@ -101,59 +102,59 @@ export class DictionaryService {
     if (new Set(codes).size !== codes.length || codes.some((code) => this.byCode.has(code))) {
       throw new ApiError(409, ApiCode.DictionaryValueExists, '字典类型标识重复');
     }
-    let ids: number[];
+    const uuids = inputs.map(() => createPublicId());
     try {
-      ids = this.repository.createTypes(inputs);
+      this.repository.createTypes(inputs.map((input, index) => ({ ...input, uuid: uuids[index]! })));
     } catch (error) {
       if (isUniqueConflict(error)) throw new ApiError(409, ApiCode.DictionaryValueExists, '字典类型标识重复');
       throw error;
     }
     this.reload();
-    return ids.map((id) => this.getType(id));
+    return uuids.map((uuid) => this.getType(uuid));
   }
 
-  updateType(id: number, input: UpdateDictionaryInput): DictionaryType {
-    if (!this.repository.updateType(id, input)) throw new ApiError(404, ApiCode.NotFound, '字典类型不存在');
+  updateType(uuid: string, input: UpdateDictionaryInput): DictionaryType {
+    if (!this.repository.updateType(uuid, input)) throw new ApiError(404, ApiCode.NotFound, '字典类型不存在');
     this.reload();
-    return this.getType(id);
+    return this.getType(uuid);
   }
 
-  createItem(typeId: number, input: CreateDictionaryItemInput): DictionaryItem {
-    const type = this.getType(typeId);
+  createItem(typeUuid: string, input: CreateDictionaryItemInput): DictionaryItem {
+    const type = this.getType(typeUuid);
     if (type.items.some((item) => item.value === input.value)) {
       throw new ApiError(409, ApiCode.DictionaryValueExists, '字典子项值已存在');
     }
-    let id: number;
+    const uuid = createPublicId();
     try {
-      id = this.repository.createItem(typeId, input);
+      this.repository.createItem(typeUuid, { uuid, ...input });
     } catch (error) {
       if (isUniqueConflict(error)) throw new ApiError(409, ApiCode.DictionaryValueExists, '字典子项值已存在');
       throw error;
     }
     this.reload();
-    return this.getItem(typeId, id);
+    return this.getItem(typeUuid, uuid);
   }
 
-  createItems(typeId: number, inputs: CreateDictionaryItemInput[]): DictionaryItem[] {
-    const type = this.getType(typeId);
+  createItems(typeUuid: string, inputs: CreateDictionaryItemInput[]): DictionaryItem[] {
+    const type = this.getType(typeUuid);
     const values = inputs.map((input) => input.value);
     if (new Set(values).size !== values.length || values.some((value) => type.items.some((item) => item.value === value))) {
       throw new ApiError(409, ApiCode.DictionaryValueExists, '字典子项值重复');
     }
-    let ids: number[];
+    const uuids = inputs.map(() => createPublicId());
     try {
-      ids = this.repository.createItems(typeId, inputs);
+      this.repository.createItems(typeUuid, inputs.map((input, index) => ({ ...input, uuid: uuids[index]! })));
     } catch (error) {
       if (isUniqueConflict(error)) throw new ApiError(409, ApiCode.DictionaryValueExists, '字典子项值重复');
       throw error;
     }
     this.reload();
-    return ids.map((id) => this.getItem(typeId, id));
+    return uuids.map((uuid) => this.getItem(typeUuid, uuid));
   }
 
-  updateItem(typeId: number, itemId: number, input: UpdateDictionaryItemInput): DictionaryItem {
-    if (!this.repository.updateItem(typeId, itemId, input)) throw new ApiError(404, ApiCode.NotFound, '字典子项不存在');
+  updateItem(typeUuid: string, itemUuid: string, input: UpdateDictionaryItemInput): DictionaryItem {
+    if (!this.repository.updateItem(typeUuid, itemUuid, input)) throw new ApiError(404, ApiCode.NotFound, '字典子项不存在');
     this.reload();
-    return this.getItem(typeId, itemId);
+    return this.getItem(typeUuid, itemUuid);
   }
 }

@@ -15,7 +15,7 @@ export function createAdminUserRoutes(auth: AuthService, users: UserService): Ro
   routes.post('/', async (req, res) => {
     const input = parseInput(userRegisterSchema, req.body);
     const user = await users.register(input);
-    res.locals.operationTargetId = String(user.id);
+    res.locals.operationTargetId = user.uuid;
     res.status(201).json(ok(user, '用户已注册'));
   });
   routes.get('/:id', (req, res) => {

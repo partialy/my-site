@@ -23,28 +23,28 @@ export function createAdminDictionaryRoutes(auth: AuthService, dictionaries: Dic
   routes.post('/', (req, res) => {
     const input = parseInput(createDictionarySchema, req.body);
     const type = dictionaries.createType(input);
-    res.locals.operationTargetId = String(type.id);
+    res.locals.operationTargetId = type.uuid;
     res.status(201).json(ok(type, '字典类型已创建'));
   });
 
   routes.post('/batch', (req, res) => {
     const { items } = parseInput(createDictionariesSchema, req.body);
     const types = dictionaries.createTypes(items);
-    res.locals.operationTargetId = types.map((type) => type.id).join(',');
+    res.locals.operationTargetId = types.map((type) => type.uuid).join(',');
     res.status(201).json(ok(types, '字典类型已批量创建'));
   });
 
   routes.put('/:id', (req, res) => {
     const id = parseInput(dictionaryIdSchema, req.params.id);
     const type = dictionaries.updateType(id, parseInput(updateDictionarySchema, req.body));
-    res.locals.operationTargetId = String(type.id);
+    res.locals.operationTargetId = type.uuid;
     res.json(ok(type, '字典类型已更新'));
   });
 
   routes.post('/:id/items', (req, res) => {
     const typeId = parseInput(dictionaryIdSchema, req.params.id);
     const item = dictionaries.createItem(typeId, parseInput(createDictionaryItemSchema, req.body));
-    res.locals.operationTargetId = String(item.id);
+    res.locals.operationTargetId = item.uuid;
     res.status(201).json(ok(item, '字典子项已创建'));
   });
 
@@ -52,7 +52,7 @@ export function createAdminDictionaryRoutes(auth: AuthService, dictionaries: Dic
     const typeId = parseInput(dictionaryIdSchema, req.params.id);
     const { items } = parseInput(createDictionaryItemsSchema, req.body);
     const created = dictionaries.createItems(typeId, items);
-    res.locals.operationTargetId = created.map((item) => item.id).join(',');
+    res.locals.operationTargetId = created.map((item) => item.uuid).join(',');
     res.status(201).json(ok(created, '字典子项已批量创建'));
   });
 
@@ -60,7 +60,7 @@ export function createAdminDictionaryRoutes(auth: AuthService, dictionaries: Dic
     const typeId = parseInput(dictionaryIdSchema, req.params.id);
     const itemId = parseInput(dictionaryIdSchema, req.params.itemId);
     const item = dictionaries.updateItem(typeId, itemId, parseInput(updateDictionaryItemSchema, req.body));
-    res.locals.operationTargetId = String(item.id);
+    res.locals.operationTargetId = item.uuid;
     res.json(ok(item, '字典子项已更新'));
   });
 

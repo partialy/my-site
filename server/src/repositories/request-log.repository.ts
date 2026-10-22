@@ -12,6 +12,7 @@ export interface RequestLogQuery {
 
 interface RequestLogRecord {
   id: number;
+  uuid: string;
   time: string;
   method: string;
   path: string;
@@ -27,7 +28,7 @@ interface RequestLogRecord {
 }
 
 export interface RequestLogItem {
-  id: number;
+  uuid: string;
   time: string;
   method: string;
   path: string;
@@ -65,7 +66,7 @@ function sourceName(origin: string | null, referer: string | null): string {
 
 function toItem(record: RequestLogRecord): RequestLogItem {
   return {
-    id: record.id, time: record.time, method: record.method,
+    uuid: record.uuid, time: record.time, method: record.method,
     path: record.path, url: record.url,
     requestData: record.request_data, responseData: record.response_data,
     status: record.status, durationMs: record.duration_ms,
@@ -84,10 +85,10 @@ export class RequestLogRepository {
     return Boolean(this.db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'request_log'").get());
   }
 
-  deleteByIds(ids: number[]): number {
+  deleteByIds(ids: string[]): number {
     if (!this.exists()) return 0;
     const placeholders = ids.map(() => '?').join(',');
-    return this.db.prepare(`DELETE FROM request_log WHERE id IN (${placeholders})`).run(...ids).changes;
+    return this.db.prepare(`DELETE FROM request_log WHERE uuid IN (${placeholders})`).run(...ids).changes;
   }
 
   deleteByTimeRange(startTime: string, endTime: string): number {

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { RequestLogRepository } from '../repositories/request-log.repository';
+import { publicIdSchema } from '../shared/public-id';
 
 export const requestLogQuerySchema = z.strictObject({
   page: z.coerce.number().int().min(1).max(1_000_000).default(1),
@@ -10,7 +11,7 @@ export const requestLogQuerySchema = z.strictObject({
 });
 
 export const requestLogCleanupSchema = z.discriminatedUnion('mode', [
-  z.strictObject({ mode: z.literal('ids'), ids: z.array(z.number().int().positive()).min(1).max(500) }),
+  z.strictObject({ mode: z.literal('ids'), ids: z.array(publicIdSchema).min(1).max(500) }),
   z.strictObject({
     mode: z.literal('timeRange'),
     startTime: z.iso.datetime({ offset: true }),

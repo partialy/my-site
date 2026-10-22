@@ -1,6 +1,7 @@
 import type { RequestHandler } from 'express';
 import type Database from 'better-sqlite3';
 import { SystemConfigService, type WhitelistRule } from '../services/system-config.service';
+import { createPublicId } from '../shared/public-id';
 
 const secretKey = /password|passwd|secret|token|authorization|setupkey|cookie|api.?key|visitorid/i;
 const maxLength = 16_384;
@@ -52,9 +53,9 @@ function formatLine(format: string, values: Record<string, string>): string {
 
 export function requestLogMiddleware(config: SystemConfigService, db: Database.Database): RequestHandler {
   const insert = () => db.prepare(`
-    INSERT INTO request_log (time, method, path, url, request_data, response_data,
+    INSERT INTO request_log (uuid, time, method, path, url, request_data, response_data,
       status, duration_ms, ip, origin, referer, user_agent)
-    VALUES (@time, @method, @path, @url, @requestData, @responseData,
+    VALUES (@uuid, @time, @method, @path, @url, @requestData, @responseData,
       @status, @duration, @ip, @origin, @referer, @userAgent)
   `);
 
@@ -94,6 +95,7 @@ export function requestLogMiddleware(config: SystemConfigService, db: Database.D
           path.startsWith('/api/v1/admin/payment-settings/') ||
           path === '/api/v1/uploads/prepare';
         insert().run({
+          uuid: createPublicId(),
           time: time.toISOString(), method: req.method, path, url,
           requestData: hidesConfigValues ? '"[配置内容已隐藏]"' : serialize({
             query: req.query, body: Buffer.isBuffer(req.body) ? '[二进制内容已省略]' : req.body,

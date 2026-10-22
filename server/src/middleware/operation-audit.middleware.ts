@@ -19,12 +19,12 @@ function describe(method: string, path: string): OperationDescriptor | null {
   if (method === 'POST' && path === '/users') {
     return { module: '用户管理', action: 'create', targetType: 'user', summary: '管理员注册业务用户' };
   }
-  const userProfile = /^\/users\/(\d+)\/profile$/.exec(path);
+  const userProfile = /^\/users\/([0-9a-f]{32})\/profile$/.exec(path);
   if (method === 'PUT' && userProfile) {
     return { module: '用户管理', action: 'update', targetType: 'user',
       targetId: userProfile[1], summary: '修改用户资料', changedFields: ['nickname', 'avatar'] };
   }
-  const userStatus = /^\/users\/(\d+)\/status$/.exec(path);
+  const userStatus = /^\/users\/([0-9a-f]{32})\/status$/.exec(path);
   if (method === 'PUT' && userStatus) {
     return { module: '用户管理', action: 'update', targetType: 'user',
       targetId: userStatus[1], summary: '修改用户状态', changedFields: ['status'] };
@@ -58,13 +58,13 @@ function describe(method: string, path: string): OperationDescriptor | null {
       summary: `${method === 'POST' ? '新增' : method === 'PUT' ? '修改' : '删除'}动态配置`,
       changedFields: method === 'DELETE' ? [] : ['name', 'value', 'enabled', 'remark'] };
   }
-  const dictionaryBatch = /^\/dictionaries(?:\/(\d+)\/items)?\/batch$/.exec(path);
+  const dictionaryBatch = /^\/dictionaries(?:\/([0-9a-f]{32})\/items)?\/batch$/.exec(path);
   if (method === 'POST' && dictionaryBatch) {
     const isItem = Boolean(dictionaryBatch[1]);
     return { module: '数据字典', action: 'create', targetType: isItem ? 'dict_item' : 'dict_type',
       summary: `批量新增字典${isItem ? '子项' : '类型'}` };
   }
-  const dictionary = /^\/dictionaries(?:\/(\d+)(?:\/items(?:\/(\d+))?)?)?$/.exec(path);
+  const dictionary = /^\/dictionaries(?:\/([0-9a-f]{32})(?:\/items(?:\/([0-9a-f]{32}))?)?)?$/.exec(path);
   if (dictionary && (method === 'POST' || method === 'PUT')) {
     const isItem = path.includes('/items');
     return {

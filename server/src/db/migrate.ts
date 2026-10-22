@@ -78,10 +78,30 @@ function applyUpgrade(db: Database.Database, file: UpgradeFile): void {
   })();
 }
 
+/** request_log 按需创建，旧库可能有表也可能没有，因此在常规升级后单独补齐。 */
+function upgradeOptionalRequestLog(db: Database.Database): void {
+  const exists = db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'request_log'").get();
+  if (!exists) return;
+  const columns = db.pragma('table_info(request_log)') as Array<{ name: string }>;
+  if (columns.some((column) => column.name === 'uuid')) return;
+  db.transaction(() => {
+    db.exec('ALTER TABLE request_log ADD COLUMN uuid TEXT');
+    db.exec(`UPDATE request_log SET uuid = lower(hex(randomblob(6))) || '4' ||
+      substr(lower(hex(randomblob(2))), 2, 3) || substr('89ab', (random() & 3) + 1, 1) ||
+      substr(lower(hex(randomblob(2))), 2, 3) || lower(hex(randomblob(6)))`);
+    db.exec('CREATE UNIQUE INDEX idx_request_log_uuid ON request_log(uuid)');
+    db.exec(`CREATE TRIGGER request_log_uuid_required_insert BEFORE INSERT ON request_log WHEN NEW.uuid IS NULL
+      BEGIN SELECT RAISE(ABORT, 'request_log.uuid required'); END;
+      CREATE TRIGGER request_log_uuid_required_update BEFORE UPDATE OF uuid ON request_log WHEN NEW.uuid IS NULL
+      BEGIN SELECT RAISE(ABORT, 'request_log.uuid required'); END;`);
+  })();
+}
+
 export function runMigrations(db: Database.Database, includeDevScripts: boolean): void {
   ensureHistoryTables(db);
   const productionUpgrades = readUpgradeFiles('prod-sql');
   const developmentUpgrades = includeDevScripts ? readUpgradeFiles('dev-sql') : [];
   initializeDatabase(db, [...productionUpgrades, ...developmentUpgrades]);
   for (const file of [...productionUpgrades, ...developmentUpgrades]) applyUpgrade(db, file);
+  upgradeOptionalRequestLog(db);
 }

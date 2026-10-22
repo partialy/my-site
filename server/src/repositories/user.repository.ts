@@ -6,6 +6,7 @@ export type UserStatus = 'active' | 'disabled';
 
 export interface UserRecord {
   id: number;
+  uuid: string;
   account: string;
   password_hash: string;
   nickname: string;
@@ -43,31 +44,35 @@ export class UserRepository {
     return (this.db.prepare('SELECT * FROM user WHERE id = ?').get(id) as UserRecord | undefined) ?? null;
   }
 
+  findByUuid(uuid: string): UserRecord | null {
+    return (this.db.prepare('SELECT * FROM user WHERE uuid = ?').get(uuid) as UserRecord | undefined) ?? null;
+  }
+
   findByAccount(account: string): UserRecord | null {
     return (this.db.prepare('SELECT * FROM user WHERE account = ? COLLATE NOCASE').get(account) as UserRecord | undefined) ?? null;
   }
 
-  create(account: string, passwordHash: string, nickname: string): UserRecord {
+  create(uuid: string, account: string, passwordHash: string, nickname: string): UserRecord {
     const now = new Date().toISOString();
     const result = this.db.prepare(`
-      INSERT INTO user (account, password_hash, nickname, avatar, status, token_version, created_at, updated_at)
-      VALUES (?, ?, ?, NULL, 'active', 0, ?, ?)
-    `).run(account, passwordHash, nickname, now, now);
+      INSERT INTO user (uuid, account, password_hash, nickname, avatar, status, token_version, created_at, updated_at)
+      VALUES (?, ?, ?, ?, NULL, 'active', 0, ?, ?)
+    `).run(uuid, account, passwordHash, nickname, now, now);
     return this.findById(Number(result.lastInsertRowid))!;
   }
 
-  updateStatus(id: number, status: UserStatus): UserRecord | null {
+  updateStatus(uuid: string, status: UserStatus): UserRecord | null {
     const result = this.db.prepare(`
-      UPDATE user SET status = ?, token_version = token_version + 1, updated_at = ? WHERE id = ? AND status <> ?
-    `).run(status, new Date().toISOString(), id, status);
-    if (result.changes === 0) return this.findById(id);
-    return this.findById(id);
+      UPDATE user SET status = ?, token_version = token_version + 1, updated_at = ? WHERE uuid = ? AND status <> ?
+    `).run(status, new Date().toISOString(), uuid, status);
+    if (result.changes === 0) return this.findByUuid(uuid);
+    return this.findByUuid(uuid);
   }
 
-  updateProfile(id: number, nickname: string, avatar: string | null): UserRecord | null {
-    this.db.prepare('UPDATE user SET nickname = ?, avatar = ?, updated_at = ? WHERE id = ?')
-      .run(nickname, avatar, new Date().toISOString(), id);
-    return this.findById(id);
+  updateProfile(uuid: string, nickname: string, avatar: string | null): UserRecord | null {
+    this.db.prepare('UPDATE user SET nickname = ?, avatar = ?, updated_at = ? WHERE uuid = ?')
+      .run(nickname, avatar, new Date().toISOString(), uuid);
+    return this.findByUuid(uuid);
   }
 
   list(query: UserListQuery): UserListPage {

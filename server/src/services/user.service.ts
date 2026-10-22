@@ -5,6 +5,7 @@ import { UserRepository, type UserListRecord, type UserStatus } from '../reposit
 import { USER_JWT_EXPIRES_IN, UserJwtService } from '../security/user-jwt.service';
 import { hashPassword, verifyPassword } from '../security/password';
 import { daysAgo, utcDay } from './visit.service';
+import { createPublicId, publicIdSchema } from '../shared/public-id';
 
 const accountSchema = z.string().trim().min(3).max(32).regex(/^[a-zA-Z][a-zA-Z0-9_]*$/, '账号只能包含字母、数字和下划线，且以字母开头');
 const passwordSchema = z.string().min(8).max(128);
@@ -20,7 +21,7 @@ export const userListQuerySchema = z.strictObject({
   search: z.string().trim().max(100).optional(),
   status: z.enum(['active', 'disabled']).optional(),
 });
-export const userIdSchema = z.coerce.number().int().positive();
+export const userIdSchema = publicIdSchema;
 export const userStatusSchema = z.strictObject({ status: z.enum(['active', 'disabled']) });
 export const userProfileSchema = z.strictObject({
   nickname: z.string().trim().min(1).max(50),
@@ -31,7 +32,7 @@ export const userProfileSchema = z.strictObject({
 });
 
 export interface UserSummary {
-  id: number;
+  uuid: string;
   account: string;
   nickname: string;
   avatar: string | null;
@@ -42,7 +43,7 @@ export interface UserSummary {
 
 function summary(user: UserListRecord): UserSummary {
   return {
-    id: user.id, account: user.account, nickname: user.nickname, avatar: user.avatar,
+    uuid: user.uuid, account: user.account, nickname: user.nickname, avatar: user.avatar,
     status: user.status, createdAt: user.created_at, updatedAt: user.updated_at,
   };
 }
@@ -56,7 +57,7 @@ export class UserService {
     }
     const passwordHash = await hashPassword(input.password);
     try {
-      return summary(this.users.create(input.account, passwordHash, input.nickname ?? input.account));
+      return summary(this.users.create(createPublicId(), input.account, passwordHash, input.nickname ?? input.account));
     } catch (error) {
       // 并发注册时仍由数据库唯一约束兜底。
       if (error instanceof Error && error.message.includes('UNIQUE constraint failed: user.account')) {
@@ -74,14 +75,14 @@ export class UserService {
     if (user.status === 'disabled') throw new ApiError(403, ApiCode.TokenInvalid, '账号已禁用');
     this.recordActivity(user.id);
     return {
-      token: this.tokens.sign(user.id, user.token_version), tokenType: 'Bearer' as const,
+      token: this.tokens.sign(user.uuid, user.token_version), tokenType: 'Bearer' as const,
       expiresIn: USER_JWT_EXPIRES_IN, user: summary(user),
     };
   }
 
   authenticate(token: string): UserSummary {
     const payload = this.tokens.verify(token);
-    const user = this.users.findById(payload.userId);
+    const user = payload.userUuid ? this.users.findByUuid(payload.userUuid) : this.users.findById(payload.userId!);
     if (!user || user.token_version !== payload.tokenVersion || user.status !== 'active') {
       throw new ApiError(401, ApiCode.TokenInvalid, '登录凭证无效');
     }
@@ -94,20 +95,20 @@ export class UserService {
     return { ...result, items: result.items.map(summary) };
   }
 
-  detail(id: number): UserSummary {
-    const user = this.users.findById(id);
+  detail(uuid: string): UserSummary {
+    const user = this.users.findByUuid(uuid);
     if (!user) throw new ApiError(404, ApiCode.NotFound, '用户不存在');
     return summary(user);
   }
 
-  setStatus(id: number, status: UserStatus): UserSummary {
-    const user = this.users.updateStatus(id, status);
+  setStatus(uuid: string, status: UserStatus): UserSummary {
+    const user = this.users.updateStatus(uuid, status);
     if (!user) throw new ApiError(404, ApiCode.NotFound, '用户不存在');
     return summary(user);
   }
 
-  updateProfile(id: number, input: z.infer<typeof userProfileSchema>): UserSummary {
-    const user = this.users.updateProfile(id, input.nickname, input.avatar);
+  updateProfile(uuid: string, input: z.infer<typeof userProfileSchema>): UserSummary {
+    const user = this.users.updateProfile(uuid, input.nickname, input.avatar);
     if (!user) throw new ApiError(404, ApiCode.NotFound, '用户不存在');
     return summary(user);
   }
