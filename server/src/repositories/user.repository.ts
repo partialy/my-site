@@ -64,6 +64,12 @@ export class UserRepository {
     return this.findById(id);
   }
 
+  updateProfile(id: number, nickname: string, avatar: string | null): UserRecord | null {
+    this.db.prepare('UPDATE user SET nickname = ?, avatar = ?, updated_at = ? WHERE id = ?')
+      .run(nickname, avatar, new Date().toISOString(), id);
+    return this.findById(id);
+  }
+
   list(query: UserListQuery): UserListPage {
     return this.tableList.list<UserListRecord, UserListQuery>(userListResource, query);
   }

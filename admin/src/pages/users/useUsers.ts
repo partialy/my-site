@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
-import { getUsers, registerUser, setUserStatus, type UserItem, type UserRegisterInput, type UserStatus } from '../../api/users';
+import { getUsers, registerUser, setUserStatus, updateUserProfile,
+  type UserItem, type UserProfileInput, type UserRegisterInput, type UserStatus } from '../../api/users';
 import { useTableQuery, type TableQueryOptions } from '../../hooks/useTableQuery';
 
 export interface UserFilters {
@@ -46,5 +47,12 @@ export function useUsers() {
     return { item: response.data, message: response.msg };
   }, [table.query.status, table.reload, table.replaceItem]);
 
-  return { ...table, register, updateStatus };
+  const updateProfile = useCallback(async (id: number, input: UserProfileInput) => {
+    const response = await updateUserProfile(id, input);
+    if (!response.success) throw new Error(response.msg);
+    table.reload();
+    return { item: response.data, message: response.msg };
+  }, [table.reload]);
+
+  return { ...table, register, updateStatus, updateProfile };
 }

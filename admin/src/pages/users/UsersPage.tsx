@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react';
-import { Alert, App, Button, Card, Descriptions, Flex, Modal, Space, Table, Tag, Typography } from 'antd';
+import { Alert, App, Avatar, Button, Card, Descriptions, Flex, Modal, Space, Table, Tag, Typography } from 'antd';
 import type { TableColumnsType } from 'antd';
-import { RefreshCw, UserPlus, UsersRound } from 'lucide-react';
+import { RefreshCw, UserPlus, UserRound, UsersRound } from 'lucide-react';
 import type { UserItem, UserStatus } from '../../api/users';
 import { CrudFilterBar, type CrudFilterField } from '../../components/crud/CrudFilterBar';
 import { CrudRowActions, type CrudRowAction } from '../../components/crud/CrudRowActions';
 import { formatDateTime } from '../../utils/dateTime';
 import { useUsers, type UserFilters } from './useUsers';
 import { UserRegisterModal } from './UserRegisterModal';
+import { UserProfileModal } from './UserProfileModal';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -19,14 +20,19 @@ const filterFields: ReadonlyArray<CrudFilterField<UserFilters>> = [
 
 export function UsersPage() {
   const [selected, setSelected] = useState<UserItem | null>(null);
+  const [editing, setEditing] = useState<UserItem | null>(null);
   const [registerOpen, setRegisterOpen] = useState(false);
   const { message } = App.useApp();
-  const { query, result, loading, error, reload, setFilters, resetFilters, setPage, register, updateStatus } = useUsers();
+  const { query, result, loading, error, reload, setFilters, resetFilters, setPage,
+    register, updateStatus, updateProfile } = useUsers();
 
   const columns = useMemo<TableColumnsType<UserItem>>(() => [
     { title: 'ID', dataIndex: 'id', width: 90 },
     { title: '账号', dataIndex: 'account', render: (value: string) => <Text strong>{value}</Text> },
-    { title: '昵称', dataIndex: 'nickname' },
+    { title: '昵称', key: 'nickname', render: (_, item) => <Space size={10}>
+      <Avatar src={item.avatar || undefined} icon={<UserRound size={16} />} />
+      <Text>{item.nickname}</Text>
+    </Space> },
     { title: '状态', dataIndex: 'status', width: 100,
       render: (value: UserStatus) => <Tag color={value === 'active' ? 'success' : 'default'}>{value === 'active' ? '正常' : '已禁用'}</Tag> },
     { title: '注册时间', dataIndex: 'createdAt', width: 190, render: formatDateTime },
@@ -35,6 +41,7 @@ export function UsersPage() {
         const nextStatus: UserStatus = item.status === 'active' ? 'disabled' : 'active';
         const actions: CrudRowAction<UserItem>[] = [
           { key: 'detail', label: '详情', onClick: setSelected },
+          { key: 'edit', label: '编辑', onClick: setEditing },
           { key: 'status', label: nextStatus === 'disabled' ? '禁用' : '启用', danger: nextStatus === 'disabled',
             confirm: {
               title: nextStatus === 'disabled' ? '禁用用户' : '启用用户',
@@ -86,6 +93,12 @@ export function UsersPage() {
       onRegister={async (input) => {
         const result = await register(input);
         message.success(result);
+      }} />
+    <UserProfileModal user={editing} onClose={() => setEditing(null)}
+      onSave={async (id, input) => {
+        const updated = await updateProfile(id, input);
+        setSelected((current) => current?.id === id ? updated.item : current);
+        message.success(updated.message);
       }} />
   </div>;
 }

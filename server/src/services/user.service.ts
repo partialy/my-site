@@ -22,6 +22,13 @@ export const userListQuerySchema = z.strictObject({
 });
 export const userIdSchema = z.coerce.number().int().positive();
 export const userStatusSchema = z.strictObject({ status: z.enum(['active', 'disabled']) });
+export const userProfileSchema = z.strictObject({
+  nickname: z.string().trim().min(1).max(50),
+  avatar: z.string().trim().max(2048).refine((value) => {
+    try { return ['http:', 'https:'].includes(new URL(value).protocol); }
+    catch { return false; }
+  }, '头像地址需为 HTTP(S) URL').nullable(),
+});
 
 export interface UserSummary {
   id: number;
@@ -95,6 +102,12 @@ export class UserService {
 
   setStatus(id: number, status: UserStatus): UserSummary {
     const user = this.users.updateStatus(id, status);
+    if (!user) throw new ApiError(404, ApiCode.NotFound, '用户不存在');
+    return summary(user);
+  }
+
+  updateProfile(id: number, input: z.infer<typeof userProfileSchema>): UserSummary {
+    const user = this.users.updateProfile(id, input.nickname, input.avatar);
     if (!user) throw new ApiError(404, ApiCode.NotFound, '用户不存在');
     return summary(user);
   }

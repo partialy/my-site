@@ -33,6 +33,11 @@ export interface UserRegisterInput {
   nickname?: string;
 }
 
+export interface UserProfileInput {
+  nickname: string;
+  avatar: string | null;
+}
+
 function parseUser(value: unknown): UserItem {
   if (typeof value !== 'object' || value === null) throw new Error('用户数据格式异常');
   const user = value as Partial<UserItem>;
@@ -68,4 +73,8 @@ export function registerUser(input: UserRegisterInput): Promise<ApiResponse<User
 
 export function setUserStatus(id: number, status: UserStatus): Promise<ApiResponse<UserItem>> {
   return request(`/users/${id}/status`, parseUser, { method: 'PUT', body: { status } });
+}
+
+export function updateUserProfile(id: number, input: UserProfileInput): Promise<ApiResponse<UserItem>> {
+  return request(`/users/${id}/profile`, parseUser, { method: 'PUT', body: input });
 }

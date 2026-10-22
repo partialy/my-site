@@ -138,6 +138,8 @@ const examples: Record<string, EndpointExample> = {
   [`POST ${admin}/users`]: { request: { account: 'example_user', password: '<至少8位密码>', nickname: '示例用户' },
     response: success(user, '用户已注册') },
   [`GET ${admin}/users/:id`]: { requestKind: 'Path', request: { id: 1 }, response: success(user) },
+  [`PUT ${admin}/users/:id/profile`]: { request: { nickname: '新昵称', avatar: 'https://cdn.example.com/avatar.png' },
+    response: success({ ...user, nickname: '新昵称', avatar: 'https://cdn.example.com/avatar.png' }, '用户资料已更新') },
   [`PUT ${admin}/users/:id/status`]: { request: { status: 'disabled' },
     response: success({ ...user, status: 'disabled' }, '用户已禁用') },
   [`GET ${admin}/files`]: { requestKind: 'Query', request: { page: 1, pageSize: 20, search: 'logo',

@@ -19,6 +19,11 @@ function describe(method: string, path: string): OperationDescriptor | null {
   if (method === 'POST' && path === '/users') {
     return { module: '用户管理', action: 'create', targetType: 'user', summary: '管理员注册业务用户' };
   }
+  const userProfile = /^\/users\/(\d+)\/profile$/.exec(path);
+  if (method === 'PUT' && userProfile) {
+    return { module: '用户管理', action: 'update', targetType: 'user',
+      targetId: userProfile[1], summary: '修改用户资料', changedFields: ['nickname', 'avatar'] };
+  }
   const userStatus = /^\/users\/(\d+)\/status$/.exec(path);
   if (method === 'PUT' && userStatus) {
     return { module: '用户管理', action: 'update', targetType: 'user',
