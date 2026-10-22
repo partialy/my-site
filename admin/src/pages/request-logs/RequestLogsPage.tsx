@@ -15,8 +15,10 @@ const methodOptions = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'].map((
 const filterFields: ReadonlyArray<CrudFilterField<RequestLogFilters>> = [
   { key: 'path', kind: 'text', placeholder: '搜索接口路径', width: 280 },
   { key: 'method', kind: 'select', placeholder: '请求方法', width: 140, options: methodOptions },
-  { key: 'status', kind: 'text', placeholder: '状态码，如 200', width: 160, maxLength: 3,
-    inputMode: 'numeric', normalize: (value) => value.replace(/\D/g, '').slice(0, 3) },
+  {
+    key: 'status', kind: 'text', placeholder: '状态码，如 200', width: 160, maxLength: 3,
+    inputMode: 'numeric', normalize: (value) => value.replace(/\D/g, '').slice(0, 3)
+  },
 ];
 
 export function RequestLogsPage() {
@@ -64,18 +66,30 @@ export function RequestLogsPage() {
 
   const columns = useMemo<TableProps<RequestLogItem>['columns']>(() => [
     { title: '时间', dataIndex: 'time', key: 'time', width: 190, render: formatDateTime },
-    { title: '方法', dataIndex: 'method', key: 'method', width: 90,
-      render: (value: string) => <Tag color={value === 'GET' ? 'blue' : value === 'DELETE' ? 'red' : 'geekblue'}>{value}</Tag> },
-    { title: '请求地址', dataIndex: 'url', key: 'url', ellipsis: true,
-      render: (value: string) => <Text ellipsis={{ tooltip: value }}>{value}</Text> },
-    { title: '状态', dataIndex: 'status', key: 'status', width: 90,
-      render: (value: number) => <Tag color={value >= 500 ? 'error' : value >= 400 ? 'warning' : 'success'}>{value}</Tag> },
-    { title: '耗时', dataIndex: 'durationMs', key: 'durationMs', width: 110,
-      render: (value: number) => `${value} ms` },
-    { title: '来源 IP', dataIndex: 'ip', key: 'ip', width: 160,
-      render: (value: string | null) => value || '—' },
-    { title: '操作', key: 'actions', width: 90,
-      render: (_, item) => <Button type="link" size="small" onClick={() => setSelected(item)}>详情</Button> },
+    {
+      title: '方法', dataIndex: 'method', key: 'method', width: 90,
+      render: (value: string) => <Tag color={value === 'GET' ? 'blue' : value === 'DELETE' ? 'red' : 'geekblue'}>{value}</Tag>
+    },
+    {
+      title: '请求地址', dataIndex: 'url', key: 'url', ellipsis: true,
+      render: (value: string) => <Text ellipsis={{ tooltip: value }}>{value}</Text>
+    },
+    {
+      title: '状态', dataIndex: 'status', key: 'status', width: 90,
+      render: (value: number) => <Tag color={value >= 500 ? 'error' : value >= 400 ? 'warning' : 'success'}>{value}</Tag>
+    },
+    {
+      title: '耗时', dataIndex: 'durationMs', key: 'durationMs', width: 110,
+      render: (value: number) => `${value} ms`
+    },
+    {
+      title: '来源 IP', dataIndex: 'ip', key: 'ip', width: 160,
+      render: (value: string | null) => value || '—'
+    },
+    {
+      title: '操作', key: 'actions', width: 90, fixed: 'right',
+      render: (_, item) => <Button type="link" size="small" onClick={() => setSelected(item)}>详情</Button>
+    },
   ], []);
 
   return (
@@ -97,11 +111,15 @@ export function RequestLogsPage() {
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} />}
       <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 16, overflow: 'hidden' }}>
         <Table<RequestLogItem> rowKey="id" columns={columns} dataSource={result.items} loading={loading} scroll={{ x: 'max-content' }}
-          rowSelection={{ selectedRowKeys: selectedIds, preserveSelectedRowKeys: true,
-            onChange: (keys) => setSelectedIds(keys.map(Number)) }}
-          pagination={{ current: query.page, pageSize: query.pageSize, total: result.total,
+          rowSelection={{
+            selectedRowKeys: selectedIds, preserveSelectedRowKeys: true,
+            onChange: (keys) => setSelectedIds(keys.map(Number))
+          }}
+          pagination={{
+            current: query.page, pageSize: query.pageSize, total: result.total,
             showSizeChanger: true, pageSizeOptions: [10, 20, 50], showTotal: (total) => `共 ${total} 条`,
-            onChange: setPage }} />
+            onChange: setPage
+          }} />
       </Card>
       <RequestLogDetail item={selected} onClose={() => setSelected(null)} />
       <RequestLogCleanupModal open={cleanupOpen} onClose={() => setCleanupOpen(false)}
