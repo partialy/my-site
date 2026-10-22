@@ -68,9 +68,9 @@ export function UserRegisterModal({ open, onClose, onRegister }: Props) {
       </Form.Item>
       <Form.Item name="password" label="密码" rules={[
         { required: true, message: '请输入密码' },
-        { min: 12, max: 128, message: '密码长度需为 12-128 位' },
+        { min: 8, max: 128, message: '密码长度需为 8-128 位' },
       ]}>
-        <Input.Password maxLength={128} autoComplete="new-password" placeholder="至少 12 位" />
+        <Input.Password maxLength={128} autoComplete="new-password" placeholder="至少 8 位" />
       </Form.Item>
       <Form.Item name="confirmPassword" label="确认密码" dependencies={['password']} rules={[
         { required: true, message: '请再次输入密码' },

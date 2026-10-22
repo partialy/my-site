@@ -25,7 +25,7 @@ ADMIN_ORIGIN 是允许跨域访问管理端 API 的来源，如 http://localhost
 
 管理员登录返回有效期 43200 秒的 JWT。后续请求携带 Authorization: Bearer <JWT>。修改密码会使已签发 Token 失效；当前没有刷新 Token 和服务端注销接口。
 
-完整请求示例见 requests.http。用户名为 3–32 位字母、数字或下划线；密码长度 12–128。端口、JWT_SECRET、SETUP_KEY 仍在启动前通过 `.env` 配置。仓库不跟踪数据库和上传文件，复制项目时不会复制 Git 中的示例数据；setup 页不会删除已有数据。初始化成功后不自动登录。
+完整请求示例见 requests.http。用户名为 3–32 位字母、数字或下划线；管理员和业务用户密码长度均为 8–128 位。端口、JWT_SECRET、SETUP_KEY 仍在启动前通过 `.env` 配置。仓库不跟踪数据库和上传文件，复制项目时不会复制 Git 中的示例数据；setup 页不会删除已有数据。初始化成功后不自动登录。
 
 ## 接口契约
 

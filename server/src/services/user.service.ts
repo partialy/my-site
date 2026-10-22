@@ -7,7 +7,7 @@ import { hashPassword, verifyPassword } from '../security/password';
 import { daysAgo, utcDay } from './visit.service';
 
 const accountSchema = z.string().trim().min(3).max(32).regex(/^[a-zA-Z][a-zA-Z0-9_]*$/, '账号只能包含字母、数字和下划线，且以字母开头');
-const passwordSchema = z.string().min(12).max(128);
+const passwordSchema = z.string().min(8).max(128);
 export const userRegisterSchema = z.strictObject({
   account: accountSchema,
   password: passwordSchema,

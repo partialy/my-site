@@ -158,12 +158,12 @@ export const SetupPage: React.FC = () => {
             name="password"
             rules={[
               { required: true, message: '请输入密码' },
-              { min: 12, max: 128, message: '密码长度需在 12–128 位之间' },
+              { min: 8, max: 128, message: '密码长度需在 8–128 位之间' },
             ]}
           >
             <Input.Password
               prefix={<Lock size={16} style={{ color: '#94a3b8' }} />}
-              placeholder="请输入密码（12–128 位）"
+              placeholder="请输入密码（8–128 位）"
               autoComplete="new-password"
             />
           </Form.Item>

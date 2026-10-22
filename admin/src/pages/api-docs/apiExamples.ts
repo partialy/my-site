@@ -52,7 +52,7 @@ const home = {
 
 const examples: Record<string, EndpointExample> = {
   [`GET ${admin}/setup/status`]: { response: success({ initialized: false }) },
-  [`POST ${admin}/setup/admin`]: { request: { username: 'admin', password: '<至少12位密码>', setupKey: '<初始化密钥>',
+  [`POST ${admin}/setup/admin`]: { request: { username: 'admin', password: '<至少8位密码>', setupKey: '<初始化密钥>',
     projectName: '示例项目', siteSettings: {
       admin: { siteTitle: '示例项目后台', systemName: '示例项目管理系统' },
       client: { siteTitle: '示例项目', systemName: '示例项目' },
@@ -135,7 +135,7 @@ const examples: Record<string, EndpointExample> = {
     response: success({ items: [visit], total: 1, page: 1, pageSize: 20 }) },
   [`GET ${admin}/users`]: { requestKind: 'Query', request: { page: 1, pageSize: 20, search: 'example', status: 'active' },
     response: success({ items: [user], total: 1, page: 1, pageSize: 20 }) },
-  [`POST ${admin}/users`]: { request: { account: 'example_user', password: '<至少12位密码>', nickname: '示例用户' },
+  [`POST ${admin}/users`]: { request: { account: 'example_user', password: '<至少8位密码>', nickname: '示例用户' },
     response: success(user, '用户已注册') },
   [`GET ${admin}/users/:id`]: { requestKind: 'Path', request: { id: 1 }, response: success(user) },
   [`PUT ${admin}/users/:id/status`]: { request: { status: 'disabled' },
@@ -209,7 +209,7 @@ const examples: Record<string, EndpointExample> = {
   [`GET ${publicApi}/files/:id/content`]: { requestKind: 'Path', request: { id: file.id } },
   [`POST ${publicApi}/visits`]: { request: { visitorId: visit.visitorId, path: '/', pageTitle: '首页',
     referrer: 'https://example.com/' }, response: success({ recorded: true, day: '2026-10-20' }) },
-  [`POST ${publicApi}/users/register`]: { request: { account: 'example_user', password: '<至少12位密码>', nickname: '示例用户' },
+  [`POST ${publicApi}/users/register`]: { request: { account: 'example_user', password: '<至少8位密码>', nickname: '示例用户' },
     response: success(user, '注册成功') },
   [`POST ${publicApi}/users/login`]: { request: { account: 'example_user', password: '<用户密码>' },
     response: success({ token: '<用户JWT>', tokenType: 'Bearer', expiresIn: 43200, user }, '登录成功') },

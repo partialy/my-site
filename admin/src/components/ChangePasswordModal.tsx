@@ -133,7 +133,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
             name="oldPassword"
             rules={[
               { required: true, message: '请输入原密码' },
-              { min: 12, max: 128, message: '密码长度在 12–128 位之间' },
+              { min: 8, max: 128, message: '密码长度在 8–128 位之间' },
             ]}
           >
             <Input.Password
@@ -148,13 +148,13 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
             name="newPassword"
             rules={[
               { required: true, message: '请输入新密码' },
-              { min: 12, max: 128, message: '新密码长度必须在 12–128 位之间' },
+              { min: 8, max: 128, message: '新密码长度必须在 8–128 位之间' },
             ]}
-            extra="密码长度 12–128 位，且不能与原密码相同"
+            extra="密码长度 8–128 位，且不能与原密码相同"
           >
             <Input.Password
               prefix={<Lock size={16} style={{ color: '#94a3b8' }} />}
-              placeholder="请输入新密码（12–128 位）"
+              placeholder="请输入新密码（8–128 位）"
               autoComplete="new-password"
             />
           </Form.Item>
