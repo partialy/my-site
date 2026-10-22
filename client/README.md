@@ -36,4 +36,4 @@ const uploaded = await uploadFile(file, { apiBaseUrl: 'https://api.example.com/a
 const imageUrl = uploaded.url; // 保存到业务表的 URL 字段
 ```
 
-本地上传由 server 保存文件；七牛由浏览器直传，server 仅签发凭证并核验登记。公开上传接口按 IP 限流，业务项目可按需要增加登录态或更严格的上传配额。
+`uploadFile` 先用文件信息调用一次 `/api/v1/uploads/prepare`。本地策略直接传 server；七牛策略从同一响应取得 token 后直传七牛，再通知 server 核验登记。公开上传接口按 IP 限流，业务项目可按需要增加登录态或更严格的上传配额。

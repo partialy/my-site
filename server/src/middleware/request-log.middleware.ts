@@ -92,7 +92,7 @@ export function requestLogMiddleware(config: SystemConfigService, db: Database.D
           path === '/api/v1/site-settings' || path.startsWith('/api/v1/site-settings/') ||
           path === '/api/v1/admin/upload-settings' ||
           path.startsWith('/api/v1/admin/payment-settings/') ||
-          path === '/api/v1/uploads/token';
+          path === '/api/v1/uploads/prepare';
         insert().run({
           time: time.toISOString(), method: req.method, path, url,
           requestData: hidesConfigValues ? '"[配置内容已隐藏]"' : serialize({

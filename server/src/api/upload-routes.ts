@@ -10,10 +10,10 @@ import { FileService, completeUploadSchema, fileMimeTypes, maxFileBytes, prepare
 /** 挂载于公开 /api/v1/uploads，供管理端与业务前端共用。 */
 export function createUploadRoutes(files: FileService): Router {
   const routes = Router();
-  routes.get('/strategy', (_req, res) => res.json(ok(files.uploadStrategy())));
-
-  routes.post('/token', requestRateLimit(20, 60_000), (req, res) => {
-    res.json(ok(files.prepareUpload(parseInput(prepareUploadSchema, req.body))));
+  routes.post('/prepare', requestRateLimit(20, 60_000), (req, res) => {
+    const input = files.uploadStrategy().strategy === 'qiniu'
+      ? parseInput(prepareUploadSchema, req.body) : undefined;
+    res.json(ok(files.prepareUpload(input)));
   });
 
   routes.post('/complete', requestRateLimit(20, 60_000), async (req, res) => {

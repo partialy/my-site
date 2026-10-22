@@ -62,31 +62,37 @@ function toItem(record: FileRecord, localDomain: string): FileItem {
   const url = record.storage_provider === 'qiniu' && record.storage_domain
     ? `${record.storage_domain.replace(/\/+$/, '')}/${record.storage_name.split('/').map(encodeURIComponent).join('/')}`
     : `${localDomain.replace(/\/+$/, '')}/api/v1/files/${record.id}/content`;
-  return { id: record.id, name: record.name, mimeType: record.mime_type, size: record.size,
-    url, createdAt: record.created_at, archivedAt: record.archived_at };
+  return {
+    id: record.id, name: record.name, mimeType: record.mime_type, size: record.size,
+    url, createdAt: record.created_at, archivedAt: record.archived_at
+  };
 }
 
 export class FileService {
   private readonly directory = path.resolve(__dirname, '../../data/uploads');
 
   constructor(private readonly repository: FileRepository, private readonly configManager: ConfigManager,
-    private readonly uploadSettings: UploadSettingsService) {}
+    private readonly uploadSettings: UploadSettingsService) { }
 
   uploadStrategy() { return { strategy: this.uploadSettings.getStrategy() }; }
 
   private toItem(record: FileRecord): FileItem { return toItem(record, this.uploadSettings.getLocalDomain()); }
 
-  prepareUpload(input: z.infer<typeof prepareUploadSchema>) {
+  prepareUpload(input?: z.infer<typeof prepareUploadSchema>) {
+    if (this.uploadSettings.getStrategy() === 'local') return { strategy: 'local' as const };
+    if (!input) throw new ApiError(400, ApiCode.ValidationError, '缺少七牛云上传文件信息',
+      { fieldErrors: { file: ['请提供文件名、类型和大小'] } });
     const settings = this.uploadSettings.getQiniu();
-    if (settings.strategy !== 'qiniu') throw new ApiError(409, ApiCode.Failure, '当前未启用七牛云上传');
     const id = randomUUID();
     const root = settings.root.replace(/^\/+|\/+$/g, '');
     const day = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const key = [root, day, `${id}${extensions[input.mimeType]}`].filter(Boolean).join('/');
     const mac = new qiniu.auth.digest.Mac(settings.accessKey, settings.secretKey);
-    const token = new qiniu.rs.PutPolicy({ scope: `${settings.bucket}:${key}`, expires: 3600,
-      insertOnly: 1, fsizeLimit: maxFileBytes, mimeLimit: input.mimeType }).uploadToken(mac);
-    return { id, key, token, uploadUrl: settings.uploadUrl };
+    const token = new qiniu.rs.PutPolicy({
+      scope: `${settings.bucket}:${key}`, expires: 3600,
+      insertOnly: 1, fsizeLimit: maxFileBytes, mimeLimit: input.mimeType
+    }).uploadToken(mac);
+    return { strategy: 'qiniu' as const, id, key, token, uploadUrl: settings.uploadUrl };
   }
 
   async completeUpload(input: z.infer<typeof completeUploadSchema>): Promise<FileItem> {
@@ -103,10 +109,12 @@ export class FileService {
     if (remote.data.fsize !== input.size || remote.data.mimeType !== input.mimeType) {
       throw new ApiError(400, ApiCode.ValidationError, '七牛云文件信息与上传请求不一致', { fieldErrors: { file: ['大小或类型不一致'] } });
     }
-    const record = { id: input.id, name: input.name.replace(/[\\/\x00-\x1f\x7f]/g, '_'),
+    const record = {
+      id: input.id, name: input.name.replace(/[\\/\x00-\x1f\x7f]/g, '_'),
       mime_type: input.mimeType, size: input.size, storage_name: input.key,
       storage_provider: 'qiniu' as const, storage_bucket: settings.bucket, storage_domain: settings.domain,
-      created_at: new Date().toISOString() };
+      created_at: new Date().toISOString()
+    };
     this.repository.create(record);
     return this.toItem({ ...record, archived_at: null });
   }
@@ -145,9 +153,11 @@ export class FileService {
     }
     const id = randomUUID();
     const storageName = `${id}${extensions[mime]}`;
-    const record = { id, name: safeName, mime_type: mime, size: bytes.length,
+    const record = {
+      id, name: safeName, mime_type: mime, size: bytes.length,
       storage_name: storageName, storage_provider: 'local' as const, storage_bucket: null,
-      storage_domain: null, created_at: new Date().toISOString() };
+      storage_domain: null, created_at: new Date().toISOString()
+    };
     await mkdir(this.directory, { recursive: true });
     const diskPath = path.join(this.directory, storageName);
     await writeFile(diskPath, bytes, { flag: 'wx' });

@@ -47,10 +47,13 @@ async function requestApi(path: string, base: string, init?: RequestInit): Promi
   return body.data;
 }
 
-function parseToken(value: unknown): { id: string; key: string; token: string; uploadUrl: string } {
-  if (!isRecord(value) || typeof value.id !== 'string' || typeof value.key !== 'string' ||
-    typeof value.token !== 'string' || typeof value.uploadUrl !== 'string') throw new Error('上传凭证格式异常');
-  return { id: value.id, key: value.key, token: value.token, uploadUrl: value.uploadUrl };
+function parsePreparation(value: unknown): { strategy: 'local' } |
+  { strategy: 'qiniu'; id: string; key: string; token: string; uploadUrl: string } {
+  if (!isRecord(value)) throw new Error('上传准备信息格式异常');
+  if (value.strategy === 'local') return { strategy: 'local' };
+  if (value.strategy !== 'qiniu' || typeof value.id !== 'string' || typeof value.key !== 'string' ||
+    typeof value.token !== 'string' || typeof value.uploadUrl !== 'string') throw new Error('上传准备信息格式异常');
+  return { strategy: 'qiniu', id: value.id, key: value.key, token: value.token, uploadUrl: value.uploadUrl };
 }
 
 /** 返回文件信息，其中 url 是可直接保存到业务表的完整访问地址。 */
@@ -59,11 +62,11 @@ export async function uploadFile(file: File, options: UploadOptions = {}): Promi
   const base = apiBaseUrl.replace(/\/+$/, '');
   const mimeType = file.name.toLowerCase().endsWith('.ico') ? 'image/x-icon'
     : file.type || 'application/octet-stream';
-  const strategy = await requestApi('uploads/strategy', base);
-  if (!isRecord(strategy) || (strategy.strategy !== 'local' && strategy.strategy !== 'qiniu')) {
-    throw new Error('上传策略响应格式异常');
-  }
-  if (strategy.strategy === 'local') {
+  const prepared = parsePreparation(await requestApi('uploads/prepare', base, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: file.name, mimeType, size: file.size }),
+  }));
+  if (prepared.strategy === 'local') {
     const value = await requestApi('uploads/local', base, {
       method: 'POST', body: file,
       headers: { 'Content-Type': mimeType, 'X-File-Name': encodeURIComponent(file.name) },
@@ -71,10 +74,6 @@ export async function uploadFile(file: File, options: UploadOptions = {}): Promi
     return parseFile(value, apiBaseUrl);
   }
 
-  const prepared = parseToken(await requestApi('uploads/token', base, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: file.name, mimeType, size: file.size }),
-  }));
   const form = new FormData();
   form.set('token', prepared.token);
   form.set('key', prepared.key);
