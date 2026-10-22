@@ -17,6 +17,7 @@ import { NotFoundPage } from '../pages/errors/NotFoundPage';
 import { DictionariesPage } from '../pages/dictionaries/DictionariesPage';
 import { AppearancePage } from '../pages/appearance/AppearancePage';
 import { UploadSettingsPage } from '../pages/upload-settings/UploadSettingsPage';
+import { PaymentSettingsPage } from '../pages/payment-settings/PaymentSettingsPage';
 
 export const router = createBrowserRouter([
   {
@@ -72,6 +73,10 @@ export const router = createBrowserRouter([
       {
         path: 'upload-settings',
         element: <UploadSettingsPage />,
+      },
+      {
+        path: 'payment-settings',
+        element: <PaymentSettingsPage />,
       },
       {
         path: 'menus',

@@ -9,6 +9,7 @@ export * from './requestLogs';
 export * from './siteSettings';
 export * from './files';
 export * from './uploadSettings';
+export * from './paymentSettings';
 export * from './menus';
 export * from './systemStatus';
 export * from './users';
