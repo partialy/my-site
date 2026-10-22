@@ -16,6 +16,7 @@ import { ApiDocsPage } from '../pages/api-docs/ApiDocsPage';
 import { NotFoundPage } from '../pages/errors/NotFoundPage';
 import { DictionariesPage } from '../pages/dictionaries/DictionariesPage';
 import { AppearancePage } from '../pages/appearance/AppearancePage';
+import { UploadSettingsPage } from '../pages/upload-settings/UploadSettingsPage';
 
 export const router = createBrowserRouter([
   {
@@ -67,6 +68,10 @@ export const router = createBrowserRouter([
       {
         path: 'files',
         element: <FilesPage />,
+      },
+      {
+        path: 'upload-settings',
+        element: <UploadSettingsPage />,
       },
       {
         path: 'menus',

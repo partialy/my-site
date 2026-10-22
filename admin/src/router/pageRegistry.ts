@@ -22,6 +22,7 @@ export const PAGE_REGISTRY: readonly PageRecord[] = [
   { path: '/visit-logs', name: '访问日志', defaultKey: 'visit-logs', defaultIcon: 'bar-chart', defaultMenu: false, menuSelectable: true },
   { path: '/users', name: '用户管理', defaultKey: 'users', defaultIcon: 'users', defaultMenu: false, menuSelectable: true },
   { path: '/files', name: '文件管理', defaultKey: 'files', defaultIcon: 'folder', defaultMenu: true, menuSelectable: true },
+  { path: '/upload-settings', name: '上传设置', defaultKey: 'upload-settings', defaultIcon: 'cloud', defaultMenu: false, menuSelectable: true },
   { path: '/menus', name: '菜单管理', defaultKey: 'menu-management', defaultIcon: 'menu', defaultMenu: true, menuSelectable: true },
   { path: '/api-docs', name: '接口文档', defaultKey: 'api-docs', defaultIcon: 'book', defaultMenu: false, menuSelectable: true },
   { path: '/login', name: '登录', defaultKey: 'login', defaultIcon: null, defaultMenu: false, menuSelectable: false },

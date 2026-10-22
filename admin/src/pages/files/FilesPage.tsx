@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Alert, Button, Card, Flex, Image, message, Modal, Space, Table, Tag, Typography, Upload } from 'antd';
 import type { TableProps } from 'antd';
+import { Link } from 'react-router-dom';
 import { Archive, Copy, FolderOpen, RotateCcw, Trash2, UploadCloud } from 'lucide-react';
 import type { FileItem } from '../../api/files';
 import { archiveFile, deleteFilePermanently, restoreFile, uploadFile } from '../../api/files';
@@ -150,9 +151,12 @@ export function FilesPage() {
           <Title level={2} style={{ margin: 0 }}>文件管理</Title>
           <Paragraph type="secondary" style={{ margin: '8px 0 0' }}>集中管理上传文件，复用已有文件链接。</Paragraph>
         </div>
-        <Upload showUploadList={false} multiple beforeUpload={(file) => { void handleUpload(file); return false; }}>
-          <Button type="primary" icon={<UploadCloud size={16} />} loading={uploading}>上传文件</Button>
-        </Upload>
+        <Space>
+          <Link to="/upload-settings"><Button>上传设置</Button></Link>
+          <Upload showUploadList={false} multiple beforeUpload={(file) => { void handleUpload(file); return false; }}>
+            <Button type="primary" icon={<UploadCloud size={16} />} loading={uploading}>上传文件</Button>
+          </Upload>
+        </Space>
       </Flex>
       <CrudFilterBar fields={filterFields} values={query} defaultValues={defaultFileFilters} onSearch={setFilters} onReset={resetFilters} />
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} />}

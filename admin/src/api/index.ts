@@ -8,6 +8,7 @@ export * from './dictionaries';
 export * from './requestLogs';
 export * from './siteSettings';
 export * from './files';
+export * from './uploadSettings';
 export * from './menus';
 export * from './systemStatus';
 export * from './users';

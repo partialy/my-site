@@ -1,15 +1,9 @@
 import { getPublicApiBaseUrl, request } from './client';
 import type { ApiResponse } from './types';
+import { uploadFile as uploadBrowserFile } from './uploadFile';
+import type { UploadedFile } from './uploadFile';
 
-export interface FileItem {
-  id: string;
-  name: string;
-  mimeType: string;
-  size: number;
-  url: string;
-  createdAt: string;
-  archivedAt: string | null;
-}
+export type FileItem = UploadedFile;
 
 export interface FilePage {
   items: FileItem[];
@@ -40,8 +34,9 @@ function parseFile(value: unknown): FileItem {
     throw new Error('文件数据格式异常');
   }
   const apiBase = getPublicApiBaseUrl().replace(/\/+$/, '');
-  const url = value.url.startsWith('/api/v1/')
+  const rawUrl = value.url.startsWith('/api/v1/')
     ? `${apiBase}${value.url.slice('/api/v1'.length)}` : value.url;
+  const url = new URL(rawUrl, window.location.origin).toString();
   return { id: value.id, name: value.name, mimeType: value.mimeType,
     size: value.size, url, createdAt: value.createdAt, archivedAt: value.archivedAt };
 }
@@ -70,12 +65,9 @@ export function getFiles(query: FileQuery, signal?: AbortSignal): Promise<ApiRes
   return request(`/files?${params.toString()}`, parseFilePage, { signal });
 }
 
-export function uploadFile(file: File): Promise<ApiResponse<FileItem>> {
-  const contentType = file.name.toLowerCase().endsWith('.ico') ? 'image/x-icon'
-    : file.type || 'application/octet-stream';
-  return request('/files', parseFile, { method: 'POST', rawBody: file,
-    contentType,
-    headers: { 'X-File-Name': encodeURIComponent(file.name) } });
+export async function uploadFile(file: File): Promise<ApiResponse<FileItem>> {
+  const data = await uploadBrowserFile(file, { apiBaseUrl: getPublicApiBaseUrl() });
+  return { code: 0, msg: '文件已上传', data, success: true };
 }
 
 export function archiveFile(id: string): Promise<ApiResponse<null>> {
