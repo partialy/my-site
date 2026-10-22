@@ -17,9 +17,9 @@ const rule = { id: 'a1b2c3d4', name: '用户接口', type: 'wildcard', path: '/a
   remark: '记录用户模块', createdAt: '2026-10-20T08:00:00.000Z', updatedAt: '2026-10-20T08:00:00.000Z' };
 const config = { key: 'contact.email', name: '联系邮箱', value: 'hello@example.com', enabled: true,
   remark: '站点联系方式', createdAt: '2026-10-20T08:00:00.000Z', updatedAt: '2026-10-20T08:00:00.000Z' };
-const dictItem = { id: 1, typeId: 1, label: '已支付', value: 'paid', sort: 10, enabled: true,
+const dictItem = { uuid: 'a7a9e4c72b614ee69ed8d986dbd6c919', label: '已支付', value: 'paid', sort: 10, enabled: true,
   color: 'green', createdAt: '2026-10-20T08:00:00.000Z', updatedAt: '2026-10-20T08:00:00.000Z' };
-const dictType = { id: 1, code: 'order_status', name: '订单状态', remark: '', isPublic: true, enabled: true,
+const dictType = { uuid: 'b7a9e4c72b614ee69ed8d986dbd6c919', code: 'order_status', name: '订单状态', remark: '', isPublic: true, enabled: true,
   createdAt: '2026-10-20T08:00:00.000Z', updatedAt: '2026-10-20T08:00:00.000Z', items: [dictItem] };
 const dictOptions = { order_status: { code: dictType.code, name: dictType.name, items: [dictItem] } };
 const menu = { key: 'home', label: '首页', type: 'route', parentKey: null, path: '/', action: null,
@@ -33,13 +33,13 @@ const site = { projectName: '示例项目', copyright: '管理系统 © 2026 · 
 const file = { id: '7a9e4c72-b061-4ee6-9ed8-d986dbd6c919', name: 'logo.png', mimeType: 'image/png',
   size: 12345, url: '/api/v1/files/7a9e4c72-b061-4ee6-9ed8-d986dbd6c919/content',
   createdAt: '2026-10-20T08:00:00.000Z', archivedAt: null };
-const log = { id: 1, time: '2026-10-20T08:00:00.000Z', method: 'GET', path: '/api/v1/site-settings',
+const log = { uuid: 'c7a9e4c72b614ee69ed8d986dbd6c919', time: '2026-10-20T08:00:00.000Z', method: 'GET', path: '/api/v1/site-settings',
   url: '/api/v1/site-settings', requestData: null, responseData: '{"code":0}', status: 200,
   durationMs: 12, ip: '127.0.0.1', origin: null, referer: null, userAgent: 'Mozilla/5.0' };
 const visit = { id: 1, day: '2026-10-20', visitorId: '7a9e4c72-b061-4ee6-9ed8-d986dbd6c919',
   path: '/', pageTitle: '首页', referrer: '', ip: '127.0.0.1', userAgent: 'Mozilla/5.0',
   createdAt: '2026-10-20T08:00:00.000Z' };
-const user = { id: 1, account: 'example_user', nickname: '示例用户', avatar: null, status: 'active',
+const user = { uuid: 'd7a9e4c72b614ee69ed8d986dbd6c919', account: 'example_user', nickname: '示例用户', avatar: null, status: 'active',
   createdAt: '2026-10-20T08:00:00.000Z', updatedAt: '2026-10-20T08:00:00.000Z' };
 const home = {
   visits: { today: 18, yesterday: 15, last7Days: 102, trend7: [{ day: '2026-10-20', visits: 18 }],
@@ -137,7 +137,7 @@ const examples: Record<string, EndpointExample> = {
     response: success({ items: [user], total: 1, page: 1, pageSize: 20 }) },
   [`POST ${admin}/users`]: { request: { account: 'example_user', password: '<至少8位密码>', nickname: '示例用户' },
     response: success(user, '用户已注册') },
-  [`GET ${admin}/users/:id`]: { requestKind: 'Path', request: { id: 1 }, response: success(user) },
+  [`GET ${admin}/users/:id`]: { requestKind: 'Path', request: { id: user.uuid }, response: success(user) },
   [`PUT ${admin}/users/:id/profile`]: { request: { nickname: '新昵称', avatar: 'https://cdn.example.com/avatar.png' },
     response: success({ ...user, nickname: '新昵称', avatar: 'https://cdn.example.com/avatar.png' }, '用户资料已更新') },
   [`PUT ${admin}/users/:id/status`]: { request: { status: 'disabled' },

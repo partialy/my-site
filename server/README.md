@@ -79,7 +79,7 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 | PUT | /api/v1/admin/users/:id/status | 禁用或启用业务用户，需要管理员 Token |
 | GET | /api/v1/admin/visits | 分页筛选访问日志，需要管理员 Token |
 | GET | /api/v1/admin/request-logs | 分页查询请求日志，需要管理员 Token |
-| DELETE | /api/v1/admin/request-logs | 按 ID 或时间范围清理请求日志，需要管理员 Token |
+| DELETE | /api/v1/admin/request-logs | 按 UUID 或时间范围清理请求日志，需要管理员 Token |
 | GET | /api/v1/admin/files | 分页查询文件库，需要管理员 Token |
 | GET | /api/v1/admin/upload-settings | 读取上传策略和七牛配置，Secret Key 仅返回是否已配置 |
 | PUT | /api/v1/admin/upload-settings | 保存本地或七牛上传策略及七牛配置，Secret Key 留空则保留原值 |
@@ -139,7 +139,7 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 
 | mode | 请求体其余字段 | 删除范围 |
 | --- | --- | --- |
-| `ids` | `ids:[1,2]` | 1～500 个正整数 ID 指定的记录 |
+| `ids` | `ids:["7a9e4c72b0614ee69ed8d986dbd6c919"]` | 1～500 个 UUID 指定的记录 |
 | `timeRange` | `startTime`、`endTime` | 起止时间内，含两端 |
 | `beforeTime` | `time` | 严格早于指定时间 |
 | `afterTime` | `time` | 严格晚于指定时间 |
@@ -149,9 +149,11 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 
 业务项目可扩展通用用户资料与业务表，管理员认证表继续保持单管理员约束。
 
+对外可按单条记录操作的用户、字典类型/子项和请求日志返回 `uuid`（UUID v4 去掉连字符，32 位小写十六进制）；路径参数或按记录清理时传该值。数据库自增 `id` 和整数外键仅用于内部关联、排序。旧库在启动迁移时回填 UUID，旧的数字路径参数不再接受；已签发的数字主体用户 JWT 在到期前仍可使用。文件 `id` 原本是带连字符的 UUID，链接格式保持不变。
+
 ## 业务用户与操作审计
 
-业务用户使用不区分大小写的唯一账号和密码注册。`POST /api/v1/users/register` 提交 `{account,password,nickname?}`；管理员也可通过需管理员 JWT 的 `POST /api/v1/admin/users` 提交相同字段注册用户。`POST /api/v1/users/login` 返回用户 JWT；`GET /api/v1/users/me` 使用该 Token。用户 JWT 与管理员 JWT 的身份声明不同，不能互用。管理员可通过 `/api/v1/admin/users` 查询用户，通过 `PUT /api/v1/admin/users/:id/profile` 传 `{nickname,avatar}` 编辑资料，`avatar` 为文件访问 URL 或 `null`；通过 `PUT /api/v1/admin/users/:id/status` 传 `{status:"active"|"disabled"}` 修改状态；状态变化会撤销旧 Token。登录及认证请求按 UTC 日记录 `user_activity`，供近 7 日活跃用户统计。
+业务用户使用不区分大小写的唯一账号和密码注册。`POST /api/v1/users/register` 提交 `{account,password,nickname?}`；管理员也可通过需管理员 JWT 的 `POST /api/v1/admin/users` 提交相同字段注册用户。`POST /api/v1/users/login` 返回用户 JWT；`GET /api/v1/users/me` 使用该 Token。用户 JWT 与管理员 JWT 的身份声明不同，不能互用。管理员可通过 `/api/v1/admin/users` 查询用户，通过 `PUT /api/v1/admin/users/:id/profile` 传 `{nickname,avatar}` 编辑资料，`avatar` 为文件访问 URL 或 `null`；通过 `PUT /api/v1/admin/users/:id/status` 传 `{status:"active"|"disabled"}` 修改状态；这些路径中的 `id` 均为响应中的 32 位无连字符 `uuid`，不再接受自增 ID。状态变化会撤销旧 Token。登录及认证请求按 UTC 日记录 `user_activity`，供近 7 日活跃用户统计。
 
 `operation_log` 与 HTTP `request_log` 独立，记录成功的框架管理员写操作，包括配置、菜单、站点、文件、用户状态和数据库备份。`GET /api/v1/admin/operation-logs` 支持 `page`、`pageSize`、`module`、`actor`、`startTime`、`endTime`。业务模块在 Service 层显式调用 `OperationLogService.record()`，传操作人、模块、动作、目标与安全摘要；只记涉及的字段名，不保存密码、Token 或完整请求/响应。框架操作在响应成功后尽力写入审计；需要审计与业务数据严格同事务的业务模块，应在自身 Service 事务中显式调用记录器。
 

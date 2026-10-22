@@ -23,12 +23,12 @@ const publicApi = '/api/v1';
 const adminInfo = '{ id: number; username: string }';
 const siteSettings = '{ projectName: string; copyright: string; admin: { siteTitle: string; systemName: string; iconUrl: string | null }; client: 同 admin; loginAppearance: { backgroundMode: "solid" | "gradient" | "image"; solidColor: string; gradientStartColor: string; gradientEndColor: string; gradientDirection: number; backgroundFileId: UUID | null; backgroundUrl: string | null; cardOpacity: number } }';
 const configItem = '{ key: string; name: string; value: string; enabled: boolean; remark: string; createdAt: ISO时间; updatedAt: ISO时间 }';
-const dictItem = '{ id: number; typeId: number; label: string; value: string; sort: number; enabled: boolean; color: string; createdAt: ISO时间; updatedAt: ISO时间 }';
-const dictType = `{ id: number; code: string; name: string; remark: string; isPublic: boolean; enabled: boolean; createdAt: ISO时间; updatedAt: ISO时间; items: ${dictItem}[] }`;
+const dictItem = '{ uuid: string; label: string; value: string; sort: number; enabled: boolean; color: string; createdAt: ISO时间; updatedAt: ISO时间 }';
+const dictType = `{ uuid: string; code: string; name: string; remark: string; isPublic: boolean; enabled: boolean; createdAt: ISO时间; updatedAt: ISO时间; items: ${dictItem}[] }`;
 const whitelistRule = '{ id: string; name: string; type: "wildcard" | "exact"; path: string; remark: string; createdAt: ISO时间; updatedAt: ISO时间 }';
 const fileItem = '{ id: UUID; name: string; mimeType: string; size: number; url: string; createdAt: ISO时间; archivedAt: ISO时间 | null }';
 const menuItem = '{ key: string; label: string; type: "group" | "route" | "action"; parentKey: string | null; path: string | null; action: string | null; icon: string | null; sort: number; visible: boolean }';
-const userItem = '{ id: number; account: string; nickname: string; avatar: string | null; status: "active" | "disabled"; createdAt: ISO时间; updatedAt: ISO时间 }';
+const userItem = '{ uuid: string; account: string; nickname: string; avatar: string | null; status: "active" | "disabled"; createdAt: ISO时间; updatedAt: ISO时间 }';
 
 export const API_GROUPS: readonly ApiGroup[] = [
   { audience: 'admin', module: '初始化与认证', endpoints: [
@@ -85,14 +85,14 @@ export const API_GROUPS: readonly ApiGroup[] = [
       response: `${dictType}[]`, note: '整批事务提交，任一标识冲突则全部回滚。' },
     { method: 'PUT', path: `${admin}/dictionaries/:id`, title: '修改字典类型', auth: true,
       request: 'JSON: { name: string; remark: string; isPublic: boolean; enabled: boolean }', response: dictType,
-      note: 'code 创建后不可修改。' },
+      note: '路径 id 为类型 UUID（32 位无连字符）；code 创建后不可修改。' },
     { method: 'POST', path: `${admin}/dictionaries/:id/items`, title: '新增字典子项', auth: true,
-      request: 'JSON: { label: string; value: string; sort: number; enabled: boolean; color: string }', response: dictItem },
+      request: '路径 id 为类型 UUID；JSON: { label: string; value: string; sort: number; enabled: boolean; color: string }', response: dictItem },
     { method: 'POST', path: `${admin}/dictionaries/:id/items/batch`, title: '批量新增字典子项', auth: true,
       request: 'JSON: { items: { label: string; value: string; sort: number; enabled: boolean; color: string }[] }（1–20 条）',
-      response: `${dictItem}[]`, note: '整批事务提交，任一值冲突则全部回滚。' },
+      response: `${dictItem}[]`, note: '路径 id 为类型 UUID；整批事务提交，任一值冲突则全部回滚。' },
     { method: 'PUT', path: `${admin}/dictionaries/:id/items/:itemId`, title: '修改字典子项', auth: true,
-      request: 'JSON: { label: string; sort: number; enabled: boolean; color: string }', response: dictItem,
+      request: '路径 id 为类型 UUID，itemId 为子项 UUID；JSON: { label: string; sort: number; enabled: boolean; color: string }', response: dictItem,
       note: 'value 创建后不可修改；停用保留历史值。' },
   ] },
   { audience: 'admin', module: '菜单管理', endpoints: [
@@ -123,9 +123,9 @@ export const API_GROUPS: readonly ApiGroup[] = [
     { method: 'GET', path: `${admin}/request-logs`, title: '分页查询请求日志', auth: true,
       request: 'Query: page=1；pageSize=20(1-100)；method?；path?；status?(100-599)',
       response: '{ items: RequestLogItem[]; total: number; page: number; pageSize: number }',
-      note: 'RequestLogItem: id、time、method、path、url、requestData、responseData、status、durationMs、ip、origin、referer、userAgent。未开启日志时可返回空列表。' },
+      note: 'RequestLogItem: uuid、time、method、path、url、requestData、responseData、status、durationMs、ip、origin、referer、userAgent。未开启日志时可返回空列表。' },
     { method: 'DELETE', path: `${admin}/request-logs`, title: '清理请求日志', auth: true,
-      request: 'JSON 五选一: { mode: "ids"; ids: number[](1-500) } | { mode: "timeRange"; startTime: ISO时间; endTime: ISO时间 } | { mode: "beforeTime" | "afterTime"; time: ISO时间 } | { mode: "keepLatest"; count: number }',
+      request: 'JSON 五选一: { mode: "ids"; ids: UUID字符串[](1-500) } | { mode: "timeRange"; startTime: ISO时间; endTime: ISO时间 } | { mode: "beforeTime" | "afterTime"; time: ISO时间 } | { mode: "keepLatest"; count: number }',
       response: '{ deleted: number }', note: '时间段包含起止边界；时间前/后为严格比较；最新按日志 ID 判定。' },
   ] },
   { audience: 'admin', module: '操作日志', endpoints: [
@@ -154,12 +154,12 @@ export const API_GROUPS: readonly ApiGroup[] = [
       request: 'JSON: { account: string(3-32，字母开头，字母/数字/下划线); password: string(8-128); nickname?: string(1-50) }',
       response: userItem, note: '复用业务用户注册校验；账号不区分大小写且唯一。成功时 HTTP 201。' },
     { method: 'GET', path: `${admin}/users/:id`, title: '查看业务用户', auth: true,
-      request: '路径: id=用户 ID', response: userItem },
+      request: '路径: id=用户 UUID（32 位无连字符）', response: userItem },
     { method: 'PUT', path: `${admin}/users/:id/profile`, title: '编辑业务用户资料', auth: true,
-      request: '路径: id=用户 ID；JSON: { nickname: string(1-50); avatar: HTTP(S) 文件访问 URL | null }',
+      request: '路径: id=用户 UUID（32 位无连字符）；JSON: { nickname: string(1-50); avatar: HTTP(S) 文件访问 URL | null }',
       response: userItem, note: '头像保存文件访问 URL；传 null 可移除头像，不修改账号和密码。' },
     { method: 'PUT', path: `${admin}/users/:id/status`, title: '禁用或启用业务用户', auth: true,
-      request: '路径: id=用户 ID；JSON: { status: "active" | "disabled" }', response: userItem,
+      request: '路径: id=用户 UUID（32 位无连字符）；JSON: { status: "active" | "disabled" }', response: userItem,
       note: '更改状态时提升 Token 版本；禁用后已有用户 JWT 立即失效。' },
   ] },
   { audience: 'admin', module: '访问日志', endpoints: [
