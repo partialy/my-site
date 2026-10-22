@@ -24,3 +24,16 @@ const profile = await users.me();
 ```
 
 用户 JWT 与管理端 JWT 不通用；正式项目可按目标平台选择 Token 存储方式。
+
+## 通用文件上传
+
+`client/uploadFile.ts` 是独立的浏览器上传模板，可直接复制到具体业务前端，不依赖 React 或管理端 Token。管理端保留自己的 `admin/src/api/uploadFile.ts` 副本，不跨目录导入。上传接口位于公开的 `/api/v1/uploads/**`，默认同源；跨域部署时传入公共 API 根路径。返回值的 `url` 是完整访问地址，可直接保存到业务表。
+
+```ts
+import { uploadFile } from './uploadFile';
+
+const uploaded = await uploadFile(file, { apiBaseUrl: 'https://api.example.com/api/v1' });
+const imageUrl = uploaded.url; // 保存到业务表的 URL 字段
+```
+
+本地上传由 server 保存文件；七牛由浏览器直传，server 仅签发凭证并核验登记。公开上传接口按 IP 限流，业务项目可按需要增加登录态或更严格的上传配额。

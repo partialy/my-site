@@ -79,6 +79,12 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 | GET | /api/v1/admin/request-logs | 分页查询请求日志，需要管理员 Token |
 | DELETE | /api/v1/admin/request-logs | 按 ID 或时间范围清理请求日志，需要管理员 Token |
 | GET | /api/v1/admin/files | 分页查询文件库，需要管理员 Token |
+| GET | /api/v1/admin/upload-settings | 读取上传策略和七牛配置，Secret Key 仅返回是否已配置 |
+| PUT | /api/v1/admin/upload-settings | 保存本地或七牛上传策略及七牛配置，Secret Key 留空则保留原值 |
+| GET | /api/v1/uploads/strategy | 公开获取当前上传策略 |
+| POST | /api/v1/uploads/local | 公开上传本地文件，按 IP 限流 |
+| POST | /api/v1/uploads/token | 公开签发七牛直传凭证，按 IP 限流 |
+| POST | /api/v1/uploads/complete | 公开核验七牛文件并登记，按 IP 限流 |
 | POST | /api/v1/admin/files | 上传原始文件，需要管理员 Token |
 | DELETE | /api/v1/admin/files/:id | 归档文件，需要管理员 Token |
 | PUT | /api/v1/admin/files/:id/restore | 恢复归档文件，需要管理员 Token |
@@ -172,9 +178,13 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 
 ## 文件库
 
-`GET /api/v1/admin/files?page=1&pageSize=20&search=关键词&mimeTypes=image/png,image/jpeg&sortBy=size&sortOrder=desc&status=all` 返回 `{items,total,page,pageSize}`。`status` 可选 `active`、`archived`、`all`，默认 `active`，文件管理页传 `all`，文件选择器只查询 `active`。`mimeTypes` 可选，使用逗号分隔，在计数和分页前过滤类型。`sortBy` 仅允许 `createdAt`、`size`，`sortOrder` 仅允许 `asc`、`desc`，默认按上传时间倒序；同值时按 ID 倒序保证分页稳定。每条 `FileItem` 包含 `{id,name,mimeType,size,url,createdAt,archivedAt}`，其中 `url` 为稳定公开路径 `/api/v1/files/:id/content`，`archivedAt` 为 `null` 表示可用。列表、上传、归档、恢复和永久删除需要管理员 JWT；内容链接公开读取。
+`GET /api/v1/admin/files?page=1&pageSize=20&search=关键词&mimeTypes=image/png,image/jpeg&sortBy=size&sortOrder=desc&status=all` 返回 `{items,total,page,pageSize}`。`status` 可选 `active`、`archived`、`all`，默认 `active`，文件管理页传 `all`，文件选择器只查询 `active`。`mimeTypes` 可选，使用逗号分隔，在计数和分页前过滤类型。`sortBy` 仅允许 `createdAt`、`size`，`sortOrder` 仅允许 `asc`、`desc`，默认按上传时间倒序；同值时按 ID 倒序保证分页稳定。每条 `FileItem` 包含 `{id,name,mimeType,size,url,createdAt,archivedAt}`；本地 `url` 指向公开文件接口，七牛 `url` 为访问域名直链，`archivedAt` 为 `null` 表示可用。列表、上传、归档、恢复和永久删除需要管理员 JWT；内容链接公开读取。
 
-`POST /api/v1/admin/files` 使用原始文件字节作为请求体，设置实际文件 MIME 的 `Content-Type`，并将文件名执行 `encodeURIComponent` 后放入 `X-File-Name`。首版支持 PNG、JPEG、WebP、ICO、GIF、PDF，最大 10 MiB；校验文件头并拒绝 SVG。元数据保存在 SQLite 的 `file` 表，文件本体保存在 `server/data/uploads/`，内置数据库备份不包含文件本体。`DELETE /api/v1/admin/files/:id` 仅归档记录，不再出现在选择器中；已有内容链接仍可访问。`PUT /api/v1/admin/files/:id/restore` 恢复文件可选状态。`DELETE /api/v1/admin/files/:id/permanent` 永久删除文件的元数据与原文件，当前用作后台/前台站点图标或登录背景的文件返回 409；业务表或外部保存的链接无法自动检测，删除前需确认没有其他引用。
+本地策略下，`POST /api/v1/admin/files` 使用原始文件字节作为请求体，设置实际文件 MIME 的 `Content-Type`，并将文件名执行 `encodeURIComponent` 后放入 `X-File-Name`。支持 PNG、JPEG、WebP、ICO、GIF、PDF，最大 10 MiB；本地上传校验文件头并拒绝 SVG。元数据保存在 SQLite 的 `file` 表，本地文件存于 `server/data/uploads/`，内置数据库备份不包含文件本体。`DELETE /api/v1/admin/files/:id` 仅归档记录，不再出现在选择器中；已有内容链接仍可访问。`PUT /api/v1/admin/files/:id/restore` 恢复文件可选状态。`DELETE /api/v1/admin/files/:id/permanent` 永久删除文件的元数据与原文件，当前用作后台/前台站点图标或登录背景的文件返回 409；业务表或外部保存的链接无法自动检测，删除前需确认没有其他引用。
+
+上传策略在管理端 `/upload-settings` 设置，默认为本地。七牛 Access Key、Secret Key、Bucket、根目录、上传域名及访问域名存于 SQLite `sys_config`，不放入 `.env`；读取接口不返回 Secret Key，数据库备份仍包含该密钥，应妥善保管。七牛策略下，先调用公开 `POST /api/v1/uploads/token` 提交 `{name,mimeType,size}`，返回 `{id,key,token,uploadUrl}`；浏览器携带 token、key、file 直传七牛，再调用公开 `POST /api/v1/uploads/complete` 提交 `{id,key,name,mimeType,size}`。服务端向七牛核对文件存在且大小、类型匹配后登记。`admin/src/api/uploadFile.ts` 与 `client/uploadFile.ts` 各自提供独立的 `uploadFile(file)`，封装相同的策略选择与上传流程；业务前端可复制 client 模板，返回的 `url` 可直接写入业务表：本地是可访问的文件接口 URL，七牛是配置的访问域名直链，不经 server 代理。公开上传接口不要求登录，以 IP 每分钟最多 20 次限流；七牛上传凭证仅允许写入生成的 objectKey，并限制 MIME 和大小。切换策略不会迁移旧文件；七牛旧文件的访问域名保存在文件记录中。永久删除七牛文件需要当前 AK/SK 仍可管理该文件原 Bucket。
+
+本地文件访问域名也在上传设置中配置。生产环境建议填直接对外提供 `/api/v1/files/:id/content` 的 HTTPS 域名；留空时返回同源相对路径，管理端 `uploadFile` 会按当前站点域名补成完整 URL。
 
 ## 菜单管理
 
