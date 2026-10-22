@@ -7,9 +7,9 @@ import type { DictType } from '../../api/dictionaries';
 interface Props {
   open: boolean;
   types: DictType[];
-  selectedIds: number[];
+  selectedIds: string[];
   onCancel: () => void;
-  onConfirm: (ids: number[]) => void;
+  onConfirm: (ids: string[]) => void;
 }
 
 const columns: TableProps<DictType>['columns'] = [
@@ -21,7 +21,7 @@ const columns: TableProps<DictType>['columns'] = [
 ];
 
 export function DictionaryTypePickerModal({ open, types, selectedIds, onCancel, onConfirm }: Props) {
-  const [draftIds, setDraftIds] = useState<number[]>([]);
+  const [draftIds, setDraftIds] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
 
@@ -43,9 +43,9 @@ export function DictionaryTypePickerModal({ open, types, selectedIds, onCancel, 
     <Space direction="vertical" size={14} style={{ width: '100%', marginTop: 12 }}>
       <Input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }}
         placeholder="搜索名称、标识或备注" prefix={<Search size={16} />} allowClear />
-      <Table<DictType> rowKey="id" columns={columns} dataSource={filteredTypes} size="middle"
+      <Table<DictType> rowKey="uuid" columns={columns} dataSource={filteredTypes} size="middle"
         rowSelection={{ selectedRowKeys: draftIds, preserveSelectedRowKeys: true,
-          onChange: (keys) => setDraftIds(keys.filter((key): key is number => typeof key === 'number')) }}
+          onChange: (keys) => setDraftIds(keys.filter((key): key is string => typeof key === 'string')) }}
         pagination={{ current: page, pageSize: 10, total: filteredTypes.length,
           showTotal: (total) => `共 ${total} 条`, onChange: setPage }} />
     </Space>

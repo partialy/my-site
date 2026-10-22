@@ -10,7 +10,7 @@ interface Props {
   item: DictItem | null;
   saving: boolean;
   onClose: () => void;
-  onSave: (inputs: CreateDictItemInput[], itemId?: number) => Promise<boolean>;
+  onSave: (inputs: CreateDictItemInput[], itemId?: string) => Promise<boolean>;
 }
 
 interface FormValues { entries: CreateDictItemInput[] }
@@ -36,7 +36,7 @@ export function DictionaryItemEditor({ open, item, saving, onClose, onSave }: Pr
       label: entry.label.trim(), value: entry.value.trim(), sort: entry.sort ?? 0,
       enabled: entry.enabled, color: entry.color,
     }));
-    if (await onSave(inputs, item?.id)) onClose();
+    if (await onSave(inputs, item?.uuid)) onClose();
   };
 
   return (

@@ -37,7 +37,7 @@ function assertUnique(entries: { source: string; name: string }[], scope: string
 }
 
 function itemsFor(type: DictType): DictItem[] {
-  return [...type.items].sort((a, b) => a.sort - b.sort || a.id - b.id);
+  return [...type.items].sort((a, b) => a.sort - b.sort || a.uuid.localeCompare(b.uuid));
 }
 
 function typescriptType(type: DictType): string {

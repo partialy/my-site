@@ -8,7 +8,7 @@ import { invalidateDictionary } from '../../dictionaries';
 
 export function useDictionaries() {
   const [types, setTypes] = useState<DictType[]>([]);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +24,7 @@ export function useDictionaries() {
   }, [search, types]);
   const currentPage = Math.min(page, Math.max(1, Math.ceil(filteredTypes.length / pageSize)));
   const pageTypes = filteredTypes.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  const selectedType = pageTypes.find((type) => type.id === selectedId) ?? pageTypes[0] ?? null;
+  const selectedType = pageTypes.find((type) => type.uuid === selectedId) ?? pageTypes[0] ?? null;
 
   const setSearch = (value: string): void => {
     setSearchValue(value);
@@ -43,8 +43,8 @@ export function useDictionaries() {
       const result = await getDictionaries();
       if (!result.success) throw new Error(result.msg);
       setTypes(result.data);
-      setSelectedId((current) => current && result.data.some((type) => type.id === current)
-        ? current : result.data[0]?.id ?? null);
+      setSelectedId((current) => current && result.data.some((type) => type.uuid === current)
+        ? current : result.data[0]?.uuid ?? null);
       return result.data;
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '加载字典失败');
@@ -81,7 +81,7 @@ export function useDictionaries() {
     if (!first) return false;
     const { code: _code, ...editable } = first;
     const latest = await runSave(
-      () => current ? updateDictionary(current.id, editable) : createDictionaries(inputs),
+      () => current ? updateDictionary(current.uuid, editable) : createDictionaries(inputs),
       current ? [current.code] : inputs.map((input) => input.code),
     );
     if (latest && !current) {
@@ -89,24 +89,24 @@ export function useDictionaries() {
       if (index >= 0) {
         setSearchValue('');
         setPage(Math.ceil((index + 1) / pageSize));
-        setSelectedId(latest[index].id);
+        setSelectedId(latest[index].uuid);
       }
     }
     return latest !== null;
   };
 
-  const saveItems = async (type: DictType, inputs: CreateDictItemInput[], currentItemId?: number): Promise<boolean> => {
+  const saveItems = async (type: DictType, inputs: CreateDictItemInput[], currentItemId?: string): Promise<boolean> => {
     const first = inputs[0];
     if (!first) return false;
     const { value: _value, ...editable } = first;
     const latest = await runSave(() => currentItemId
-      ? updateDictionaryItem(type.id, currentItemId, editable)
-      : createDictionaryItems(type.id, inputs), [type.code]);
+      ? updateDictionaryItem(type.uuid, currentItemId, editable)
+      : createDictionaryItems(type.uuid, inputs), [type.code]);
     return latest !== null;
   };
 
   return {
-    types, selectedType, selectedId: selectedType?.id ?? null, setSelectedId,
+    types, selectedType, selectedId: selectedType?.uuid ?? null, setSelectedId,
     search, setSearch, currentPage, pageSize, filteredTypes, filteredTotal: filteredTypes.length,
     changePage, loading, saving, error, reload, saveTypes, saveItems,
   };

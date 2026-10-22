@@ -7,7 +7,7 @@ import { FilePickerModal } from '../../components/file-picker/FilePickerModal';
 interface Props {
   user: UserItem | null;
   onClose: () => void;
-  onSave: (id: number, input: UserProfileInput) => Promise<void>;
+  onSave: (uuid: string, input: UserProfileInput) => Promise<void>;
 }
 
 const imageMimeTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/x-icon'];
@@ -38,7 +38,7 @@ export function UserProfileModal({ user, onClose, onSave }: Props) {
     setSaving(true);
     setError(null);
     try {
-      await onSave(user.id, { nickname: values.nickname.trim(), avatar });
+      await onSave(user.uuid, { nickname: values.nickname.trim(), avatar });
       onClose();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '保存用户资料失败');

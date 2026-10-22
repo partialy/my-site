@@ -2,7 +2,7 @@ import { request } from './client';
 import type { ApiResponse } from './types';
 
 export interface RequestLogItem {
-  id: number;
+  uuid: string;
   time: string;
   method: string;
   path: string;
@@ -33,7 +33,7 @@ export interface RequestLogPage {
 }
 
 export type RequestLogCleanup =
-  | { mode: 'ids'; ids: number[] }
+  | { mode: 'ids'; ids: string[] }
   | { mode: 'timeRange'; startTime: string; endTime: string }
   | { mode: 'beforeTime' | 'afterTime'; time: string }
   | { mode: 'keepLatest'; count: number };
@@ -47,7 +47,7 @@ function isOptionalString(value: unknown): value is string | null {
 }
 
 function parseRequestLogItem(value: unknown): RequestLogItem {
-  if (!isRecord(value) || typeof value.id !== 'number' || typeof value.time !== 'string' ||
+  if (!isRecord(value) || typeof value.uuid !== 'string' || typeof value.time !== 'string' ||
     typeof value.method !== 'string' || typeof value.path !== 'string' || typeof value.url !== 'string' ||
     !isOptionalString(value.requestData) || !isOptionalString(value.responseData) ||
     typeof value.status !== 'number' || typeof value.durationMs !== 'number' ||
@@ -56,7 +56,7 @@ function parseRequestLogItem(value: unknown): RequestLogItem {
     throw new Error('请求日志数据格式异常');
   }
   return {
-    id: value.id, time: value.time, method: value.method, path: value.path, url: value.url,
+    uuid: value.uuid, time: value.time, method: value.method, path: value.path, url: value.url,
     requestData: value.requestData, responseData: value.responseData,
     status: value.status, durationMs: value.durationMs, ip: value.ip,
     origin: value.origin, referer: value.referer, userAgent: value.userAgent,

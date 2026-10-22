@@ -39,16 +39,16 @@ export function useUsers() {
     return response.msg;
   }, [table.setFilters, table.reload]);
 
-  const updateStatus = useCallback(async (id: number, status: UserStatus) => {
-    const response = await setUserStatus(id, status);
+  const updateStatus = useCallback(async (uuid: string, status: UserStatus) => {
+    const response = await setUserStatus(uuid, status);
     if (!response.success) throw new Error(response.msg);
     if (table.query.status) table.reload();
-    else table.replaceItem((item) => item.id === id, response.data);
+    else table.replaceItem((item) => item.uuid === uuid, response.data);
     return { item: response.data, message: response.msg };
   }, [table.query.status, table.reload, table.replaceItem]);
 
-  const updateProfile = useCallback(async (id: number, input: UserProfileInput) => {
-    const response = await updateUserProfile(id, input);
+  const updateProfile = useCallback(async (uuid: string, input: UserProfileInput) => {
+    const response = await updateUserProfile(uuid, input);
     if (!response.success) throw new Error(response.msg);
     table.reload();
     return { item: response.data, message: response.msg };

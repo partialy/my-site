@@ -23,7 +23,7 @@ const filterFields: ReadonlyArray<CrudFilterField<RequestLogFilters>> = [
 
 export function RequestLogsPage() {
   const [selected, setSelected] = useState<RequestLogItem | null>(null);
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [cleanupOpen, setCleanupOpen] = useState(false);
   const [cleaning, setCleaning] = useState(false);
   const { query, result, loading, error, reload, setFilters, resetFilters, setPage } = useRequestLogs();
@@ -110,10 +110,10 @@ export function RequestLogsPage() {
       <CrudFilterBar fields={filterFields} values={query} defaultValues={{}} onSearch={search} onReset={reset} />
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} />}
       <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 16, overflow: 'hidden' }}>
-        <Table<RequestLogItem> rowKey="id" columns={columns} dataSource={result.items} loading={loading} scroll={{ x: 'max-content' }}
+        <Table<RequestLogItem> rowKey="uuid" columns={columns} dataSource={result.items} loading={loading} scroll={{ x: 'max-content' }}
           rowSelection={{
             selectedRowKeys: selectedIds, preserveSelectedRowKeys: true,
-            onChange: (keys) => setSelectedIds(keys.map(Number))
+            onChange: (keys) => setSelectedIds(keys.map(String))
           }}
           pagination={{
             current: query.page, pageSize: query.pageSize, total: result.total,

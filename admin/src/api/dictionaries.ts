@@ -5,8 +5,7 @@ export const DICT_COLORS = ['default', 'blue', 'green', 'orange', 'red', 'purple
 export type DictColor = typeof DICT_COLORS[number];
 
 export interface DictItem {
-  id: number;
-  typeId: number;
+  uuid: string;
   label: string;
   value: string;
   sort: number;
@@ -17,7 +16,7 @@ export interface DictItem {
 }
 
 export interface DictType {
-  id: number;
+  uuid: string;
   code: string;
   name: string;
   remark: string;
@@ -41,7 +40,7 @@ function record(value: unknown): Record<string, unknown> {
 
 function parseItem(value: unknown): DictItem {
   const item = record(value);
-  if (typeof item.id !== 'number' || typeof item.typeId !== 'number' ||
+  if (typeof item.uuid !== 'string' ||
     typeof item.label !== 'string' || typeof item.value !== 'string' ||
     typeof item.sort !== 'number' || typeof item.enabled !== 'boolean' ||
     !DICT_COLORS.includes(item.color as DictColor) ||
@@ -53,7 +52,7 @@ function parseItem(value: unknown): DictItem {
 
 function parseType(value: unknown): DictType {
   const item = record(value);
-  if (typeof item.id !== 'number' || typeof item.code !== 'string' || typeof item.name !== 'string' ||
+  if (typeof item.uuid !== 'string' || typeof item.code !== 'string' || typeof item.name !== 'string' ||
     typeof item.remark !== 'string' || typeof item.isPublic !== 'boolean' || typeof item.enabled !== 'boolean' ||
     typeof item.createdAt !== 'string' || typeof item.updatedAt !== 'string' || !Array.isArray(item.items)) {
     throw new Error('字典类型响应格式异常');
@@ -84,17 +83,17 @@ export const createDictionary = (input: CreateDictTypeInput): Promise<ApiRespons
   request('/dictionaries', parseType, { method: 'POST', body: input });
 export const createDictionaries = (items: CreateDictTypeInput[]): Promise<ApiResponse<DictType[]>> =>
   request('/dictionaries/batch', parseTypes, { method: 'POST', body: { items } });
-export const updateDictionary = (id: number, input: UpdateDictTypeInput): Promise<ApiResponse<DictType>> =>
-  request(`/dictionaries/${id}`, parseType, { method: 'PUT', body: input });
-export const createDictionaryItem = (typeId: number, input: CreateDictItemInput): Promise<ApiResponse<DictItem>> =>
-  request(`/dictionaries/${typeId}/items`, parseItem, { method: 'POST', body: input });
-export const createDictionaryItems = (typeId: number, items: CreateDictItemInput[]): Promise<ApiResponse<DictItem[]>> =>
-  request(`/dictionaries/${typeId}/items/batch`, (value) => {
+export const updateDictionary = (uuid: string, input: UpdateDictTypeInput): Promise<ApiResponse<DictType>> =>
+  request(`/dictionaries/${uuid}`, parseType, { method: 'PUT', body: input });
+export const createDictionaryItem = (typeUuid: string, input: CreateDictItemInput): Promise<ApiResponse<DictItem>> =>
+  request(`/dictionaries/${typeUuid}/items`, parseItem, { method: 'POST', body: input });
+export const createDictionaryItems = (typeUuid: string, items: CreateDictItemInput[]): Promise<ApiResponse<DictItem[]>> =>
+  request(`/dictionaries/${typeUuid}/items/batch`, (value) => {
     if (!Array.isArray(value)) throw new Error('字典子项列表响应格式异常');
     return value.map(parseItem);
   }, { method: 'POST', body: { items } });
-export const updateDictionaryItem = (typeId: number, itemId: number, input: UpdateDictItemInput): Promise<ApiResponse<DictItem>> =>
-  request(`/dictionaries/${typeId}/items/${itemId}`, parseItem, { method: 'PUT', body: input });
+export const updateDictionaryItem = (typeUuid: string, itemUuid: string, input: UpdateDictItemInput): Promise<ApiResponse<DictItem>> =>
+  request(`/dictionaries/${typeUuid}/items/${itemUuid}`, parseItem, { method: 'PUT', body: input });
 export const getPublicDictionaries = (codes: string[]): Promise<ApiResponse<Record<string, PublicDictType>>> =>
   request(`/dictionaries?codes=${encodeURIComponent(codes.join(','))}`, parsePublicTypes,
     { requiresAuth: false, baseUrl: getPublicApiBaseUrl() });

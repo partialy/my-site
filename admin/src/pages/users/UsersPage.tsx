@@ -27,7 +27,7 @@ export function UsersPage() {
     register, updateStatus, updateProfile } = useUsers();
 
   const columns = useMemo<TableColumnsType<UserItem>>(() => [
-    { title: 'ID', dataIndex: 'id', width: 90 },
+    { title: 'UUID', dataIndex: 'uuid', width: 270, ellipsis: true },
     { title: '账号', dataIndex: 'account', render: (value: string) => <Text strong>{value}</Text> },
     { title: '昵称', key: 'nickname', render: (_, item) => <Space size={10}>
       <Avatar src={item.avatar || undefined} icon={<UserRound size={16} />} />
@@ -49,8 +49,8 @@ export function UsersPage() {
               okText: nextStatus === 'disabled' ? '确认禁用' : '确认启用',
             },
             onClick: async (user) => {
-              const updated = await updateStatus(user.id, nextStatus);
-              setSelected((current) => current?.id === user.id ? updated.item : current);
+              const updated = await updateStatus(user.uuid, nextStatus);
+              setSelected((current) => current?.uuid === user.uuid ? updated.item : current);
               message.success(updated.message);
             } },
         ];
@@ -73,14 +73,14 @@ export function UsersPage() {
     <CrudFilterBar fields={filterFields} values={query} defaultValues={{}} onSearch={setFilters} onReset={resetFilters} />
     {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} />}
     <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 16, overflow: 'hidden' }}>
-      <Table<UserItem> rowKey="id" columns={columns} dataSource={result.items} loading={loading} scroll={{ x: 'max-content' }}
+      <Table<UserItem> rowKey="uuid" columns={columns} dataSource={result.items} loading={loading} scroll={{ x: 'max-content' }}
         pagination={{ current: query.page, pageSize: query.pageSize, total: result.total,
           showSizeChanger: true, pageSizeOptions: [10, 20, 50], showTotal: (total) => `共 ${total} 位用户`,
           onChange: setPage }} />
     </Card>
     <Modal title="用户详情" open={selected !== null} footer={null} onCancel={() => setSelected(null)} width={620} destroyOnHidden>
       {selected && <Descriptions column={1} bordered size="small" styles={{ label: { width: 120 } }}>
-        <Descriptions.Item label="用户 ID">{selected.id}</Descriptions.Item>
+        <Descriptions.Item label="用户 UUID">{selected.uuid}</Descriptions.Item>
         <Descriptions.Item label="账号">{selected.account}</Descriptions.Item>
         <Descriptions.Item label="昵称">{selected.nickname}</Descriptions.Item>
         <Descriptions.Item label="头像">{selected.avatar ? <a href={selected.avatar} target="_blank" rel="noreferrer">查看头像</a> : '—'}</Descriptions.Item>
@@ -95,9 +95,9 @@ export function UsersPage() {
         message.success(result);
       }} />
     <UserProfileModal user={editing} onClose={() => setEditing(null)}
-      onSave={async (id, input) => {
-        const updated = await updateProfile(id, input);
-        setSelected((current) => current?.id === id ? updated.item : current);
+      onSave={async (uuid, input) => {
+        const updated = await updateProfile(uuid, input);
+        setSelected((current) => current?.uuid === uuid ? updated.item : current);
         message.success(updated.message);
       }} />
   </div>;

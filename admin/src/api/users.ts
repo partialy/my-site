@@ -4,7 +4,7 @@ import type { ApiResponse } from './types';
 export type UserStatus = 'active' | 'disabled';
 
 export interface UserItem {
-  id: number;
+  uuid: string;
   account: string;
   nickname: string;
   avatar: string | null;
@@ -41,7 +41,7 @@ export interface UserProfileInput {
 function parseUser(value: unknown): UserItem {
   if (typeof value !== 'object' || value === null) throw new Error('用户数据格式异常');
   const user = value as Partial<UserItem>;
-  if (typeof user.id !== 'number' || typeof user.account !== 'string' ||
+  if (typeof user.uuid !== 'string' || typeof user.account !== 'string' ||
     typeof user.nickname !== 'string' || !(user.avatar === null || typeof user.avatar === 'string') ||
     (user.status !== 'active' && user.status !== 'disabled') ||
     typeof user.createdAt !== 'string' || typeof user.updatedAt !== 'string') throw new Error('用户数据格式异常');
@@ -63,18 +63,18 @@ export function getUsers(query: UserQuery, signal?: AbortSignal): Promise<ApiRes
   return request(`/users?${params.toString()}`, parseUserPage, { signal });
 }
 
-export function getUser(id: number): Promise<ApiResponse<UserItem>> {
-  return request(`/users/${id}`, parseUser);
+export function getUser(uuid: string): Promise<ApiResponse<UserItem>> {
+  return request(`/users/${uuid}`, parseUser);
 }
 
 export function registerUser(input: UserRegisterInput): Promise<ApiResponse<UserItem>> {
   return request('/users', parseUser, { method: 'POST', body: input });
 }
 
-export function setUserStatus(id: number, status: UserStatus): Promise<ApiResponse<UserItem>> {
-  return request(`/users/${id}/status`, parseUser, { method: 'PUT', body: { status } });
+export function setUserStatus(uuid: string, status: UserStatus): Promise<ApiResponse<UserItem>> {
+  return request(`/users/${uuid}/status`, parseUser, { method: 'PUT', body: { status } });
 }
 
-export function updateUserProfile(id: number, input: UserProfileInput): Promise<ApiResponse<UserItem>> {
-  return request(`/users/${id}/profile`, parseUser, { method: 'PUT', body: input });
+export function updateUserProfile(uuid: string, input: UserProfileInput): Promise<ApiResponse<UserItem>> {
+  return request(`/users/${uuid}/profile`, parseUser, { method: 'PUT', body: input });
 }

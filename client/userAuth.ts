@@ -1,6 +1,6 @@
 /** 前台项目可复用的业务用户接口；Token 存储由具体项目决定。 */
 export interface ClientUser {
-  id: number;
+  uuid: string;
   account: string;
   nickname: string;
   avatar: string | null;

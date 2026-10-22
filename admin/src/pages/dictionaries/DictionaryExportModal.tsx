@@ -9,7 +9,7 @@ import type { ExportLanguage, ExportMode, GeneratedFile } from './generateDictio
 interface Props {
   open: boolean;
   types: DictType[];
-  initialTypeId: number | null;
+  initialTypeId: string | null;
   onClose: () => void;
 }
 
@@ -31,11 +31,11 @@ export function DictionaryExportModal({ open, types, initialTypeId, onClose }: P
   const [fileName, setFileName] = useState('dictionaries');
   const [language, setLanguage] = useState<ExportLanguage>('ts');
   const [mode, setMode] = useState<ExportMode>('single');
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [copying, setCopying] = useState(false);
-  const selectedTypes = selectedIds.map((id) => types.find((type) => type.id === id))
+  const selectedTypes = selectedIds.map((id) => types.find((type) => type.uuid === id))
     .filter((type): type is DictType => Boolean(type));
 
   useEffect(() => {
@@ -109,8 +109,8 @@ export function DictionaryExportModal({ open, types, initialTypeId, onClose }: P
         </Form.Item>
         <Form.Item label={`类型列表（${selectedTypes.length}）`} required>
           <Space size={[6, 8]} wrap>
-            {selectedTypes.map((type) => <Tag key={type.id} closable
-              onClose={() => setSelectedIds((ids) => ids.filter((id) => id !== type.id))}>
+            {selectedTypes.map((type) => <Tag key={type.uuid} closable
+              onClose={() => setSelectedIds((ids) => ids.filter((id) => id !== type.uuid))}>
               {type.name}（{type.code}）
             </Tag>)}
             <Button size="small" type="dashed" icon={<Plus size={14} />} onClick={() => setPickerOpen(true)}>添加</Button>

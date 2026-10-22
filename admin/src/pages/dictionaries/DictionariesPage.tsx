@@ -78,12 +78,12 @@ export function DictionariesPage() {
               <Input value={search} onChange={(event) => setSearch(event.target.value)}
                 placeholder="搜索名称、标识或备注" prefix={<Search size={16} />} allowClear />
             </div>
-            <Table<DictType> rowKey="id" columns={typeColumns} dataSource={filteredTypes} loading={loading}
+            <Table<DictType> rowKey="uuid" columns={typeColumns} dataSource={filteredTypes} loading={loading}
               size="middle" pagination={{ current: currentPage, pageSize, total: filteredTotal,
                 showSizeChanger: true, pageSizeOptions: [10, 20, 50],
                 showTotal: (total) => `共 ${total} 条`, onChange: changePage }}
-              onRow={(type) => ({ onClick: () => setSelectedId(type.id),
-                style: { cursor: 'pointer', background: selectedId === type.id ? '#eff6ff' : undefined } })} />
+              onRow={(type) => ({ onClick: () => setSelectedId(type.uuid),
+                style: { cursor: 'pointer', background: selectedId === type.uuid ? '#eff6ff' : undefined } })} />
           </Card>
         </Col>
         <Col xs={24} lg={15}>
@@ -93,7 +93,7 @@ export function DictionariesPage() {
             extra={<Button type="primary" size="small" icon={<Plus size={14} />} disabled={!selectedType}
               onClick={() => openItemEditor(null)}>新增子项</Button>}>
             {selectedType ? (
-              <Table<DictItem> rowKey="id" columns={itemColumns} dataSource={selectedType.items}
+              <Table<DictItem> rowKey="uuid" columns={itemColumns} dataSource={selectedType.items}
                 loading={loading} size="middle" pagination={{ pageSize: 10, hideOnSinglePage: true }} />
             ) : <Empty description="先新增或选择字典类型" style={{ padding: '40px 0' }} />}
           </Card>
@@ -104,7 +104,7 @@ export function DictionariesPage() {
       <DictionaryItemEditor open={itemEditorOpen} item={editingItem} saving={saving}
         onClose={() => setItemEditorOpen(false)}
         onSave={(inputs, id) => selectedType ? saveItems(selectedType, inputs, id) : Promise.resolve(false)} />
-      <DictionaryExportModal open={exportOpen} types={types} initialTypeId={selectedType?.id ?? null}
+      <DictionaryExportModal open={exportOpen} types={types} initialTypeId={selectedType?.uuid ?? null}
         onClose={() => setExportOpen(false)} />
     </div>
   );
