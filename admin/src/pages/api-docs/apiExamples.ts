@@ -135,6 +135,8 @@ const examples: Record<string, EndpointExample> = {
     response: success({ items: [visit], total: 1, page: 1, pageSize: 20 }) },
   [`GET ${admin}/users`]: { requestKind: 'Query', request: { page: 1, pageSize: 20, search: 'example', status: 'active' },
     response: success({ items: [user], total: 1, page: 1, pageSize: 20 }) },
+  [`POST ${admin}/users`]: { request: { account: 'example_user', password: '<至少12位密码>', nickname: '示例用户' },
+    response: success(user, '用户已注册') },
   [`GET ${admin}/users/:id`]: { requestKind: 'Path', request: { id: 1 }, response: success(user) },
   [`PUT ${admin}/users/:id/status`]: { request: { status: 'disabled' },
     response: success({ ...user, status: 'disabled' }, '用户已禁用') },

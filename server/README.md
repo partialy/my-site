@@ -73,6 +73,7 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 | GET | /api/v1/admin/system-status | 获取服务器状态，需要管理员 Token |
 | POST | /api/v1/admin/backups/database | 下载 SQLite 在线备份，需要管理员 Token |
 | GET | /api/v1/admin/users | 分页查询业务用户，需要管理员 Token |
+| POST | /api/v1/admin/users | 管理员注册业务用户，需要管理员 Token |
 | GET | /api/v1/admin/users/:id | 查询业务用户详情，需要管理员 Token |
 | PUT | /api/v1/admin/users/:id/status | 禁用或启用业务用户，需要管理员 Token |
 | GET | /api/v1/admin/visits | 分页筛选访问日志，需要管理员 Token |
@@ -149,7 +150,7 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 
 ## 业务用户与操作审计
 
-业务用户使用不区分大小写的唯一账号和密码注册。`POST /api/v1/users/register` 提交 `{account,password,nickname?}`；`POST /api/v1/users/login` 返回用户 JWT；`GET /api/v1/users/me` 使用该 Token。用户 JWT 与管理员 JWT 的身份声明不同，不能互用。管理员可通过 `/api/v1/admin/users` 查询用户，通过 `PUT /api/v1/admin/users/:id/status` 传 `{status:"active"|"disabled"}` 修改状态；状态变化会撤销旧 Token。登录及认证请求按 UTC 日记录 `user_activity`，供近 7 日活跃用户统计。
+业务用户使用不区分大小写的唯一账号和密码注册。`POST /api/v1/users/register` 提交 `{account,password,nickname?}`；管理员也可通过需管理员 JWT 的 `POST /api/v1/admin/users` 提交相同字段注册用户。`POST /api/v1/users/login` 返回用户 JWT；`GET /api/v1/users/me` 使用该 Token。用户 JWT 与管理员 JWT 的身份声明不同，不能互用。管理员可通过 `/api/v1/admin/users` 查询用户，通过 `PUT /api/v1/admin/users/:id/status` 传 `{status:"active"|"disabled"}` 修改状态；状态变化会撤销旧 Token。登录及认证请求按 UTC 日记录 `user_activity`，供近 7 日活跃用户统计。
 
 `operation_log` 与 HTTP `request_log` 独立，记录成功的框架管理员写操作，包括配置、菜单、站点、文件、用户状态和数据库备份。`GET /api/v1/admin/operation-logs` 支持 `page`、`pageSize`、`module`、`actor`、`startTime`、`endTime`。业务模块在 Service 层显式调用 `OperationLogService.record()`，传操作人、模块、动作、目标与安全摘要；只记涉及的字段名，不保存密码、Token 或完整请求/响应。框架操作在响应成功后尽力写入审计；需要审计与业务数据严格同事务的业务模块，应在自身 Service 事务中显式调用记录器。
 

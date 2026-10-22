@@ -3,7 +3,7 @@ import { parseInput } from '../validation';
 import { ok } from '../types';
 import { requireAuth } from '../../middleware/auth.middleware';
 import { AuthService } from '../../services/auth.service';
-import { UserService, userIdSchema, userListQuerySchema, userStatusSchema } from '../../services/user.service';
+import { UserService, userIdSchema, userListQuerySchema, userRegisterSchema, userStatusSchema } from '../../services/user.service';
 
 /** 挂载于 /api/v1/admin/users。 */
 export function createAdminUserRoutes(auth: AuthService, users: UserService): Router {
@@ -11,6 +11,12 @@ export function createAdminUserRoutes(auth: AuthService, users: UserService): Ro
   routes.use(requireAuth(auth));
   routes.get('/', (req, res) => {
     res.json(ok(users.list(parseInput(userListQuerySchema, req.query))));
+  });
+  routes.post('/', async (req, res) => {
+    const input = parseInput(userRegisterSchema, req.body);
+    const user = await users.register(input);
+    res.locals.operationTargetId = String(user.id);
+    res.status(201).json(ok(user, '用户已注册'));
   });
   routes.get('/:id', (req, res) => {
     res.json(ok(users.detail(parseInput(userIdSchema, req.params.id))));

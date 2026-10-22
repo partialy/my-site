@@ -27,6 +27,12 @@ export interface UserPage {
   pageSize: number;
 }
 
+export interface UserRegisterInput {
+  account: string;
+  password: string;
+  nickname?: string;
+}
+
 function parseUser(value: unknown): UserItem {
   if (typeof value !== 'object' || value === null) throw new Error('用户数据格式异常');
   const user = value as Partial<UserItem>;
@@ -54,6 +60,10 @@ export function getUsers(query: UserQuery, signal?: AbortSignal): Promise<ApiRes
 
 export function getUser(id: number): Promise<ApiResponse<UserItem>> {
   return request(`/users/${id}`, parseUser);
+}
+
+export function registerUser(input: UserRegisterInput): Promise<ApiResponse<UserItem>> {
+  return request('/users', parseUser, { method: 'POST', body: input });
 }
 
 export function setUserStatus(id: number, status: UserStatus): Promise<ApiResponse<UserItem>> {

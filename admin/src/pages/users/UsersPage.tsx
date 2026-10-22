@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
 import { Alert, App, Button, Card, Descriptions, Flex, Modal, Space, Table, Tag, Typography } from 'antd';
 import type { TableColumnsType } from 'antd';
-import { RefreshCw, UsersRound } from 'lucide-react';
+import { RefreshCw, UserPlus, UsersRound } from 'lucide-react';
 import type { UserItem, UserStatus } from '../../api/users';
 import { CrudFilterBar, type CrudFilterField } from '../../components/crud/CrudFilterBar';
 import { CrudRowActions, type CrudRowAction } from '../../components/crud/CrudRowActions';
 import { formatDateTime } from '../../utils/dateTime';
 import { useUsers, type UserFilters } from './useUsers';
+import { UserRegisterModal } from './UserRegisterModal';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -18,8 +19,9 @@ const filterFields: ReadonlyArray<CrudFilterField<UserFilters>> = [
 
 export function UsersPage() {
   const [selected, setSelected] = useState<UserItem | null>(null);
+  const [registerOpen, setRegisterOpen] = useState(false);
   const { message } = App.useApp();
-  const { query, result, loading, error, reload, setFilters, resetFilters, setPage, updateStatus } = useUsers();
+  const { query, result, loading, error, reload, setFilters, resetFilters, setPage, register, updateStatus } = useUsers();
 
   const columns = useMemo<TableColumnsType<UserItem>>(() => [
     { title: 'ID', dataIndex: 'id', width: 90 },
@@ -54,9 +56,12 @@ export function UsersPage() {
       <div>
         <Space size={10} style={{ color: '#2563eb', marginBottom: 8 }}><UsersRound size={17} /><Text style={{ color: '#2563eb', fontWeight: 600 }}>业务用户</Text></Space>
         <Title level={2} style={{ margin: 0 }}>用户管理</Title>
-        <Paragraph type="secondary" style={{ margin: '8px 0 0' }}>查看注册用户并管理账号状态。</Paragraph>
+        <Paragraph type="secondary" style={{ margin: '8px 0 0' }}>注册业务用户、查看用户并管理账号状态。</Paragraph>
       </div>
-      <Button icon={<RefreshCw size={16} />} loading={loading} onClick={reload}>刷新</Button>
+      <Space>
+        <Button icon={<RefreshCw size={16} />} loading={loading} onClick={reload}>刷新</Button>
+        <Button type="primary" icon={<UserPlus size={16} />} onClick={() => setRegisterOpen(true)}>注册用户</Button>
+      </Space>
     </Flex>
     <CrudFilterBar fields={filterFields} values={query} defaultValues={{}} onSearch={setFilters} onReset={resetFilters} />
     {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} />}
@@ -77,5 +82,10 @@ export function UsersPage() {
         <Descriptions.Item label="更新时间">{formatDateTime(selected.updatedAt)}</Descriptions.Item>
       </Descriptions>}
     </Modal>
+    <UserRegisterModal open={registerOpen} onClose={() => setRegisterOpen(false)}
+      onRegister={async (input) => {
+        const result = await register(input);
+        message.success(result);
+      }} />
   </div>;
 }

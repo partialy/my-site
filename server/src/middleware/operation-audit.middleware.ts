@@ -16,6 +16,9 @@ function describe(method: string, path: string): OperationDescriptor | null {
   if (method === 'PUT' && path === '/auth/password') {
     return { module: '管理员', action: 'update', targetType: 'admin', summary: '修改管理员密码' };
   }
+  if (method === 'POST' && path === '/users') {
+    return { module: '用户管理', action: 'create', targetType: 'user', summary: '管理员注册业务用户' };
+  }
   const userStatus = /^\/users\/(\d+)\/status$/.exec(path);
   if (method === 'PUT' && userStatus) {
     return { module: '用户管理', action: 'update', targetType: 'user',
