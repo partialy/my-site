@@ -1,9 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Input, Modal, Table, Tag, Typography } from 'antd';
 import type { TableColumnsType } from 'antd';
 import { Search } from 'lucide-react';
-import { REQUEST_LOG_ENDPOINTS } from './requestLogEndpoints';
-import type { RequestLogEndpoint } from './requestLogEndpoints';
+import { loadRequestLogEndpoints, type RequestLogEndpoint } from './requestLogEndpoints';
 
 interface Props {
   open: boolean;
@@ -13,16 +12,35 @@ interface Props {
 }
 
 export function RequestLogEndpointPicker({ open, existingPaths, onClose, onAdd }: Props) {
+  const [endpoints, setEndpoints] = useState<RequestLogEndpoint[]>([]);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const controller = new AbortController();
+    setLoading(true);
+    setError(null);
+    void loadRequestLogEndpoints(controller.signal).then((list) => {
+      if (!controller.signal.aborted) setEndpoints(list);
+    }).catch((cause: unknown) => {
+      if (controller.signal.aborted) return;
+      setError(cause instanceof Error ? cause.message : '加载接口目录失败');
+    }).finally(() => {
+      if (!controller.signal.aborted) setLoading(false);
+    });
+    return () => controller.abort();
+  }, [open]);
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return term ? REQUEST_LOG_ENDPOINTS.filter((item) =>
+    return term ? endpoints.filter((item) =>
       [item.path, item.title, item.module, item.audience, ...item.methods]
-        .some((value) => value.toLowerCase().includes(term))) : REQUEST_LOG_ENDPOINTS;
-  }, [search]);
+        .some((value) => value.toLowerCase().includes(term))) : endpoints;
+  }, [endpoints, search]);
 
   const close = (force = false) => {
     if (saving && !force) return;
@@ -33,7 +51,7 @@ export function RequestLogEndpointPicker({ open, existingPaths, onClose, onAdd }
   };
 
   const submit = async () => {
-    const selected = REQUEST_LOG_ENDPOINTS.filter((item) =>
+    const selected = endpoints.filter((item) =>
       selectedPaths.includes(item.path) && !existingPaths.has(item.path));
     if (!selected.length) return;
     setSaving(true);
@@ -57,7 +75,7 @@ export function RequestLogEndpointPicker({ open, existingPaths, onClose, onAdd }
       methods.map((method) => <Tag key={method}>{method}</Tag>) },
     { title: '模块', dataIndex: 'module', width: 150 },
     { title: '端', dataIndex: 'audience', width: 120, render: (value: RequestLogEndpoint['audience']) =>
-      value === 'admin' ? '管理端' : '公共端' },
+      value === 'admin' ? '管理端' : '客户端 / 公开' },
     { title: '状态', key: 'status', width: 90, render: (_, item) =>
       existingPaths.has(item.path) ? <Tag>已添加</Tag> : null },
   ];
@@ -85,6 +103,7 @@ export function RequestLogEndpointPicker({ open, existingPaths, onClose, onAdd }
       rowKey="path"
       columns={columns}
       dataSource={filtered}
+      loading={loading}
       size="small"
       scroll={{ x: 'max-content', y: 440 }}
       pagination={{ pageSize: 8, showSizeChanger: false }}

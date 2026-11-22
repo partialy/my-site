@@ -23,7 +23,7 @@ function highlightJson(code: string) {
 
 export function JsonCodeBlock({ label, value, json = true }: { label: string; value: unknown; json?: boolean }) {
   const [copied, setCopied] = useState(false);
-  const code = json ? JSON.stringify(value, null, 2) : String(value);
+  const code = json && typeof value !== 'string' ? JSON.stringify(value, null, 2) : String(value);
 
   const copy = async () => {
     try {

@@ -1,128 +1,333 @@
-import { useMemo, useState } from 'react';
-import { Button, Collapse, Empty, Input, Select, Segmented, Tag, Typography } from 'antd';
-import { BookOpen, Braces, Download, LockKeyhole, Search } from 'lucide-react';
-import { API_ENDPOINT_COUNT, API_GROUPS } from './apiCatalog';
-import type { ApiAudience, ApiEndpoint, ApiGroup, ApiMethod } from './apiCatalog';
-import { getEndpointExample } from './apiExamples';
-import { API_RESPONSE_CODES, downloadApiDocsMarkdown } from './exportApiDocs';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Alert, Button, Collapse, Empty, Input, Segmented, Spin, Tag, Typography, message } from 'antd';
+import { BookOpen, Braces, Download, FileText, LockKeyhole, Search } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import {
+  exportApiDocs, getApiDocDetail, getApiDocsCatalog,
+  type ApiDocAudience, type ApiDocCatalog, type ApiDocDetail, type ApiDocMethod,
+} from '../../api/apiDocs';
 import { JsonCodeBlock } from './JsonCodeBlock';
 import './apiDocs.css';
 
 const { Text } = Typography;
-type AudienceFilter = 'all' | ApiAudience;
+type AudienceFilter = 'all' | ApiDocAudience;
 
-const methodColors: Record<ApiMethod, string> = {
-  GET: 'blue', POST: 'green', PUT: 'orange', DELETE: 'red',
+const methodColors: Record<ApiDocMethod, string> = {
+  GET: 'blue', POST: 'green', PUT: 'orange', DELETE: 'red', PATCH: 'purple',
 };
 
-function EndpointDetail({ endpoint }: { endpoint: ApiEndpoint }) {
-  const example = getEndpointExample(endpoint);
-  return <div className="api-doc-detail">
-    <p className="api-doc-summary">{endpoint.title}</p>
-    <div className="api-doc-detail-grid">
-      <div>
-        <JsonCodeBlock label={`请求参数${example.requestKind ? ` · ${example.requestKind}` : example.request ? ' · JSON Body' : ''}`}
-          value={example.request ?? '无额外参数'} json={example.request !== undefined} />
-        {endpoint.request && <p className="api-doc-schema-note">{endpoint.request}</p>}
-      </div>
-      <div>
-        <JsonCodeBlock label={endpoint.binary ? '响应内容 · 二进制' : '成功响应 · JSON'}
-          value={endpoint.binary ? endpoint.response : example.response} json={!endpoint.binary} />
-        {!endpoint.binary && <p className="api-doc-schema-note">data 字段：{endpoint.response}</p>}
-      </div>
-    </div>
-    {endpoint.note && <p className="api-doc-note">{endpoint.note}</p>}
-  </div>;
+function resolveRelativeDocPath(currentDocPath: string | null, href: string): string | null {
+  const cleanHref = href.split('#')[0]?.split('?')[0]?.trim() ?? '';
+  if (!cleanHref.endsWith('.md')) return null;
+  if (!currentDocPath || cleanHref.startsWith('admin/') || cleanHref.startsWith('client/')) {
+    return cleanHref.replace(/^\.\//, '');
+  }
+  const baseParts = currentDocPath.split('/').slice(0, -1);
+  for (const segment of cleanHref.split('/')) {
+    if (!segment || segment === '.') continue;
+    if (segment === '..') baseParts.pop();
+    else baseParts.push(segment);
+  }
+  return baseParts.join('/');
 }
 
-function EndpointRow({ endpoint }: { endpoint: ApiEndpoint }) {
-  return <Collapse ghost className="api-doc-endpoint" items={[{
-    key: endpoint.path + endpoint.method,
-    label: <div className="api-doc-endpoint-title">
-      <Tag color={methodColors[endpoint.method]} className="api-doc-method">{endpoint.method}</Tag>
-      <code className="api-doc-path">{endpoint.path}</code>
-      <span className="api-doc-endpoint-name">{endpoint.title}</span>
-      {endpoint.auth && <Tag className="api-doc-auth" icon={<LockKeyhole size={12} />}>JWT</Tag>}
-    </div>,
-    children: <EndpointDetail endpoint={endpoint} />,
-  }]} />;
+function downloadTextFile(filename: string, content: string): void {
+  const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
-function GroupSection({ group }: { group: ApiGroup }) {
-  return <section className="api-doc-group">
-    <div className="api-doc-group-heading">
-      <div className="api-doc-group-name"><span className="api-doc-group-dot" />
-        <h2>{group.module}</h2><Text type="secondary">{group.endpoints.length} 个接口</Text>
-      </div>
+function MarkdownViewer({
+  markdown,
+  currentDocPath,
+  onNavigateDoc,
+}: {
+  markdown: string;
+  currentDocPath: string | null;
+  onNavigateDoc: (docPath: string) => void;
+}) {
+  return (
+    <div className="api-doc-markdown">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          pre({ children }: { children?: ReactNode }) {
+            return <>{children}</>;
+          },
+          code({ className, children, ...props }) {
+            const match = /language-([\w-]+)/.exec(className || '');
+            const text = String(children).replace(/\n$/, '');
+            const isBlock = Boolean(match) || text.includes('\n');
+            if (!isBlock) {
+              return <code className="api-doc-inline-code" {...props}>{children}</code>;
+            }
+            const lang = match?.[1]?.toLowerCase() ?? 'text';
+            return <JsonCodeBlock label={lang.toUpperCase()} value={text} json={lang === 'json'} />;
+          },
+          a({ href, children, ...props }) {
+            if (href) {
+              const resolved = resolveRelativeDocPath(currentDocPath, href);
+              if (resolved) {
+                return (
+                  <a
+                    href={`?doc=${encodeURIComponent(resolved)}`}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      onNavigateDoc(resolved);
+                    }}
+                  >
+                    {children}
+                  </a>
+                );
+              }
+            }
+            return <a href={href} target="_blank" rel="noreferrer" {...props}>{children}</a>;
+          },
+        }}
+      >
+        {markdown}
+      </ReactMarkdown>
     </div>
-    <div className="api-doc-group-list">
-      {group.endpoints.map((endpoint) => <EndpointRow key={`${endpoint.method}-${endpoint.path}`} endpoint={endpoint} />)}
-    </div>
-  </section>;
+  );
 }
 
 export function ApiDocsPage() {
-  const [audience, setAudience] = useState<AudienceFilter>('all');
-  const [module, setModule] = useState<string | undefined>();
-  const [search, setSearch] = useState('');
-  const moduleOptions = useMemo(() => API_GROUPS
-    .filter((group) => audience === 'all' || group.audience === audience)
-    .map((group) => ({ label: `${group.audience === 'admin' ? '管理端' : '用户端 / 公共'} · ${group.module}`,
-      value: `${group.audience}:${group.module}` })), [audience]);
-  const groups = useMemo(() => API_GROUPS.flatMap((group) => {
-    if (audience !== 'all' && group.audience !== audience) return [];
-    if (module && module !== `${group.audience}:${group.module}`) return [];
-    const term = search.trim().toLowerCase();
-    const endpoints = term ? group.endpoints.filter((endpoint) =>
-      [endpoint.title, endpoint.path, endpoint.method, group.module].some((value) => value.toLowerCase().includes(term)))
-      : group.endpoints;
-    return endpoints.length ? [{ ...group, endpoints }] : [];
-  }), [audience, module, search]);
-  const count = groups.reduce((total, group) => total + group.endpoints.length, 0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedDoc = searchParams.get('doc');
 
-  return <main className="api-doc-page">
-    <header className="api-doc-header">
-      <div className="api-doc-eyebrow"><BookOpen size={16} /> API REFERENCE / 接口目录</div>
-      <div className="api-doc-title-row">
-        <h1>接口文档</h1>
-        <Button icon={<Download size={16} />} onClick={downloadApiDocsMarkdown}>导出完整文档</Button>
+  const [audience, setAudience] = useState<AudienceFilter>('all');
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [catalog, setCatalog] = useState<ApiDocCatalog | null>(null);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+
+  const [detail, setDetail] = useState<ApiDocDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(searchInput.trim()), 260);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setCatalogLoading(true);
+    setCatalogError(null);
+    void getApiDocsCatalog(debouncedSearch, controller.signal).then((response) => {
+      if (!response.success) throw new Error(response.msg);
+      if (!controller.signal.aborted) setCatalog(response.data);
+    }).catch((cause: unknown) => {
+      if (controller.signal.aborted) return;
+      setCatalogError(cause instanceof Error ? cause.message : '加载接口目录失败');
+    }).finally(() => {
+      if (!controller.signal.aborted) setCatalogLoading(false);
+    });
+    return () => controller.abort();
+  }, [debouncedSearch]);
+
+  useEffect(() => {
+    if (!selectedDoc) {
+      setDetail(null);
+      setDetailError(null);
+      return;
+    }
+    const controller = new AbortController();
+    setDetailLoading(true);
+    setDetailError(null);
+    void getApiDocDetail(selectedDoc, controller.signal).then((response) => {
+      if (!response.success) throw new Error(response.msg);
+      if (!controller.signal.aborted) setDetail(response.data);
+    }).catch((cause: unknown) => {
+      if (controller.signal.aborted) return;
+      setDetailError(cause instanceof Error ? cause.message : '加载接口详情失败');
+    }).finally(() => {
+      if (!controller.signal.aborted) setDetailLoading(false);
+    });
+    return () => controller.abort();
+  }, [selectedDoc]);
+
+  const visibleGroups = useMemo(() => {
+    if (!catalog) return [];
+    return audience === 'all' ? catalog.groups : catalog.groups.filter((group) => group.audience === audience);
+  }, [catalog, audience]);
+
+  const visibleCount = useMemo(
+    () => visibleGroups.reduce((sum, group) => sum + group.endpoints.length, 0),
+    [visibleGroups],
+  );
+
+  const selectDoc = (docPath: string | null) => {
+    setSearchParams((previous) => {
+      const next = new URLSearchParams(previous);
+      if (docPath) next.set('doc', docPath);
+      else next.delete('doc');
+      return next;
+    });
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const response = await exportApiDocs();
+      if (!response.success) throw new Error(response.msg);
+      downloadTextFile(response.data.filename, response.data.content);
+    } catch (cause) {
+      message.error(cause instanceof Error ? cause.message : '导出文档失败');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  return (
+    <main className="api-doc-page">
+      <header className="api-doc-header">
+        <div className="api-doc-eyebrow"><BookOpen size={16} /> API REFERENCE / 服务端接口文档</div>
+        <div className="api-doc-title-row">
+          <div>
+            <h1>接口文档</h1>
+            <p>实时解析 <code>server/api-docs/</code> 目录与 Markdown 文档，保持服务端文档与在线预览一致。</p>
+          </div>
+          <Button icon={<Download size={16} />} loading={exporting} onClick={() => void handleExport()}>
+            导出完整文档
+          </Button>
+        </div>
+      </header>
+
+      <div className="api-doc-toolbar">
+        <Segmented
+          value={audience}
+          onChange={(value) => setAudience(value as AudienceFilter)}
+          options={[
+            { label: '全部', value: 'all' },
+            { label: '管理端', value: 'admin' },
+            { label: '客户端 / 公开', value: 'client' },
+          ]}
+        />
+        <Input
+          prefix={<Search size={16} />}
+          placeholder="搜索名称、路径、模块或文档内容"
+          allowClear
+          value={searchInput}
+          onChange={(event) => setSearchInput(event.target.value)}
+          className="api-doc-search"
+        />
+        <span className="api-doc-count">
+          <Braces size={14} /> 共 {visibleCount} 个接口
+        </span>
       </div>
-      <p>当前服务端接口的请求方式、参数与响应字段。JSON 为结构示例，示例值不代表实时数据。</p>
-    </header>
-    <div className="api-doc-overview">
-      <div><Braces size={19} /><strong>{API_ENDPOINT_COUNT}</strong><span>当前接口</span></div>
-      <p>基础路径 <code>/api/v1</code>；管理接口使用 <code>/api/v1/admin</code>。
-        除二进制文件接口外，响应统一为 <code>{'{ code, msg, data, success }'}</code>。
-        成功 <code>code=0</code>，失败 <code>success=false</code>；标注 JWT 的接口需发送 <code>Authorization: Bearer &lt;token&gt;</code>。</p>
-    </div>
-    <div className="api-doc-filters">
-      <Segmented value={audience} onChange={(value) => { setAudience(value as AudienceFilter); setModule(undefined); }}
-        options={[{ label: '全部', value: 'all' }, { label: '管理端', value: 'admin' },
-          { label: '用户端 / 公共', value: 'public' }]} />
-      <Select placeholder="全部模块" allowClear value={module} onChange={setModule}
-        options={moduleOptions} className="api-doc-module-select" />
-      <Input prefix={<Search size={16} />} placeholder="搜索路径、名称或模块" allowClear
-        value={search} onChange={(event) => setSearch(event.target.value)} className="api-doc-search" />
-      <span className="api-doc-count">显示 {count} 个接口</span>
-    </div>
-    {(['admin', 'public'] as const).map((kind) => {
-      const sectionGroups = groups.filter((group) => group.audience === kind);
-      if (!sectionGroups.length) return null;
-      return <div className="api-doc-audience" key={kind}>
-        <div className="api-doc-audience-heading"><span>{kind === 'admin' ? '管理端' : '用户端 / 公共接口'}</span>
-          <small>{kind === 'admin' ? '后台管理与运维能力' : '前台页面和公开资源可使用'}</small></div>
-        {sectionGroups.map((group) => <GroupSection key={`${kind}:${group.module}`} group={group} />)}
-      </div>;
-    })}
-    {!groups.length && <div className="api-doc-empty"><Empty description="没有匹配的接口" /></div>}
-    <section className="api-doc-conventions">
-      <h2>通用返回与业务码</h2>
-      <p>JSON 接口统一返回 <code>{'{ code: number, msg: string, data: T | null, success: boolean }'}</code>。
-        参数错误的 <code>data</code> 为 <code>{'{ fieldErrors: Record<string, string[]> }'}</code>；文件内容和图标接口返回二进制。</p>
-      <div className="api-doc-code-list">
-        {API_RESPONSE_CODES.map((item) =>
-          <span key={item}>{item}</span>)}
+
+      {catalogError && <Alert type="error" showIcon message={catalogError} style={{ marginBottom: 16 }} />}
+
+      <div className="api-doc-layout">
+        <aside className="api-doc-sidebar">
+          <button
+            type="button"
+            className={`api-doc-overview-btn${!selectedDoc ? ' is-active' : ''}`}
+            onClick={() => selectDoc(null)}
+          >
+            <FileText size={15} />
+            <span>通用约定与概览</span>
+          </button>
+
+          <Spin spinning={catalogLoading}>
+            {visibleGroups.length === 0 && !catalogLoading ? (
+              <div className="api-doc-sidebar-empty">
+                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="没有匹配的接口" />
+              </div>
+            ) : (
+              <Collapse
+                ghost
+                defaultActiveKey={visibleGroups.map((group) => `${group.audience}:${group.module}`)}
+                className="api-doc-nav-collapse"
+                items={visibleGroups.map((group) => ({
+                  key: `${group.audience}:${group.module}`,
+                  label: (
+                    <div className="api-doc-nav-group-label">
+                      <span>{group.module}</span>
+                      <Tag className="api-doc-audience-tag">
+                        {group.audience === 'admin' ? '管理端' : '客户端'} · {group.endpoints.length}
+                      </Tag>
+                    </div>
+                  ),
+                  children: (
+                    <div className="api-doc-nav-items">
+                      {group.endpoints.map((endpoint) => (
+                        <button
+                          key={endpoint.docPath}
+                          type="button"
+                          className={`api-doc-nav-item${selectedDoc === endpoint.docPath ? ' is-active' : ''}`}
+                          onClick={() => selectDoc(endpoint.docPath)}
+                        >
+                          <div className="api-doc-nav-item-top">
+                            <Tag color={methodColors[endpoint.method]} className="api-doc-method">{endpoint.method}</Tag>
+                            <span className="api-doc-nav-item-title">{endpoint.title}</span>
+                          </div>
+                          <code className="api-doc-nav-item-path">{endpoint.path}</code>
+                        </button>
+                      ))}
+                    </div>
+                  ),
+                }))}
+              />
+            )}
+          </Spin>
+        </aside>
+
+        <section className="api-doc-content-panel">
+          {!selectedDoc ? (
+            <Spin spinning={catalogLoading}>
+              {catalog ? (
+                <MarkdownViewer
+                  markdown={catalog.overviewMarkdown}
+                  currentDocPath={null}
+                  onNavigateDoc={selectDoc}
+                />
+              ) : (
+                <Empty description="暂无文档数据" />
+              )}
+            </Spin>
+          ) : detailError ? (
+            <Alert type="error" showIcon message={detailError} />
+          ) : (
+            <Spin spinning={detailLoading}>
+              {detail && (
+                <>
+                  <div className="api-doc-detail-banner">
+                    <div className="api-doc-detail-badges">
+                      <Tag color={methodColors[detail.method]} className="api-doc-method">{detail.method}</Tag>
+                      <Text code copyable={{ text: detail.path }} className="api-doc-detail-path">{detail.path}</Text>
+                      {detail.auth ? (
+                        <Tag icon={<LockKeyhole size={12} />} className="api-doc-auth">{detail.authText}</Tag>
+                      ) : (
+                        <Tag>{detail.authText}</Tag>
+                      )}
+                    </div>
+                    <Text type="secondary" className="api-doc-file-ref">
+                      {detail.audience === 'admin' ? '管理端' : '客户端 / 公开'} · {detail.module} · <code>{detail.docPath}</code>
+                    </Text>
+                  </div>
+                  <MarkdownViewer
+                    markdown={detail.content}
+                    currentDocPath={detail.docPath}
+                    onNavigateDoc={selectDoc}
+                  />
+                </>
+              )}
+            </Spin>
+          )}
+        </section>
       </div>
-    </section>
-  </main>;
+    </main>
+  );
 }
