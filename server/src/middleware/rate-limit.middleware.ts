@@ -4,6 +4,13 @@ import { ApiCode } from '../api/codes';
 
 interface Limit { max: number; windowMs: number }
 
+let rateLimitEnabled = true;
+
+/** 控制全站限流中间件是否启用（development 模式下可关闭）。 */
+export function setRateLimitEnabled(enabled: boolean): void {
+  rateLimitEnabled = enabled;
+}
+
 class SlidingWindow {
   private readonly attempts = new Map<string, number[]>();
 
@@ -45,6 +52,7 @@ function reject(res: Response, seconds: number): void {
 export function requestRateLimit(max: number, windowMs: number): RequestHandler {
   const counter = new SlidingWindow({ max, windowMs });
   return (req, res, next) => {
+    if (!rateLimitEnabled) return next();
     const key = clientKey(req);
     if (counter.remaining(key) <= 0) return reject(res, counter.retryAfter(key));
     counter.add(key);
@@ -56,6 +64,7 @@ export function loginFailureLimit(): RequestHandler {
   const byIp = new SlidingWindow({ max: 5, windowMs: 15 * 60_000 });
   const byIpAndAccount = new SlidingWindow({ max: 5, windowMs: 15 * 60_000 });
   return (req, res, next) => {
+    if (!rateLimitEnabled) return next();
     const ip = clientKey(req);
     const body = req.body as { username?: unknown; account?: unknown } | undefined;
     const rawAccount = typeof body?.username === 'string' ? body.username : body?.account;
@@ -69,6 +78,24 @@ export function loginFailureLimit(): RequestHandler {
       if (res.statusCode === 401) {
         byIp.add(ip);
         byIpAndAccount.add(pair);
+      }
+    });
+    next();
+  };
+}
+
+/** 按 IP 限制指定失败状态码的连续重试次数（如重置密码校验失败）。 */
+export function ipFailureLimit(max = 5, windowMs = 15 * 60_000, statusCodes: readonly number[] = [401, 403]): RequestHandler {
+  const byIp = new SlidingWindow({ max, windowMs });
+  return (req, res, next) => {
+    if (!rateLimitEnabled) return next();
+    const ip = clientKey(req);
+    if (byIp.remaining(ip) <= 0) {
+      return reject(res, byIp.retryAfter(ip));
+    }
+    res.once('finish', () => {
+      if (statusCodes.includes(res.statusCode)) {
+        byIp.add(ip);
       }
     });
     next();

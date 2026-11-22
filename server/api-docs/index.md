@@ -28,6 +28,7 @@
 | 管理员登录 | `POST` | `/api/v1/admin/auth/login` | 否 | [login.md](admin/auth/login.md) |
 | 获取当前管理员 | `GET` | `/api/v1/admin/auth/me` | 管理员 JWT | [getCurrentAdmin.md](admin/auth/getCurrentAdmin.md) |
 | 修改管理员密码 | `PUT` | `/api/v1/admin/auth/password` | 管理员 JWT | [changePassword.md](admin/auth/changePassword.md) |
+| 重置管理员密码 | `POST` | `/api/v1/admin/auth/reset-password` | 否（`SETUP_KEY`） | [resetPassword.md](admin/auth/resetPassword.md) |
 
 ### 系统管理（`admin/system-config`）
 

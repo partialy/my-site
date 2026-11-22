@@ -24,6 +24,12 @@ export const changePasswordSchema = z.strictObject({
   message: '新密码不能与原密码相同',
 });
 
+export const resetPasswordSchema = z.strictObject({
+  setupKey: z.string().min(1),
+  newPassword: password,
+});
+
 export type SetupAdminRequest = z.infer<typeof setupAdminSchema>;
 export type LoginRequest = z.infer<typeof loginSchema>;
 export type ChangePasswordRequest = z.infer<typeof changePasswordSchema>;
+export type ResetPasswordRequest = z.infer<typeof resetPasswordSchema>;

@@ -39,7 +39,7 @@ function main(): void {
   const admins = new AdminRepository(db);
   const configManager = new ConfigManager(new ConfigRepository(db));
   const setup = new SetupService(admins, config.setupKey, new SetupRepository(db), configManager);
-  const auth = new AuthService(admins, new JwtService(config.jwtSecret));
+  const auth = new AuthService(admins, new JwtService(config.jwtSecret), config.setupKey);
   const systemConfig = new SystemConfigService(configManager, db);
   const configs = new ConfigService(configManager);
   const uploadSettings = new UploadSettingsService(configManager);

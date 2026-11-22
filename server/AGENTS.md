@@ -27,7 +27,8 @@
 
 ## 核心模块与安全规则
 
-- **安全与限流**：登录失败按 IP 与账号组合限流，公开注册、访问上报和上传接口分别限流；限流器仅适用于单进程部署。`TRUSTED_PROXIES` 只填写可信反向代理。`/health` 为公开就绪探针；管理员 `system-status` 提供缓存（5 秒）的运行状态。安全响应头由 Helmet 设置，公开图片允许跨域加载。
+- **安全与限流**：登录失败按 IP 与账号组合限流，重置管理员密码按 IP 失败限流，公开注册、访问上报和上传接口分别限流；当 `NODE_ENV=development`（dev 模式）时全站限流自动关闭，生产环境（`NODE_ENV=production`）正常启用；限流器仅适用于单进程部署。`TRUSTED_PROXIES` 只填写可信反向代理。`/health` 为公开就绪探针；管理员 `system-status` 提供缓存（5 秒）的运行状态。安全响应头由 Helmet 设置，公开图片允许跨域加载。
+- **管理员密码重置**：支持通过 `POST /api/v1/admin/auth/reset-password` 提交 `SETUP_KEY` 与新密码重置唯一管理员密码，并递增 `token_version` 撤销已有管理员 JWT。
 - **配置管理**：`ConfigManager` 启动时加载 `config` 与 `sys_config` 并维护内存缓存；普通配置用 `get(key, defaultValue)` 读取，系统配置用 `getSysConfig().get(key)` 读取，写入时同步写库并刷新缓存。`config.enabled` 控制普通配置是否生效，`sys_config` 无启用字段。普通配置管理接口位于 `/api/v1/admin/configs`（支持改键），配置内容不写入请求日志。
 - **业务用户**：通用业务用户存于 `user`，使用不区分大小写的唯一账号及 8–128 位密码注册（管理员密码同样允许 8–128 位）。公开 `/api/v1/users/register` 与需管理员鉴权的 `POST /api/v1/admin/users` 复用同一注册校验与密码哈希逻辑。`PUT /api/v1/admin/users/:id/profile` 中的 `id` 为用户 `uuid`，仅更新昵称和头像访问 URL。用户 JWT 与管理员 JWT 区分，修改用户状态（禁用/启用）会提升 `token_version` 撤销旧 Token。`user_activity` 按 UTC 日记录已认证用户活动，首页统计从真实用户表聚合。
 - **操作审计**：`operation_log` 独立保存管理员成功写操作的摘要、操作者、目标、IP 和耗时；业务 Service 可显式调用 `OperationLogService.record()`，严禁记录密码、Token、原始请求体和响应体。

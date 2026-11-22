@@ -59,7 +59,7 @@ async function main() {
   const visits = new VisitService(new VisitRepository(db));
   const app = createApp(config, {
     setup: new SetupService(admins, config.setupKey, new SetupRepository(db), manager),
-    auth: new AuthService(admins, new JwtService(config.jwtSecret)),
+    auth: new AuthService(admins, new JwtService(config.jwtSecret), config.setupKey),
     systemConfig,
     configs: new ConfigService(manager),
     siteSettings: new SiteSettingsService(manager, files),

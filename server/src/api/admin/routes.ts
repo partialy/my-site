@@ -1,5 +1,5 @@
 import { Router, raw } from 'express';
-import { setupAdminSchema, loginSchema, changePasswordSchema } from '../schemas';
+import { setupAdminSchema, loginSchema, changePasswordSchema, resetPasswordSchema } from '../schemas';
 import { parseInput } from '../validation';
 import { ok } from '../types';
 import { requireAuth, authenticatedAdmin } from '../../middleware/auth.middleware';
@@ -53,6 +53,12 @@ export function createAdminRoutes(setup: SetupService, auth: AuthService, system
     authenticatedAdmin(res);
     await auth.changePassword(input);
     res.json(ok(null, '密码修改成功，请重新登录'));
+  });
+
+  routes.post('/auth/reset-password', async (req, res) => {
+    const input = parseInput(resetPasswordSchema, req.body);
+    await auth.resetPassword(input);
+    res.json(ok(null, '密码重置成功，请使用新密码登录'));
   });
 
   routes.get('/system-config', requireAuth(auth), (_req, res) => {

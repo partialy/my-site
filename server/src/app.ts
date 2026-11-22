@@ -25,7 +25,7 @@ import { OperationLogService } from './services/operation-log.service';
 import { operationAuditMiddleware } from './middleware/operation-audit.middleware';
 import { DatabaseBackupService } from './services/database-backup.service';
 import { SystemStatusService } from './services/system-status.service';
-import { loginFailureLimit, requestRateLimit } from './middleware/rate-limit.middleware';
+import { ipFailureLimit, loginFailureLimit, requestRateLimit, setRateLimitEnabled } from './middleware/rate-limit.middleware';
 import { DictionaryService } from './services/dictionary.service';
 import { createDictionaryRoutes } from './api/dictionary-routes';
 import { createAdminDictionaryRoutes } from './api/admin/dictionary-routes';
@@ -59,6 +59,7 @@ interface AppServices {
 export function createApp(config: AppConfig, services: AppServices, db: Database.Database) {
   const app = express();
   app.disable('x-powered-by');
+  setRateLimitEnabled(config.nodeEnv !== 'development');
   if (config.trustedProxies) app.set('trust proxy', config.trustedProxies);
   app.use(helmet());
   app.get('/health', (_req, res) => {
@@ -84,6 +85,7 @@ export function createApp(config: AppConfig, services: AppServices, db: Database
   });
   app.use(express.json({ limit: '1mb' }));
   app.use('/api/v1/admin/auth/login', loginFailureLimit());
+  app.use('/api/v1/admin/auth/reset-password', ipFailureLimit());
   app.use('/api/v1/users/login', loginFailureLimit());
   app.use('/api/v1/admin/setup/admin', requestRateLimit(5, 15 * 60_000));
   app.use('/api/v1/users/register', requestRateLimit(10, 60_000));
