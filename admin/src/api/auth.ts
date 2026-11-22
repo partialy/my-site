@@ -6,6 +6,7 @@ import type {
   ChangePasswordRequest,
   LoginData,
   LoginRequest,
+  ResetPasswordRequest,
 } from './types';
 
 /**
@@ -45,5 +46,20 @@ export async function changePassword(
     method: 'PUT',
     body: data,
     requiresAuth: true,
+  });
+}
+
+/**
+ * 通过 Setup Key 重置管理员密码
+ * POST /api/v1/admin/auth/reset-password
+ * 鉴权：无（校验 SETUP_KEY）
+ */
+export async function resetPassword(
+  data: ResetPasswordRequest
+): Promise<ApiResponse<null>> {
+  return request<null>('/auth/reset-password', parseNull, {
+    method: 'POST',
+    body: data,
+    requiresAuth: false,
   });
 }

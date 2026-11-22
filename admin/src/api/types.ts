@@ -130,6 +130,14 @@ export interface ChangePasswordRequest {
 }
 
 /**
+ * 通过 Setup Key 重置管理员密码请求参数
+ */
+export interface ResetPasswordRequest {
+  setupKey: string;
+  newPassword: string;
+}
+
+/**
  * 统一分页请求参数（纯 offset / limit 模式）
  */
 export interface PageQuery {

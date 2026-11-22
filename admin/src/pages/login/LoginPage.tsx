@@ -8,11 +8,13 @@ import { SiteIcon } from '../../components/SiteIcon';
 import { useSiteSettings } from '../../site-settings/SiteSettingsContext';
 import { loginBackgroundStyle, loginCardStyle } from '../../site-settings/loginAppearance';
 import type { LoginRequest } from '../../api/types';
+import { ResetPasswordModal } from './ResetPasswordModal';
 
 export const LoginPage: React.FC = () => {
   const [form] = Form.useForm<LoginRequest>();
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [resetOpen, setResetOpen] = useState(false);
 
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -123,7 +125,14 @@ export const LoginPage: React.FC = () => {
           </Form.Item>
         </Form>
 
+        <div style={{ textAlign: 'center', marginTop: 8 }}>
+          <Button type="link" size="small" onClick={() => setResetOpen(true)}>
+            忘记密码？使用 Setup Key 重置
+          </Button>
+        </div>
       </div>
+
+      <ResetPasswordModal open={resetOpen} onCancel={() => setResetOpen(false)} />
     </div>
   );
 };
