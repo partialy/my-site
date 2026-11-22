@@ -33,6 +33,7 @@ import { UploadSettingsService } from './services/upload-settings.service';
 import { createUploadRoutes } from './api/upload-routes';
 import { PaymentSettingsService } from './services/payment-settings.service';
 import { createPaymentSettingsRoutes } from './api/admin/payment-settings.routes';
+import { ApiDocsService } from './services/api-docs.service';
 
 interface AppServices {
   setup: SetupService;
@@ -52,6 +53,7 @@ interface AppServices {
   dictionaries: DictionaryService;
   uploadSettings: UploadSettingsService;
   paymentSettings: PaymentSettingsService;
+  apiDocs: ApiDocsService;
 }
 
 export function createApp(config: AppConfig, services: AppServices, db: Database.Database) {
@@ -90,7 +92,7 @@ export function createApp(config: AppConfig, services: AppServices, db: Database
   app.use('/api/v1/admin', createAdminRoutes(
     services.setup, services.auth, services.systemConfig, services.configs,
     services.siteSettings, services.requestLogs, services.files, services.menus, services.dashboard, services.visits,
-    services.operationLogs, services.backups, services.status, services.uploadSettings,
+    services.operationLogs, services.backups, services.status, services.uploadSettings, services.apiDocs,
   ));
   app.use('/api/v1/admin/payment-settings', createPaymentSettingsRoutes(services.auth, services.paymentSettings));
   app.use('/api/v1/admin/users', createAdminUserRoutes(services.auth, services.users));

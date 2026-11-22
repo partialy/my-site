@@ -24,8 +24,9 @@ import { DatabaseBackupService } from '../../services/database-backup.service';
 import { SystemStatusService } from '../../services/system-status.service';
 import { requestRateLimit } from '../../middleware/rate-limit.middleware';
 import { UploadSettingsService, uploadSettingsSchema } from '../../services/upload-settings.service';
+import { ApiDocsService, apiDocDetailQuerySchema, apiDocsCatalogQuerySchema } from '../../services/api-docs.service';
 
-export function createAdminRoutes(setup: SetupService, auth: AuthService, systemConfig: SystemConfigService, configs: ConfigService, siteSettings: SiteSettingsService, requestLogs: RequestLogService, files: FileService, menus: MenuService, dashboard: DashboardService, visits: VisitService, operationLogs: OperationLogService, backups: DatabaseBackupService, status: SystemStatusService, uploadSettings: UploadSettingsService): Router {
+export function createAdminRoutes(setup: SetupService, auth: AuthService, systemConfig: SystemConfigService, configs: ConfigService, siteSettings: SiteSettingsService, requestLogs: RequestLogService, files: FileService, menus: MenuService, dashboard: DashboardService, visits: VisitService, operationLogs: OperationLogService, backups: DatabaseBackupService, status: SystemStatusService, uploadSettings: UploadSettingsService, apiDocs: ApiDocsService): Router {
   const routes = Router();
 
   routes.get('/setup/status', (_req, res) => {
@@ -218,6 +219,20 @@ export function createAdminRoutes(setup: SetupService, auth: AuthService, system
   routes.delete('/files/:id/permanent', requireAuth(auth), async (req, res) => {
     await files.deletePermanently(parseInput(fileIdSchema, req.params.id));
     res.json(ok(null, '文件已永久删除'));
+  });
+
+  routes.get('/api-docs', requireAuth(auth), (req, res) => {
+    const { search } = parseInput(apiDocsCatalogQuerySchema, req.query);
+    res.json(ok(apiDocs.getCatalog(search)));
+  });
+
+  routes.get('/api-docs/detail', requireAuth(auth), (req, res) => {
+    const { docPath } = parseInput(apiDocDetailQuerySchema, req.query);
+    res.json(ok(apiDocs.getDetail(docPath)));
+  });
+
+  routes.get('/api-docs/export', requireAuth(auth), (_req, res) => {
+    res.json(ok(apiDocs.exportMarkdown()));
   });
 
   return routes;

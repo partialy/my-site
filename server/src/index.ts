@@ -31,6 +31,7 @@ import { DictionaryRepository } from './repositories/dictionary.repository';
 import { DictionaryService } from './services/dictionary.service';
 import { UploadSettingsService } from './services/upload-settings.service';
 import { PaymentSettingsService } from './services/payment-settings.service';
+import { ApiDocsService } from './services/api-docs.service';
 
 function main(): void {
   const config = loadConfig();
@@ -54,9 +55,10 @@ function main(): void {
   const status = new SystemStatusService(db, config.sqlitePath);
   const dictionaries = new DictionaryService(new DictionaryRepository(db));
   const dashboard = new DashboardService(visits, requestLogs, users);
+  const apiDocs = new ApiDocsService();
   const app = createApp(config, {
     setup, auth, systemConfig, configs, siteSettings, requestLogs, files, menus, visits, dashboard,
-    users, operationLogs, backups, status, dictionaries, uploadSettings, paymentSettings,
+    users, operationLogs, backups, status, dictionaries, uploadSettings, paymentSettings, apiDocs,
   }, db);
   const server = app.listen(config.port, () => {
     console.log(`server 已启动，端口 ${config.port}`);
