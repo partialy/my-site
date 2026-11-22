@@ -1,4 +1,5 @@
 import type Database from 'better-sqlite3';
+import type { PageResult, PaginationQuery } from '../shared/pagination';
 import { TableListRepository } from './table-list.repository';
 import { fileListResourceForSort } from './resources/file-list.resource';
 
@@ -19,9 +20,7 @@ export interface FileRecord {
   archived_at: string | null;
 }
 
-export interface FileListQuery {
-  page: number;
-  pageSize: number;
+export interface FileListQuery extends PaginationQuery {
   search?: string;
   mimeTypes?: string[];
   sortBy?: FileSortBy;
@@ -36,7 +35,7 @@ export class FileRepository {
     this.tableList = new TableListRepository(db);
   }
 
-  list(query: FileListQuery): { items: FileRecord[]; total: number } {
+  list(query: FileListQuery): PageResult<FileRecord> {
     return this.tableList.list<FileRecord, FileListQuery>(
       fileListResourceForSort(query.sortBy ?? 'createdAt', query.sortOrder ?? 'desc', query.status ?? 'active'), query,
     );

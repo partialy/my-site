@@ -1,5 +1,6 @@
 import { request } from './client';
-import type { ApiResponse } from './types';
+import { buildPageParams, parsePageData } from './decoders';
+import type { ApiResponse, PageData, PageQuery } from './types';
 
 export type UserStatus = 'active' | 'disabled';
 
@@ -13,19 +14,12 @@ export interface UserItem {
   updatedAt: string;
 }
 
-export interface UserQuery {
-  page: number;
-  pageSize: number;
+export interface UserQuery extends PageQuery {
   search?: string;
   status?: UserStatus;
 }
 
-export interface UserPage {
-  items: UserItem[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
+export type UserPage = PageData<UserItem>;
 
 export interface UserRegisterInput {
   account: string;
@@ -49,15 +43,11 @@ function parseUser(value: unknown): UserItem {
 }
 
 function parseUserPage(value: unknown): UserPage {
-  if (typeof value !== 'object' || value === null) throw new Error('用户列表格式异常');
-  const page = value as Partial<UserPage>;
-  if (!Array.isArray(page.items) || typeof page.total !== 'number' ||
-    typeof page.page !== 'number' || typeof page.pageSize !== 'number') throw new Error('用户列表格式异常');
-  return { items: page.items.map(parseUser), total: page.total, page: page.page, pageSize: page.pageSize };
+  return parsePageData(value, parseUser, '用户列表格式异常');
 }
 
 export function getUsers(query: UserQuery, signal?: AbortSignal): Promise<ApiResponse<UserPage>> {
-  const params = new URLSearchParams({ page: String(query.page), pageSize: String(query.pageSize) });
+  const params = buildPageParams(query);
   if (query.search) params.set('search', query.search);
   if (query.status) params.set('status', query.status);
   return request(`/users?${params.toString()}`, parseUserPage, { signal });

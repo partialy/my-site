@@ -8,6 +8,7 @@ import { ApiError } from '../api/api-error';
 import { ApiCode } from '../api/codes';
 import { ConfigManager, SysConfigKey } from '../config/config-manager';
 import { FileRepository, type FileRecord } from '../repositories/file.repository';
+import { mapPageResult, paginationQueryShape } from '../shared/pagination';
 import { UploadSettingsService } from './upload-settings.service';
 
 export const maxFileBytes = 10 * 1024 * 1024;
@@ -19,8 +20,7 @@ const extensions: Record<FileMimeType, string> = {
 };
 
 export const fileListQuerySchema = z.strictObject({
-  page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  ...paginationQueryShape,
   search: z.string().trim().max(200).optional(),
   mimeTypes: z.string().max(300).optional()
     .transform((value) => value ? value.split(',').map((mime) => mime.trim()) : undefined)
@@ -120,8 +120,7 @@ export class FileService {
   }
 
   list(query: z.infer<typeof fileListQuerySchema>) {
-    const result = this.repository.list(query);
-    return { items: result.items.map((record) => this.toItem(record)), total: result.total, page: query.page, pageSize: query.pageSize };
+    return mapPageResult(this.repository.list(query), (record) => this.toItem(record));
   }
 
   find(id: string): FileItem {

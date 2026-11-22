@@ -1,4 +1,5 @@
 import type Database from 'better-sqlite3';
+import type { PageResult, PaginationQuery } from '../shared/pagination';
 import { TableListRepository } from './table-list.repository';
 import { operationLogListResource } from './resources/operation-log-list.resource';
 
@@ -20,9 +21,7 @@ export interface OperationLogRecord {
 
 export interface OperationLogInsert extends Omit<OperationLogRecord, 'id'> {}
 
-export interface OperationLogQuery {
-  page: number;
-  pageSize: number;
+export interface OperationLogQuery extends PaginationQuery {
   module?: string;
   actor?: string;
   startTime?: string;
@@ -49,7 +48,7 @@ export class OperationLogRepository {
     return Number(result.lastInsertRowid);
   }
 
-  list(query: OperationLogQuery): { items: OperationLogRecord[]; total: number } {
+  list(query: OperationLogQuery): PageResult<OperationLogRecord> {
     return this.tableList.list<OperationLogRecord, OperationLogQuery>(operationLogListResource, query);
   }
 }

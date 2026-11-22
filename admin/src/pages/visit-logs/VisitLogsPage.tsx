@@ -49,7 +49,7 @@ export function VisitLogsPage() {
       <CrudFilterBar fields={filterFields} values={query} defaultValues={{}} onSearch={setFilters} onReset={resetFilters} />
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} />}
       <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 16, overflow: 'hidden' }}>
-        <Table<VisitLogItem> rowKey="id" columns={columns} dataSource={result.items} loading={loading} scroll={{ x: 'max-content' }}
+        <Table<VisitLogItem> rowKey="id" columns={columns} dataSource={result.list} loading={loading} scroll={{ x: 'max-content' }}
           pagination={{ current: query.page, pageSize: query.pageSize, total: result.total,
             showSizeChanger: true, pageSizeOptions: [10, 20, 50], showTotal: (total) => `共 ${total} 条`,
             onChange: setPage }} />

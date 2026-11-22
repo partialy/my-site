@@ -5,6 +5,7 @@
 ## server 模块
 
 - server 使用 Express 5、TypeScript、Zod、JWT 和 SQLite。仅管理端使用的接口统一使用 `/api/v1/admin/**` 并放入 `server/src/api/admin/`；admin/client 共用接口使用 `/api/v1/**`，放入公共路由模块。响应结构为 `{code, msg, data, success}`。
+- **分页统一标准**：所有分页接口请求参数统一使用 `offset`（默认 `0`，`>= 0` 整数）与 `limit`（默认 `20`，`1–100` 整数），不兼容 `page` / `pageSize`；响应结构统一为 `{ code, msg, success, data: { list, total, offset, limit, hasMore } }`，其中 `hasMore` 按 `offset + list.length < total` 计算。后端通过 `server/src/shared/pagination.ts`（`paginationQueryShape`、`PageResult<T>`、`createPageResult`、`mapPageResult`）及 `TableListRepository` 复用。配置、菜单、字典、白名单等非增长式配置类列表保持全量数组返回，不分页；后续新增的持续增长型数据列表接口均须按此标准实现。
 - 框架数据库维护单管理员 `admin`、普通动态配置 `config`、系统配置 `sys_config` 和每日去重的 `visit`；请求日志开启后按需创建 `request_log`。首次 setup 接口在同一事务内创建管理员并写入项目名称、后台/前台站点名称，不预设账号；端口、JWT_SECRET、SETUP_KEY 仍在启动前由 `.env` 配置。setup 不删除已有数据库或上传文件，仓库也不跟踪这些数据。
 - `server/migrations/` 分 `sql/`、`dev-sql/`、`prod-sql/`：`sql/` 仅在新库首次启动时按文件名执行建表和初始数据，可在开发期直接维护最新结构；`prod-sql/` 在所有环境每次启动时扫描并执行未执行的升级脚本；`dev-sql/` 只在非生产环境自动执行，正式上线前可清理。新库将当前升级脚本记为基线，避免重复修改最新结构；已有库的每个升级脚本与执行记录同事务提交，已执行脚本内容变化会阻止启动，需新增后续脚本而非改旧脚本。迁移 SQL 由 `.gitattributes` 固定为 LF 换行，避免跨平台校验值不同。生产部署需在 `.env` 设置 `NODE_ENV=production`。管理员可下载 SQLite 在线备份，备份不包含 `server/data/uploads/` 与 `server/data/site-icons/`，临时备份文件下载后清理。
 - 通用业务用户保存在 `user`，使用唯一账号及密码注册；管理员和业务用户密码均允许 8–128 位。公开 `/api/v1/users/register` 和需管理员鉴权的 `POST /api/v1/admin/users` 复用同一注册校验及密码哈希逻辑。管理端用户管理页通过弹窗手动注册用户，列表昵称左侧显示头像；`PUT /api/v1/admin/users/:id/profile` 中的 `id` 为用户 UUID，仅更新昵称和头像访问 URL，头像由文件选择器选取或移除，提交后刷新列表。用户 JWT 与管理员 JWT 区分，禁用用户会撤销已有用户 Token。`user_activity` 按 UTC 日记录已认证用户活动，首页用户统计从真实用户表聚合。`client/userAuth.ts` 提供框架无关的前台请求模板，Token 存储由业务项目决定。用户管理页路由 `/users`，菜单由管理员手动配置。
@@ -36,7 +37,7 @@
 - 管理端表格按内容宽度决定是否横向滚动；容器能完整显示所有列时不应出现横向滚动条。
 - 管理端主题将 Input、Select、Button 的默认控件高度统一为 40px，筛选栏不要再单独混用不同高度。
 - 代码按页面（`pages`）、布局（`layouts`）、复用组件（`components`）、API 请求（`api`）、认证状态（`auth`）与路由守卫（`router`）分层。
-- `hooks/useTableQuery.ts` 管理列表 URL 查询状态、分页、防过期响应和刷新；`components/crud/` 提供防抖筛选栏与带二次确认、防重复点击的操作列按钮。用户、操作日志、访问日志、请求日志和文件管理页已接入；文件选择弹窗继续使用局部列表状态，避免弹窗筛选占用页面 URL。新业务页只声明筛选字段、列和 API 契约，专有写操作保留在业务 Hook/Service。
+- `hooks/useTableQuery.ts` 管理列表 URL 查询状态、分页、防过期响应和刷新；URL 保持 `page` / `pageSize` 展示页码，发请求前由 Hook 内部自动换算为 `offset` / `limit`；列表 API 模块统一复用 `api/types.ts`（`PageQuery`、`PageData<T>`）和 `api/decoders.ts`（`buildPageParams`、`parsePageData`）。`components/crud/` 提供防抖筛选栏与带二次确认、防重复点击的操作列按钮。用户、操作日志、访问日志、请求日志和文件管理页已接入；文件选择弹窗继续使用局部列表状态，避免弹窗筛选占用页面 URL。新业务页只声明筛选字段、列和 API 契约，专有写操作保留在业务 Hook/Service。
 - 文件管理表格支持点击大小、上传时间表头进行升降序排列，排序状态随 URL 保存；服务端文件列表仅接受 `createdAt`/`size` 与 `asc`/`desc` 白名单值，默认上传时间倒序，文件选择弹窗仍使用默认排序。
 - 认证状态集中在 `src/auth/` 独立管理，Token 存放于 `sessionStorage`；页面与组件不直接发原始 fetch 请求或拼接 Authorization 头。
 - 严格遵循管理端 `/api/v1/admin` 基础路径和 `{code, msg, data, success}` 契约。服务端 JSON 先按 `unknown` 处理并在请求层收窄，不使用 `any`。

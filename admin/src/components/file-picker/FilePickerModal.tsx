@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Button, Flex, Input, message, Modal, Pagination, Space, Spin, Typography, Upload } from 'antd';
 import { Search, UploadCloud } from 'lucide-react';
-import type { FileItem, FileQuery } from '../../api/files';
+import type { FileItem } from '../../api/files';
 import { uploadFile } from '../../api/files';
 import { acceptsMime } from './fileUtils';
 import { FileGrid } from './FileGrid';
-import { useFileLibrary } from './useFileLibrary';
+import { useFileLibrary, type FileLibraryQuery } from './useFileLibrary';
 
 const { Text } = Typography;
 
@@ -20,12 +20,12 @@ export interface FilePickerModalProps {
 export function FilePickerModal({ open, multiple = false, accept, onCancel, onConfirm }: FilePickerModalProps) {
   const mimeKey = accept?.join(',') ?? '';
   const [searchDraft, setSearchDraft] = useState('');
-  const [query, setQuery] = useState<FileQuery>({ page: 1, pageSize: 20, mimeTypes: accept, status: 'active' });
+  const [query, setQuery] = useState<FileLibraryQuery>({ page: 1, pageSize: 20, mimeTypes: accept, status: 'active' });
   const [selected, setSelected] = useState<Map<string, FileItem>>(new Map());
   const [uploading, setUploading] = useState(false);
   const pendingUploads = useRef(0);
   const { result, loading, error, reload } = useFileLibrary(query, open);
-  const visibleItems = useMemo(() => result.items.filter((item) => acceptsMime(item.mimeType, accept)), [result.items, accept]);
+  const visibleItems = useMemo(() => result.list.filter((item) => acceptsMime(item.mimeType, accept)), [result.list, accept]);
 
   useEffect(() => {
     if (open) return;

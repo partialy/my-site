@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { VisitRepository } from '../repositories/visit.repository';
+import { paginationQueryShape } from '../shared/pagination';
 
 export const visitInputSchema = z.strictObject({
   visitorId: z.uuid(),
@@ -10,8 +11,7 @@ export const visitInputSchema = z.strictObject({
 
 const daySchema = z.iso.date();
 export const visitQuerySchema = z.strictObject({
-  page: z.coerce.number().int().min(1).max(1_000_000).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  ...paginationQueryShape,
   path: z.string().trim().max(500).optional(),
   visitorId: z.string().trim().max(36).optional(),
   startDay: daySchema.optional(),

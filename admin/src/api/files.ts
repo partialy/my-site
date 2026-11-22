@@ -1,20 +1,14 @@
 import { getPublicApiBaseUrl, request } from './client';
-import type { ApiResponse } from './types';
+import { buildPageParams, parsePageData } from './decoders';
+import type { ApiResponse, PageData, PageQuery } from './types';
 import { uploadFile as uploadBrowserFile } from './uploadFile';
 import type { UploadedFile } from './uploadFile';
 
 export type FileItem = UploadedFile;
 
-export interface FilePage {
-  items: FileItem[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
+export type FilePage = PageData<FileItem>;
 
-export interface FileQuery {
-  page: number;
-  pageSize: number;
+export interface FileQuery extends PageQuery {
   search?: string;
   mimeTypes?: string[];
   sortBy?: 'createdAt' | 'size';
@@ -42,12 +36,7 @@ function parseFile(value: unknown): FileItem {
 }
 
 function parseFilePage(value: unknown): FilePage {
-  if (!isRecord(value) || !Array.isArray(value.items) || typeof value.total !== 'number' ||
-    typeof value.page !== 'number' || typeof value.pageSize !== 'number') {
-    throw new Error('文件列表格式异常');
-  }
-  return { items: value.items.map(parseFile), total: value.total,
-    page: value.page, pageSize: value.pageSize };
+  return parsePageData(value, parseFile, '文件列表格式异常');
 }
 
 function parseEmpty(value: unknown): null {
@@ -56,7 +45,7 @@ function parseEmpty(value: unknown): null {
 }
 
 export function getFiles(query: FileQuery, signal?: AbortSignal): Promise<ApiResponse<FilePage>> {
-  const params = new URLSearchParams({ page: String(query.page), pageSize: String(query.pageSize) });
+  const params = buildPageParams(query);
   if (query.search) params.set('search', query.search);
   if (query.mimeTypes?.length) params.set('mimeTypes', query.mimeTypes.join(','));
   if (query.sortBy) params.set('sortBy', query.sortBy);

@@ -5,6 +5,7 @@ import { UserRepository, type UserListRecord, type UserStatus } from '../reposit
 import { USER_JWT_EXPIRES_IN, UserJwtService } from '../security/user-jwt.service';
 import { hashPassword, verifyPassword } from '../security/password';
 import { daysAgo, utcDay } from './visit.service';
+import { mapPageResult, paginationQueryShape } from '../shared/pagination';
 import { createPublicId, publicIdSchema } from '../shared/public-id';
 
 const accountSchema = z.string().trim().min(3).max(32).regex(/^[a-zA-Z][a-zA-Z0-9_]*$/, '账号只能包含字母、数字和下划线，且以字母开头');
@@ -16,8 +17,7 @@ export const userRegisterSchema = z.strictObject({
 });
 export const userLoginSchema = z.strictObject({ account: z.string().trim().min(1), password: z.string().min(1) });
 export const userListQuerySchema = z.strictObject({
-  page: z.coerce.number().int().min(1).max(1_000_000).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  ...paginationQueryShape,
   search: z.string().trim().max(100).optional(),
   status: z.enum(['active', 'disabled']).optional(),
 });
@@ -91,8 +91,7 @@ export class UserService {
   }
 
   list(query: z.infer<typeof userListQuerySchema>) {
-    const result = this.users.list(query);
-    return { ...result, items: result.items.map(summary) };
+    return mapPageResult(this.users.list(query), summary);
   }
 
   detail(uuid: string): UserSummary {

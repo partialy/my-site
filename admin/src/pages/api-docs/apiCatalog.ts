@@ -121,8 +121,8 @@ export const API_GROUPS: readonly ApiGroup[] = [
   ] },
   { audience: 'admin', module: '请求日志', endpoints: [
     { method: 'GET', path: `${admin}/request-logs`, title: '分页查询请求日志', auth: true,
-      request: 'Query: page=1；pageSize=20(1-100)；method?；path?；status?(100-599)',
-      response: '{ items: RequestLogItem[]; total: number; page: number; pageSize: number }',
+      request: 'Query: offset=0；limit=20(1-100)；method?；path?；status?(100-599)',
+      response: '{ list: RequestLogItem[]; total: number; offset: number; limit: number; hasMore: boolean }',
       note: 'RequestLogItem: uuid、time、method、path、url、requestData、responseData、status、durationMs、ip、origin、referer、userAgent。未开启日志时可返回空列表。' },
     { method: 'DELETE', path: `${admin}/request-logs`, title: '清理请求日志', auth: true,
       request: 'JSON 五选一: { mode: "ids"; ids: UUID字符串[](1-500) } | { mode: "timeRange"; startTime: ISO时间; endTime: ISO时间 } | { mode: "beforeTime" | "afterTime"; time: ISO时间 } | { mode: "keepLatest"; count: number }',
@@ -130,8 +130,8 @@ export const API_GROUPS: readonly ApiGroup[] = [
   ] },
   { audience: 'admin', module: '操作日志', endpoints: [
     { method: 'GET', path: `${admin}/operation-logs`, title: '查询业务操作审计', auth: true,
-      request: 'Query: page=1；pageSize=20(1-100)；module?；actor?；startTime?；endTime?（带时区 ISO 时间）',
-      response: '{ items: OperationLogItem[]; total: number; page: number; pageSize: number }',
+      request: 'Query: offset=0；limit=20(1-100)；module?；actor?；startTime?；endTime?（带时区 ISO 时间）',
+      response: '{ list: OperationLogItem[]; total: number; offset: number; limit: number; hasMore: boolean }',
       note: '仅记录框架内成功的管理员写操作；业务模块可显式调用记录器。审计摘要不含原始敏感值。' },
   ] },
   { audience: 'admin', module: '运行状态与备份', endpoints: [
@@ -148,8 +148,8 @@ export const API_GROUPS: readonly ApiGroup[] = [
   ] },
   { audience: 'admin', module: '用户管理', endpoints: [
     { method: 'GET', path: `${admin}/users`, title: '分页查询业务用户', auth: true,
-      request: 'Query: page=1；pageSize=20(1-100)；search?（账号或昵称）；status?=active | disabled',
-      response: `{ items: ${userItem}[]; total: number; page: number; pageSize: number }` },
+      request: 'Query: offset=0；limit=20(1-100)；search?（账号或昵称）；status?=active | disabled',
+      response: `{ list: ${userItem}[]; total: number; offset: number; limit: number; hasMore: boolean }` },
     { method: 'POST', path: `${admin}/users`, title: '管理员注册业务用户', auth: true,
       request: 'JSON: { account: string(3-32，字母开头，字母/数字/下划线); password: string(8-128); nickname?: string(1-50) }',
       response: userItem, note: '复用业务用户注册校验；账号不区分大小写且唯一。成功时 HTTP 201。' },
@@ -164,8 +164,8 @@ export const API_GROUPS: readonly ApiGroup[] = [
   ] },
   { audience: 'admin', module: '访问日志', endpoints: [
     { method: 'GET', path: `${admin}/visits`, title: '分页查询访问日志', auth: true,
-      request: 'Query: page=1；pageSize=20(1-100)；path?；visitorId?；startDay?；endDay?（日期格式 YYYY-MM-DD）',
-      response: '{ items: { id: number; day: string; visitorId: UUID; path: string; pageTitle: string; referrer: string; ip: string | null; userAgent: string | null; createdAt: ISO时间 }[]; total: number; page: number; pageSize: number }' },
+      request: 'Query: offset=0；limit=20(1-100)；path?；visitorId?；startDay?；endDay?（日期格式 YYYY-MM-DD）',
+      response: '{ list: { id: number; day: string; visitorId: UUID; path: string; pageTitle: string; referrer: string; ip: string | null; userAgent: string | null; createdAt: ISO时间 }[]; total: number; offset: number; limit: number; hasMore: boolean }' },
   ] },
   { audience: 'admin', module: '文件管理', endpoints: [
     { method: 'GET', path: `${admin}/upload-settings`, title: '读取上传设置', auth: true,
@@ -175,8 +175,8 @@ export const API_GROUPS: readonly ApiGroup[] = [
       request: 'JSON: { strategy, localDomain, accessKey, secretKey, bucket, root, uploadUrl, domain }；Secret Key 留空表示保留原值',
       response: '同读取上传设置' },
     { method: 'GET', path: `${admin}/files`, title: '分页查询文件', auth: true,
-      request: 'Query: page=1；pageSize=20(1-100)；search?；mimeTypes?（逗号分隔 MIME 类型）；status?=active | archived | all（默认 active）；sortBy?=createdAt | size（默认 createdAt）；sortOrder?=asc | desc（默认 desc）',
-      response: `{ items: ${fileItem}[]; total: number; page: number; pageSize: number }` },
+      request: 'Query: offset=0；limit=20(1-100)；search?；mimeTypes?（逗号分隔 MIME 类型）；status?=active | archived | all（默认 active）；sortBy?=createdAt | size（默认 createdAt）；sortOrder?=asc | desc（默认 desc）',
+      response: `{ list: ${fileItem}[]; total: number; offset: number; limit: number; hasMore: boolean }` },
     { method: 'POST', path: `${admin}/files`, title: '上传文件', auth: true,
       request: 'Body: 原始文件字节；Content-Type: image/png | image/jpeg | image/webp | image/x-icon | image/gif | application/pdf；X-File-Name: URL 编码文件名',
       response: fileItem, note: '仅本地存储策略；最大 10 MiB；成功时 HTTP 201。' },

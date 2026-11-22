@@ -1,4 +1,5 @@
 import type Database from 'better-sqlite3';
+import { createPageResult, type PageResult, type PaginationQuery } from '../shared/pagination';
 
 /** 资源描述只能由服务端代码声明，不能从请求参数构造 SQL 标识符。 */
 export interface TableListResource {
@@ -16,17 +17,8 @@ export interface TableListResource {
   orderColumns?: ReadonlyArray<{ column: string; order: 'ASC' | 'DESC' }>;
 }
 
-export interface TableListQuery {
-  page: number;
-  pageSize: number;
+export interface TableListQuery extends PaginationQuery {
   search?: string;
-}
-
-export interface TableListPage<T> {
-  items: T[];
-  total: number;
-  page: number;
-  pageSize: number;
 }
 
 const identifier = /^[A-Za-z_][A-Za-z0-9_]*$/;
@@ -54,7 +46,7 @@ function escapeLike(value: string): string {
 export class TableListRepository {
   constructor(private readonly db: Database.Database) {}
 
-  list<T, TQuery extends TableListQuery>(resource: TableListResource, query: TQuery): TableListPage<T> {
+  list<T, TQuery extends TableListQuery>(resource: TableListResource, query: TQuery): PageResult<T> {
     const table = quoteIdentifier(resource.table);
     const columns = resource.columns.map(quoteIdentifier).join(', ');
     if (!columns) throw new Error('列表资源至少需要一个查询字段');
@@ -101,8 +93,8 @@ export class TableListRepository {
     }
     const where = conditions.length ? ` WHERE ${conditions.join(' AND ')}` : '';
     const total = (this.db.prepare(`SELECT COUNT(*) AS total FROM ${table}${where}`).get(...args) as { total: number }).total;
-    const items = this.db.prepare(`SELECT ${columns} FROM ${table}${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`)
-      .all(...args, query.pageSize, (query.page - 1) * query.pageSize) as T[];
-    return { items, total, page: query.page, pageSize: query.pageSize };
+    const list = this.db.prepare(`SELECT ${columns} FROM ${table}${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`)
+      .all(...args, query.limit, query.offset) as T[];
+    return createPageResult(list, total, query);
   }
 }

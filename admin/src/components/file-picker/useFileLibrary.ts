@@ -2,9 +2,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { getFiles } from '../../api/files';
 import type { FilePage, FileQuery } from '../../api/files';
 
-const emptyPage: FilePage = { items: [], total: 0, page: 1, pageSize: 20 };
+export interface FileLibraryQuery extends Omit<FileQuery, 'offset' | 'limit'> {
+  page: number;
+  pageSize: number;
+}
 
-export function useFileLibrary(query: FileQuery, enabled = true) {
+const emptyPage: FilePage = { list: [], total: 0, offset: 0, limit: 20, hasMore: false };
+
+export function useFileLibrary(query: FileLibraryQuery, enabled = true) {
   const [result, setResult] = useState<FilePage>(emptyPage);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -16,7 +21,8 @@ export function useFileLibrary(query: FileQuery, enabled = true) {
     setLoading(true);
     setError(null);
     try {
-      const response = await getFiles(query);
+      const { page, pageSize, ...filters } = query;
+      const response = await getFiles({ ...filters, offset: (page - 1) * pageSize, limit: pageSize });
       if (!response.success) throw new Error(response.msg);
       if (currentId === requestId.current) setResult(response.data);
     } catch (cause) {

@@ -1,4 +1,5 @@
 import type Database from 'better-sqlite3';
+import { mapPageResult, type PaginationQuery } from '../shared/pagination';
 import { TableListRepository } from './table-list.repository';
 import { visitListResource } from './resources/visit-list.resource';
 
@@ -18,9 +19,7 @@ export interface VisitTrendPoint {
   visits: number;
 }
 
-export interface VisitQuery {
-  page: number;
-  pageSize: number;
+export interface VisitQuery extends PaginationQuery {
   path?: string;
   visitorId?: string;
   startDay?: string;
@@ -67,8 +66,7 @@ export class VisitRepository {
   }
 
   list(query: VisitQuery) {
-    const { items: rows, total } = this.tableList.list<VisitRow, VisitQuery>(visitListResource, query);
-    return { items: rows.map(toItem), total, page: query.page, pageSize: query.pageSize };
+    return mapPageResult(this.tableList.list<VisitRow, VisitQuery>(visitListResource, query), toItem);
   }
 
   create(record: VisitRecord): boolean {

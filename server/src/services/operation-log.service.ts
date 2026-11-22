@@ -1,9 +1,9 @@
 import { z } from 'zod';
 import { OperationLogRepository, type OperationLogQuery, type OperationLogRecord } from '../repositories/operation-log.repository';
+import { mapPageResult, paginationQueryShape } from '../shared/pagination';
 
 export const operationLogQuerySchema = z.strictObject({
-  page: z.coerce.number().int().min(1).max(1_000_000).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  ...paginationQueryShape,
   module: z.string().trim().min(1).max(100).optional(),
   actor: z.string().trim().min(1).max(100).optional(),
   startTime: z.iso.datetime({ offset: true }).optional(),
@@ -92,7 +92,6 @@ export class OperationLogService {
       startTime: query.startTime ? new Date(query.startTime).toISOString() : undefined,
       endTime: query.endTime ? new Date(query.endTime).toISOString() : undefined,
     };
-    const result = this.repository.list(normalized);
-    return { items: result.items.map(toItem), total: result.total, page: query.page, pageSize: query.pageSize };
+    return mapPageResult(this.repository.list(normalized), toItem);
   }
 }

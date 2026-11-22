@@ -56,7 +56,7 @@ export function FilesPage() {
           const response = await archiveFile(file.id);
           if (!response.success) throw new Error(response.msg);
           message.success('文件已归档');
-          if (query.status === 'active' && result.items.length === 1 && query.page > 1) {
+          if (query.status === 'active' && result.list.length === 1 && query.page > 1) {
             setPage(query.page - 1, query.pageSize);
           } else {
             reload();
@@ -79,7 +79,7 @@ export function FilesPage() {
           const response = await restoreFile(file.id);
           if (!response.success) throw new Error(response.msg);
           message.success('文件已恢复');
-          if (query.status === 'archived' && result.items.length === 1 && query.page > 1) {
+          if (query.status === 'archived' && result.list.length === 1 && query.page > 1) {
             setPage(query.page - 1, query.pageSize);
           } else reload();
         } catch (cause) {
@@ -100,7 +100,7 @@ export function FilesPage() {
           const response = await deleteFilePermanently(file.id);
           if (!response.success) throw new Error(response.msg);
           message.success('文件已永久删除');
-          if (result.items.length === 1 && query.page > 1) setPage(query.page - 1, query.pageSize);
+          if (result.list.length === 1 && query.page > 1) setPage(query.page - 1, query.pageSize);
           else reload();
         } catch (cause) {
           message.error(cause instanceof Error ? cause.message : '删除失败');
@@ -133,7 +133,7 @@ export function FilesPage() {
         : <Button type="link" size="small" icon={<Archive size={14} />} onClick={() => confirmArchive(file)}>归档</Button>}
       <Button type="link" danger size="small" icon={<Trash2 size={14} />} onClick={() => confirmDelete(file)}>删除</Button>
     </Space> },
-  ], [reload, setPage, query.page, query.pageSize, query.status, query.sortBy, query.sortOrder, result.items.length]);
+  ], [reload, setPage, query.page, query.pageSize, query.status, query.sortBy, query.sortOrder, result.list.length]);
 
   const onTableChange: TableProps<FileItem>['onChange'] = (_pagination, _filters, sorter, extra) => {
     if (extra.action !== 'sort') return;
@@ -161,7 +161,7 @@ export function FilesPage() {
       <CrudFilterBar fields={filterFields} values={query} defaultValues={defaultFileFilters} onSearch={setFilters} onReset={resetFilters} />
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} />}
       <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 16, overflow: 'hidden' }}>
-        <Table<FileItem> rowKey="id" columns={columns} dataSource={result.items} loading={loading} scroll={{ x: 'max-content' }}
+        <Table<FileItem> rowKey="id" columns={columns} dataSource={result.list} loading={loading} scroll={{ x: 'max-content' }}
           onChange={onTableChange}
           pagination={{ current: query.page, pageSize: query.pageSize, total: result.total, showSizeChanger: true,
             pageSizeOptions: [10, 20, 50], showTotal: (total) => `共 ${total} 个文件`,

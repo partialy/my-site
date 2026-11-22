@@ -1,10 +1,9 @@
 import type Database from 'better-sqlite3';
+import { createPageResult, mapPageResult, type PageResult, type PaginationQuery } from '../shared/pagination';
 import { TableListRepository } from './table-list.repository';
 import { requestLogListResource } from './resources/request-log-list.resource';
 
-export interface RequestLogQuery {
-  page: number;
-  pageSize: number;
+export interface RequestLogQuery extends PaginationQuery {
   method?: string;
   path?: string;
   status?: number;
@@ -43,12 +42,7 @@ export interface RequestLogItem {
   userAgent: string | null;
 }
 
-export interface RequestLogPage {
-  items: RequestLogItem[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
+export type RequestLogPage = PageResult<RequestLogItem>;
 
 export interface RequestLogDashboard {
   total: number;
@@ -149,8 +143,10 @@ export class RequestLogRepository {
   }
 
   list(query: RequestLogQuery): RequestLogPage {
-    if (!this.exists()) return { items: [], total: 0, page: query.page, pageSize: query.pageSize };
-    const { items: records, total } = this.tableList.list<RequestLogRecord, RequestLogQuery>(requestLogListResource, query);
-    return { items: records.map(toItem), total, page: query.page, pageSize: query.pageSize };
+    if (!this.exists()) return createPageResult([], 0, query);
+    return mapPageResult(
+      this.tableList.list<RequestLogRecord, RequestLogQuery>(requestLogListResource, query),
+      toItem,
+    );
   }
 }

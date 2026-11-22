@@ -1,5 +1,6 @@
 import { request } from './client';
-import type { ApiResponse } from './types';
+import { buildPageParams, isRecord, isOptionalString, parsePageData } from './decoders';
+import type { ApiResponse, PageData, PageQuery } from './types';
 
 export interface RequestLogItem {
   uuid: string;
@@ -17,34 +18,19 @@ export interface RequestLogItem {
   userAgent: string | null;
 }
 
-export interface RequestLogQuery {
-  page: number;
-  pageSize: number;
+export interface RequestLogQuery extends PageQuery {
   method?: string;
   path?: string;
   status?: number;
 }
 
-export interface RequestLogPage {
-  items: RequestLogItem[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
+export type RequestLogPage = PageData<RequestLogItem>;
 
 export type RequestLogCleanup =
   | { mode: 'ids'; ids: string[] }
   | { mode: 'timeRange'; startTime: string; endTime: string }
   | { mode: 'beforeTime' | 'afterTime'; time: string }
   | { mode: 'keepLatest'; count: number };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function isOptionalString(value: unknown): value is string | null {
-  return value === null || typeof value === 'string';
-}
 
 function parseRequestLogItem(value: unknown): RequestLogItem {
   if (!isRecord(value) || typeof value.uuid !== 'string' || typeof value.time !== 'string' ||
@@ -64,18 +50,11 @@ function parseRequestLogItem(value: unknown): RequestLogItem {
 }
 
 function parseRequestLogPage(value: unknown): RequestLogPage {
-  if (!isRecord(value) || !Array.isArray(value.items) || typeof value.total !== 'number' ||
-    typeof value.page !== 'number' || typeof value.pageSize !== 'number') {
-    throw new Error('请求日志列表格式异常');
-  }
-  return {
-    items: value.items.map(parseRequestLogItem), total: value.total,
-    page: value.page, pageSize: value.pageSize,
-  };
+  return parsePageData(value, parseRequestLogItem, '请求日志列表格式异常');
 }
 
 export function getRequestLogs(query: RequestLogQuery, signal?: AbortSignal): Promise<ApiResponse<RequestLogPage>> {
-  const params = new URLSearchParams({ page: String(query.page), pageSize: String(query.pageSize) });
+  const params = buildPageParams(query);
   if (query.method) params.set('method', query.method);
   if (query.path) params.set('path', query.path);
   if (query.status !== undefined) params.set('status', String(query.status));

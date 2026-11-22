@@ -128,3 +128,22 @@ export interface ChangePasswordRequest {
   oldPassword: string;
   newPassword: string;
 }
+
+/**
+ * 统一分页请求参数（纯 offset / limit 模式）
+ */
+export interface PageQuery {
+  offset: number;
+  limit: number;
+}
+
+/**
+ * 统一分页响应数据
+ */
+export interface PageData<TItem> {
+  list: TItem[];
+  total: number;
+  offset: number;
+  limit: number;
+  hasMore: boolean;
+}

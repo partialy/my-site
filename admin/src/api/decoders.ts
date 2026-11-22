@@ -1,7 +1,34 @@
-import type { AdminSummary, LoginData, SetupStatusData } from './types';
+import type { AdminSummary, LoginData, PageData, PageQuery, SetupStatusData } from './types';
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+export function isOptionalString(value: unknown): value is string | null {
+  return value === null || typeof value === 'string';
+}
+
+export function buildPageParams(query: PageQuery): URLSearchParams {
+  return new URLSearchParams({ offset: String(query.offset), limit: String(query.limit) });
+}
+
+export function parsePageData<TItem>(
+  value: unknown,
+  parseItem: (item: unknown) => TItem,
+  errorMessage = '列表格式异常',
+): PageData<TItem> {
+  if (!isRecord(value) || !Array.isArray(value.list) || typeof value.total !== 'number' ||
+    typeof value.offset !== 'number' || typeof value.limit !== 'number' ||
+    typeof value.hasMore !== 'boolean') {
+    throw new Error(errorMessage);
+  }
+  return {
+    list: value.list.map(parseItem),
+    total: value.total,
+    offset: value.offset,
+    limit: value.limit,
+    hasMore: value.hasMore,
+  };
 }
 
 export function parseAdminSummary(value: unknown): AdminSummary {

@@ -1,15 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { ApiResponse } from '../api/types';
+import type { ApiResponse, PageData, PageQuery } from '../api/types';
 
-export interface TablePage<TItem> {
-  items: TItem[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
+export type TablePage<TItem> = PageData<TItem>;
 
 export type TableQuery<TFilters> = TFilters & { page: number; pageSize: number };
+export type TableRequestQuery<TFilters> = TFilters & PageQuery;
 
 export interface TableFilterCodec<TFilters> {
   read(params: URLSearchParams): TFilters;
@@ -20,7 +16,7 @@ export interface TableQueryOptions<TItem, TFilters extends object> {
   defaultPageSize: number;
   defaultFilters: TFilters;
   filters: TableFilterCodec<TFilters>;
-  fetchPage(query: TableQuery<TFilters>, signal: AbortSignal): Promise<ApiResponse<TablePage<TItem>>>;
+  fetchPage(query: TableRequestQuery<TFilters>, signal: AbortSignal): Promise<ApiResponse<PageData<TItem>>>;
 }
 
 function positiveInteger(raw: string | null, fallback: number, maximum: number): number {
@@ -28,7 +24,7 @@ function positiveInteger(raw: string | null, fallback: number, maximum: number):
   return raw && Number.isSafeInteger(value) && value >= 1 && value <= maximum ? value : fallback;
 }
 
-/** URL 保存已提交条件；页面重载、前进后退和分页均使用同一份查询状态。 */
+/** URL 保存已提交条件；页面重载、前进后退保持页码展示，发请求时统一换算为 offset / limit。 */
 export function useTableQuery<TItem, TFilters extends object>(options: TableQueryOptions<TItem, TFilters>) {
   const [searchParams, setSearchParams] = useSearchParams();
   const search = searchParams.toString();
@@ -40,7 +36,9 @@ export function useTableQuery<TItem, TFilters extends object>(options: TableQuer
       pageSize: positiveInteger(params.get('pageSize'), options.defaultPageSize, 100),
     } as TableQuery<TFilters>;
   }, [search, options]);
-  const [result, setResult] = useState<TablePage<TItem>>({ items: [], total: 0, page: 1, pageSize: options.defaultPageSize });
+  const [result, setResult] = useState<PageData<TItem>>({
+    list: [], total: 0, offset: 0, limit: options.defaultPageSize, hasMore: false,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
@@ -51,7 +49,13 @@ export function useTableQuery<TItem, TFilters extends object>(options: TableQuer
     const currentId = ++requestId.current;
     setLoading(true);
     setError(null);
-    void options.fetchPage(query, controller.signal).then((response) => {
+    const { page, pageSize, ...filters } = query;
+    const requestQuery = {
+      ...filters,
+      offset: (page - 1) * pageSize,
+      limit: pageSize,
+    } as TableRequestQuery<TFilters>;
+    void options.fetchPage(requestQuery, controller.signal).then((response) => {
       if (!response.success) throw new Error(response.msg);
       if (requestId.current !== currentId) return;
       setResult(response.data);
@@ -97,7 +101,7 @@ export function useTableQuery<TItem, TFilters extends object>(options: TableQuer
 
   const reload = useCallback(() => setVersion((value) => value + 1), []);
   const replaceItem = useCallback((matches: (item: TItem) => boolean, updated: TItem) => {
-    setResult((current) => ({ ...current, items: current.items.map((item) => matches(item) ? updated : item) }));
+    setResult((current) => ({ ...current, list: current.list.map((item) => matches(item) ? updated : item) }));
   }, []);
 
   return { query, result, loading, error, setFilters, resetFilters, setPage, reload, replaceItem };

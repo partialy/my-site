@@ -120,9 +120,12 @@ async function main() {
     assert.equal(result.body.data.users.source, 'mock');
     assert.equal(result.body.data.users.total, 2680);
     assert.equal(result.body.data.users.trend7.length, 7);
-    result = await request('/visits?path=%2F&page=1&pageSize=10', 'GET', undefined, token);
+    result = await request('/visits?path=%2F&offset=0&limit=10', 'GET', undefined, token);
     assert.equal(result.body.data.total, 1);
-    assert.equal(result.body.data.items[0].visitorId, visit.visitorId);
+    assert.equal(result.body.data.offset, 0);
+    assert.equal(result.body.data.limit, 10);
+    assert.equal(result.body.data.hasMore, false);
+    assert.equal(result.body.data.list[0].visitorId, visit.visitorId);
     systemConfig.update({ requestLogMode: 'all', consoleLogEnabled: false, consoleLogFormat: '[${time}] ${url}' });
     systemConfig.update({ requestLogMode: 'off', consoleLogEnabled: false, consoleLogFormat: '[${time}] ${url}' });
     const insertLogStatement = db.prepare('INSERT INTO request_log (uuid, time, method, path, url, status, duration_ms) VALUES (?, ?, ?, ?, ?, ?, ?)');
@@ -154,7 +157,10 @@ async function main() {
     assert.equal(result.body.data.deleted, 2);
     result = await request('/request-logs', 'GET', undefined, token);
     assert.equal(result.body.data.total, 1);
-    assert.equal(result.body.data.items[0].uuid, newestId);
+    assert.equal(result.body.data.offset, 0);
+    assert.equal(result.body.data.limit, 20);
+    assert.equal(result.body.data.hasMore, false);
+    assert.equal(result.body.data.list[0].uuid, newestId);
     result = await request('/auth/me');
     assert.equal(result.body.code, 1005);
     const expired = jwt.sign({ ver: 0, exp: Math.floor(Date.now() / 1000) - 1 }, config.jwtSecret, {

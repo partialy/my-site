@@ -135,7 +135,7 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 
 `console_log_enabled` 默认开启，`console_log_format` 默认 `[${time}][${method}] ${url}`。支持 `${time}`、`${method}`、`${url}`、`${status}`、`${duration}`、`${ip}`，其中耗时带 `ms`。请求日志记录路径、已脱敏的查询参数和请求体、响应 JSON、HTTP 状态、耗时、IP、Origin、Referer、User-Agent；请求/响应内容分别限制为 16 KiB，上传的二进制请求体只记录占位说明。普通配置接口的请求和响应内容会整体隐藏，避免配置值写入日志。
 
-`GET /api/v1/admin/request-logs` 支持 `page`（默认 1）、`pageSize`（默认 20，最大 100）、`method`、`path`（子串匹配）、`status` 查询参数，返回 `{items,total,page,pageSize}`。按新到旧排序，供管理端查看列表和单条详情；`request_log` 尚未创建时返回空列表，不会因查询而创建表。`DELETE /api/v1/admin/request-logs` 可提交以下互斥模式，返回 `{deleted}`：
+`GET /api/v1/admin/request-logs` 支持 `offset`（默认 0）、`limit`（默认 20，最大 100）、`method`、`path`（子串匹配）、`status` 查询参数，返回 `{list,total,offset,limit,hasMore}`。按新到旧排序，供管理端查看列表和单条详情；`request_log` 尚未创建时返回空列表，不会因查询而创建表。`DELETE /api/v1/admin/request-logs` 可提交以下互斥模式，返回 `{deleted}`：
 
 | mode | 请求体其余字段 | 删除范围 |
 | --- | --- | --- |
@@ -155,7 +155,7 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 
 业务用户使用不区分大小写的唯一账号和密码注册。`POST /api/v1/users/register` 提交 `{account,password,nickname?}`；管理员也可通过需管理员 JWT 的 `POST /api/v1/admin/users` 提交相同字段注册用户。`POST /api/v1/users/login` 返回用户 JWT；`GET /api/v1/users/me` 使用该 Token。用户 JWT 与管理员 JWT 的身份声明不同，不能互用。管理员可通过 `/api/v1/admin/users` 查询用户，通过 `PUT /api/v1/admin/users/:id/profile` 传 `{nickname,avatar}` 编辑资料，`avatar` 为文件访问 URL 或 `null`；通过 `PUT /api/v1/admin/users/:id/status` 传 `{status:"active"|"disabled"}` 修改状态；这些路径中的 `id` 均为响应中的 32 位无连字符 `uuid`，不再接受自增 ID。状态变化会撤销旧 Token。登录及认证请求按 UTC 日记录 `user_activity`，供近 7 日活跃用户统计。
 
-`operation_log` 与 HTTP `request_log` 独立，记录成功的框架管理员写操作，包括配置、菜单、站点、文件、用户状态和数据库备份。`GET /api/v1/admin/operation-logs` 支持 `page`、`pageSize`、`module`、`actor`、`startTime`、`endTime`。业务模块在 Service 层显式调用 `OperationLogService.record()`，传操作人、模块、动作、目标与安全摘要；只记涉及的字段名，不保存密码、Token 或完整请求/响应。框架操作在响应成功后尽力写入审计；需要审计与业务数据严格同事务的业务模块，应在自身 Service 事务中显式调用记录器。
+`operation_log` 与 HTTP `request_log` 独立，记录成功的框架管理员写操作，包括配置、菜单、站点、文件、用户状态和数据库备份。`GET /api/v1/admin/operation-logs` 支持 `offset`、`limit`、`module`、`actor`、`startTime`、`endTime`，返回 `{list,total,offset,limit,hasMore}`。业务模块在 Service 层显式调用 `OperationLogService.record()`，传操作人、模块、动作、目标与安全摘要；只记涉及的字段名，不保存密码、Token 或完整请求/响应。框架操作在响应成功后尽力写入审计；需要审计与业务数据严格同事务的业务模块，应在自身 Service 事务中显式调用记录器。
 
 ## 健康检查、限流与备份
 
@@ -171,7 +171,7 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 
 `GET /api/v1/admin/home` 需要管理员 JWT，返回今日、昨日和近 7 天访问量，以及近 7 天、近 30 天每日趋势；还聚合近 7 天已记录的接口日志，提供请求数、HTTP 4xx 以下占比、Origin/Referer 来源和请求最多的接口路径。请求日志关闭或白名单未覆盖接口时，相关统计只基于已有日志；日志表不存在时返回空指标。`users` 字段从业务用户表与 `user_activity` 聚合用户总数、近 7 日活跃用户、近 7 日新增用户和趋势，`source` 为 `real`。
 
-`GET /api/v1/admin/visits` 支持 `page`、`pageSize`（最大 100）、`path`、`visitorId` 子串查询，以及 `startDay`、`endDay`（UTC 日期 `YYYY-MM-DD`）筛选，按最新记录排序，返回 `{items,total,page,pageSize}`。访问日志页面在管理端 `/visit-logs`，导航菜单由管理员自行配置，不自动写入默认菜单。
+`GET /api/v1/admin/visits` 支持 `offset`（默认 0）、`limit`（默认 20，最大 100）、`path`、`visitorId` 子串查询，以及 `startDay`、`endDay`（UTC 日期 `YYYY-MM-DD`）筛选，按最新记录排序，返回 `{list,total,offset,limit,hasMore}`。访问日志页面在管理端 `/visit-logs`，导航菜单由管理员自行配置，不自动写入默认菜单。
 
 ## 站点设置与图标
 
@@ -185,7 +185,7 @@ code=0 为成功，code=-1 为通用失败，其余数字码为明确的业务�
 
 ## 文件库
 
-`GET /api/v1/admin/files?page=1&pageSize=20&search=关键词&mimeTypes=image/png,image/jpeg&sortBy=size&sortOrder=desc&status=all` 返回 `{items,total,page,pageSize}`。`status` 可选 `active`、`archived`、`all`，默认 `active`，文件管理页传 `all`，文件选择器只查询 `active`。`mimeTypes` 可选，使用逗号分隔，在计数和分页前过滤类型。`sortBy` 仅允许 `createdAt`、`size`，`sortOrder` 仅允许 `asc`、`desc`，默认按上传时间倒序；同值时按 ID 倒序保证分页稳定。每条 `FileItem` 包含 `{id,name,mimeType,size,url,createdAt,archivedAt}`；本地 `url` 指向公开文件接口，七牛 `url` 为访问域名直链，`archivedAt` 为 `null` 表示可用。列表、上传、归档、恢复和永久删除需要管理员 JWT；内容链接公开读取。
+`GET /api/v1/admin/files?offset=0&limit=20&search=关键词&mimeTypes=image/png,image/jpeg&sortBy=size&sortOrder=desc&status=all` 返回 `{list,total,offset,limit,hasMore}`。`status` 可选 `active`、`archived`、`all`，默认 `active`，文件管理页传 `all`，文件选择器只查询 `active`。`mimeTypes` 可选，使用逗号分隔，在计数和分页前过滤类型。`sortBy` 仅允许 `createdAt`、`size`，`sortOrder` 仅允许 `asc`、`desc`，默认按上传时间倒序；同值时按 ID 倒序保证分页稳定。每条 `FileItem` 包含 `{id,name,mimeType,size,url,createdAt,archivedAt}`；本地 `url` 指向公开文件接口，七牛 `url` 为访问域名直链，`archivedAt` 为 `null` 表示可用。列表、上传、归档、恢复和永久删除需要管理员 JWT；内容链接公开读取。
 
 本地策略下，`POST /api/v1/admin/files` 使用原始文件字节作为请求体，设置实际文件 MIME 的 `Content-Type`，并将文件名执行 `encodeURIComponent` 后放入 `X-File-Name`。支持 PNG、JPEG、WebP、ICO、GIF、PDF，最大 10 MiB；本地上传校验文件头并拒绝 SVG。元数据保存在 SQLite 的 `file` 表，本地文件存于 `server/data/uploads/`，内置数据库备份不包含文件本体。`DELETE /api/v1/admin/files/:id` 仅归档记录，不再出现在选择器中；已有内容链接仍可访问。`PUT /api/v1/admin/files/:id/restore` 恢复文件可选状态。`DELETE /api/v1/admin/files/:id/permanent` 永久删除文件的元数据与原文件，当前用作后台/前台站点图标或登录背景的文件返回 409；业务表或外部保存的链接无法自动检测，删除前需确认没有其他引用。
 

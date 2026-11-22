@@ -1,4 +1,5 @@
 import type Database from 'better-sqlite3';
+import type { PageResult, PaginationQuery } from '../shared/pagination';
 import { TableListRepository } from './table-list.repository';
 import { userListResource } from './resources/user-list.resource';
 
@@ -19,19 +20,12 @@ export interface UserRecord {
 
 export type UserListRecord = Omit<UserRecord, 'password_hash' | 'token_version'>;
 
-export interface UserListQuery {
-  page: number;
-  pageSize: number;
+export interface UserListQuery extends PaginationQuery {
   search?: string;
   status?: UserStatus;
 }
 
-export interface UserListPage {
-  items: UserListRecord[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
+export type UserListPage = PageResult<UserListRecord>;
 
 export class UserRepository {
   private readonly tableList: TableListRepository;
