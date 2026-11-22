@@ -107,16 +107,6 @@
 | :--- | :--- | :--- | :--- | :--- |
 | 获取首页统计数据 | `GET` | `/api/v1/admin/home` | 管理员 JWT | [getHomeDashboard.md](admin/dashboard/getHomeDashboard.md) |
 
-### 用户管理（`admin/user`）
-
-| 接口名称 | 方法 | 路径 | 鉴权 | 文档 |
-| :--- | :--- | :--- | :--- | :--- |
-| 分页查询业务用户 | `GET` | `/api/v1/admin/users` | 管理员 JWT | [getUserList.md](admin/user/getUserList.md) |
-| 管理员注册业务用户 | `POST` | `/api/v1/admin/users` | 管理员 JWT | [createUser.md](admin/user/createUser.md) |
-| 查看业务用户详情 | `GET` | `/api/v1/admin/users/:id` | 管理员 JWT | [getUserDetail.md](admin/user/getUserDetail.md) |
-| 编辑业务用户资料 | `PUT` | `/api/v1/admin/users/:id/profile` | 管理员 JWT | [updateUserProfile.md](admin/user/updateUserProfile.md) |
-| 禁用或启用业务用户 | `PUT` | `/api/v1/admin/users/:id/status` | 管理员 JWT | [updateUserStatus.md](admin/user/updateUserStatus.md) |
-
 ### 访问日志（`admin/visit`）
 
 | 接口名称 | 方法 | 路径 | 鉴权 | 文档 |
@@ -134,15 +124,6 @@
 | 归档文件 | `DELETE` | `/api/v1/admin/files/:id` | 管理员 JWT | [archiveFile.md](admin/file/archiveFile.md) |
 | 恢复归档文件 | `PUT` | `/api/v1/admin/files/:id/restore` | 管理员 JWT | [restoreFile.md](admin/file/restoreFile.md) |
 | 永久删除文件 | `DELETE` | `/api/v1/admin/files/:id/permanent` | 管理员 JWT | [deleteFilePermanently.md](admin/file/deleteFilePermanently.md) |
-
-### 支付设置（`admin/payment-settings`）
-
-| 接口名称 | 方法 | 路径 | 鉴权 | 文档 |
-| :--- | :--- | :--- | :--- | :--- |
-| 读取支付宝设置 | `GET` | `/api/v1/admin/payment-settings/alipay` | 管理员 JWT | [getAlipaySettings.md](admin/payment-settings/getAlipaySettings.md) |
-| 保存支付宝设置 | `PUT` | `/api/v1/admin/payment-settings/alipay` | 管理员 JWT | [updateAlipaySettings.md](admin/payment-settings/updateAlipaySettings.md) |
-| 读取微信支付设置 | `GET` | `/api/v1/admin/payment-settings/wechat` | 管理员 JWT | [getWechatPaySettings.md](admin/payment-settings/getWechatPaySettings.md) |
-| 保存微信支付设置 | `PUT` | `/api/v1/admin/payment-settings/wechat` | 管理员 JWT | [updateWechatPaySettings.md](admin/payment-settings/updateWechatPaySettings.md) |
 
 ### 接口文档（`admin/api-docs`）
 
@@ -188,14 +169,6 @@
 | 接口名称 | 方法 | 路径 | 鉴权 | 文档 |
 | :--- | :--- | :--- | :--- | :--- |
 | 上报页面访问 | `POST` | `/api/v1/visits` | 否 | [reportVisit.md](client/visit/reportVisit.md) |
-
-### 业务用户（`client/user`）
-
-| 接口名称 | 方法 | 路径 | 鉴权 | 文档 |
-| :--- | :--- | :--- | :--- | :--- |
-| 注册业务用户 | `POST` | `/api/v1/users/register` | 否 | [register.md](client/user/register.md) |
-| 业务用户登录 | `POST` | `/api/v1/users/login` | 否 | [login.md](client/user/login.md) |
-| 获取当前业务用户 | `GET` | `/api/v1/users/me` | 业务用户 JWT | [getCurrentUser.md](client/user/getCurrentUser.md) |
 
 ### 健康检查（`client/health`）
 

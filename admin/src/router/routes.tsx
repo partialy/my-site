@@ -9,7 +9,6 @@ import { ConfigsPage } from '../pages/configs/ConfigsPage';
 import { RequestLogsPage } from '../pages/request-logs/RequestLogsPage';
 import { OperationLogsPage } from '../pages/operation-logs/OperationLogsPage';
 import { VisitLogsPage } from '../pages/visit-logs/VisitLogsPage';
-import { UsersPage } from '../pages/users/UsersPage';
 import { FilesPage } from '../pages/files/FilesPage';
 import { MenuManagementPage } from '../pages/menus/MenuManagementPage';
 import { ApiDocsPage } from '../pages/api-docs/ApiDocsPage';
@@ -17,7 +16,6 @@ import { NotFoundPage } from '../pages/errors/NotFoundPage';
 import { DictionariesPage } from '../pages/dictionaries/DictionariesPage';
 import { AppearancePage } from '../pages/appearance/AppearancePage';
 import { UploadSettingsPage } from '../pages/upload-settings/UploadSettingsPage';
-import { PaymentSettingsPage } from '../pages/payment-settings/PaymentSettingsPage';
 
 export const router = createBrowserRouter([
   {
@@ -63,20 +61,12 @@ export const router = createBrowserRouter([
         element: <VisitLogsPage />,
       },
       {
-        path: 'users',
-        element: <UsersPage />,
-      },
-      {
         path: 'files',
         element: <FilesPage />,
       },
       {
         path: 'upload-settings',
         element: <UploadSettingsPage />,
-      },
-      {
-        path: 'payment-settings',
-        element: <PaymentSettingsPage />,
       },
       {
         path: 'menus',

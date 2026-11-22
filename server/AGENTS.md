@@ -30,14 +30,12 @@
 - **安全与限流**：登录失败按 IP 与账号组合限流，重置管理员密码按 IP 失败限流，公开注册、访问上报和上传接口分别限流；当 `NODE_ENV=development`（dev 模式）时全站限流自动关闭，生产环境（`NODE_ENV=production`）正常启用；限流器仅适用于单进程部署。`TRUSTED_PROXIES` 只填写可信反向代理。`/health` 为公开就绪探针；管理员 `system-status` 提供缓存（5 秒）的运行状态。安全响应头由 Helmet 设置，公开图片允许跨域加载。
 - **管理员密码重置**：支持通过 `POST /api/v1/admin/auth/reset-password` 提交 `SETUP_KEY` 与新密码重置唯一管理员密码，并递增 `token_version` 撤销已有管理员 JWT。
 - **配置管理**：`ConfigManager` 启动时加载 `config` 与 `sys_config` 并维护内存缓存；普通配置用 `get(key, defaultValue)` 读取，系统配置用 `getSysConfig().get(key)` 读取，写入时同步写库并刷新缓存。`config.enabled` 控制普通配置是否生效，`sys_config` 无启用字段。普通配置管理接口位于 `/api/v1/admin/configs`（支持改键），配置内容不写入请求日志。
-- **业务用户**：通用业务用户存于 `user`，使用不区分大小写的唯一账号及 8–128 位密码注册（管理员密码同样允许 8–128 位）。公开 `/api/v1/users/register` 与需管理员鉴权的 `POST /api/v1/admin/users` 复用同一注册校验与密码哈希逻辑。`PUT /api/v1/admin/users/:id/profile` 中的 `id` 为用户 `uuid`，仅更新昵称和头像访问 URL。用户 JWT 与管理员 JWT 区分，修改用户状态（禁用/启用）会提升 `token_version` 撤销旧 Token。`user_activity` 按 UTC 日记录已认证用户活动，首页统计从真实用户表聚合。
 - **操作审计**：`operation_log` 独立保存管理员成功写操作的摘要、操作者、目标、IP 和耗时；业务 Service 可显式调用 `OperationLogService.record()`，严禁记录密码、Token、原始请求体和响应体。
 - **数据字典**：使用 `dict_type` 与 `dict_item` 管理可配置展示选项。类型 `code` 与子项 `value` 创建后不可修改，已有选项通过停用保留历史值；核心业务状态流转仍由业务代码控制。字典服务启动加载内存缓存，写入后刷新；管理接口位于 `/api/v1/admin/dictionaries`，批量新增（`/batch`、`/:id/items/batch`）最多 20 条且整批事务提交；公共接口 `/api/v1/dictionaries` 仅返回公开且启用的类型与子项。
 - **请求日志**：日志中间件独立于认证，SQLite 记录模式为 `off`（默认）、`all`、`white_list`，控制台输出默认开启；白名单规则存于 `sys_config`。日志内容须对密码、密钥、Token 等敏感字段脱敏并截断长度。`GET /api/v1/admin/request-logs` 与 `DELETE /api/v1/admin/request-logs` 在 `request_log` 表未创建时均安全返回空列表/0 且不触发建表。日志查询、清理与仪表盘接口自身不写入 SQLite 请求日志。
 - **文件库与上传**：`file` 表保存元数据与存储来源，本地文件存于 `server/data/uploads/`，七牛文件由浏览器直传；上传策略与七牛配置存于 `sys_config.upload_settings`，Secret Key 不经读取接口返回。公开 `POST /api/v1/uploads/prepare`、`POST /api/v1/uploads/local`、`POST /api/v1/uploads/complete` 按 IP 限流，不要求登录；返回的完整 `url` 直接存入业务表，不经 server 代理。切换策略不迁移旧文件。文件列表默认只返回可用文件（管理页显式传 `status=all`），归档后选择器不可见但旧链接仍可访问；永久删除会同时删除元数据及存储文件，当前站点图标或登录背景引用会阻止永久删除。
 - **菜单与站点设置**：`MenuService` 启动加载缓存，`PUT /api/v1/admin/menus` 事务替换并刷新缓存，菜单仅控制导航不做权限控制。站点设置存于 `sys_config`（项目名称、版权信息、后台/前台标识与图标元数据、登录外观），图标仅支持 PNG、JPEG、WebP、ICO（最大 2 MiB，拒绝 SVG）。
-- **访问统计**：公开 `POST /api/v1/visits` 以 `(visitor_id, visit_day)` 唯一约束按 UTC 日尽力去重；`GET /api/v1/admin/home` 聚合真实访问记录、近 7 天请求日志与业务用户数据。
-- **可选支付模块**：`src/shared/alipay-pay/` 与 `src/shared/wechat-pay/` 封装下单、查单、退款与通知验签，显式接收数据库配置，不自动注册业务路由或订单表。配置由 `PaymentSettingsService` 从 `sys_config` 读写，读取时不返回密钥与证书原文；微信商户私钥、证书和平台公钥直接存入数据库，数据库备份包含这些凭据。
+- **访问统计**：公开 `POST /api/v1/visits` 以 `(visitor_id, visit_day)` 唯一约束按 UTC 日尽力去重；`GET /api/v1/admin/home` 聚合真实访问记录与近 7 天请求日志数据。
 
 ## 接口文档维护规范（`server/api-docs/`）
 

@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import {
-  Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart,
+  Area, AreaChart, CartesianGrid, Cell, Pie, PieChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
-import { ArrowUpRight, BarChart3, Globe2, UsersRound } from 'lucide-react';
+import { ArrowUpRight, BarChart3, Globe2 } from 'lucide-react';
 import type { DashboardData } from '../../api/dashboard';
 
 const tooltipStyle = {
@@ -34,10 +34,9 @@ export function DashboardCharts({ data }: { data: DashboardData }) {
     ...source, color: sourceColors[index % sourceColors.length],
   }));
   const maxPathCount = Math.max(1, ...data.requestLogs.topPaths.map((item) => item.count));
-  const userTrend = data.users.trend7.map((point) => ({ ...point, label: point.day.slice(5) }));
 
   return <>
-    <section className="dashboard-chart-grid">
+    <section className="dashboard-chart-grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
       <article className="dashboard-panel dashboard-traffic-panel">
         <ChartHeading icon={<BarChart3 size={18} />} title="访问趋势" subtitle="前台访问量 · 每个访客每日去重"
           extra={<div className="dashboard-period" aria-label="选择访问趋势时间范围">
@@ -61,23 +60,6 @@ export function DashboardCharts({ data }: { data: DashboardData }) {
               <Area type="monotone" dataKey="visits" name="访问量" stroke="#2563eb" strokeWidth={3}
                 fill="url(#dashboardVisitsFill)" activeDot={{ r: 5 }} />
             </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </article>
-
-      <article className="dashboard-panel dashboard-users-panel">
-        <ChartHeading icon={<UsersRound size={18} />} title="新增用户" subtitle="近 7 天用户变化" />
-        <div className="dashboard-users-summary"><strong>{data.users.newLast7Days.toLocaleString('zh-CN')}</strong><span>近 7 天累计新增</span></div>
-        <div className="dashboard-chart-area">
-          <ResponsiveContainer width="100%" height={278}>
-            <BarChart data={userTrend} margin={{ top: 12, right: 0, bottom: 0, left: -28 }} barGap={3}>
-              <CartesianGrid stroke="#edf1f6" strokeDasharray="4 4" vertical={false} />
-              <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} dy={10} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="activeUsers" name="活跃用户" fill="#cbdcfb" radius={[5, 5, 0, 0]} maxBarSize={23} />
-              <Bar dataKey="newUsers" name="新增用户" fill="#2563eb" radius={[5, 5, 0, 0]} maxBarSize={23} />
-            </BarChart>
           </ResponsiveContainer>
         </div>
       </article>

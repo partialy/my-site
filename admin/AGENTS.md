@@ -12,14 +12,14 @@
 
 ## 页面范围与路由/菜单注册
 
-- 仅包含单管理员后台通用流程：初始化向导（`/setup`）、登录（`/login`）、首页仪表盘、系统管理（`/system-config`）、外观设置（`/appearance`）、配置管理（`/configs`）、数据字典（`/dictionaries`）、上传设置（`/upload-settings`）、支付设置（`/payment-settings`）、请求日志（`/request-logs`）、操作日志（`/operation-logs`）、访问日志（`/visit-logs`）、用户管理（`/users`）、文件管理（`/files`）、菜单管理（`/menus`）、接口文档（`/api-docs`）、修改密码、退出登录和 404 兜底页。具体业务菜单与页面留给复制后的项目扩展。
+- 仅包含单管理员后台通用流程：初始化向导（`/setup`）、登录（`/login`）、首页仪表盘、系统管理（`/system-config`）、外观设置（`/appearance`）、配置管理（`/configs`）、数据字典（`/dictionaries`）、上传设置（`/upload-settings`）、请求日志（`/request-logs`）、操作日志（`/operation-logs`）、访问日志（`/visit-logs`）、文件管理（`/files`）、菜单管理（`/menus`）、接口文档（`/api-docs`）、修改密码、退出登录和 404 兜底页。具体业务菜单与页面在此基础上扩展。
 - **页面登记**：已开发页面信息集中在 [src/router/pageRegistry.ts](src/router/pageRegistry.ts)，包含路径、名称、默认菜单标识与图标、是否属于初始菜单及是否可用于菜单；登录、初始化和 404 页面也需登记且设为不可选作菜单。新增页面时必须同时在 [src/router/routes.tsx](src/router/routes.tsx) 注册路由并在页面清单登记，随后由管理员在菜单管理页手动选用保存（页面清单不入库，也不自动创建菜单）。
 - **菜单管理（`/menus`）**：支持页面、分组两类菜单及调整同级排序，与侧栏共用菜单状态并即时更新；旧版操作菜单仅做兼容展示可删除，不再提供新增/编辑入口。图标键在 `src/menus/menuUtils.tsx` 统一映射，分类在 `src/menus/menuIconCategories.ts` 维护（未分类自动归入「其他」，已有键保持兼容）。隐藏或删除菜单管理入口后仍可直接访问 `/menus` 恢复。修改密码入口位于右上角账号下拉菜单。
 
 ## 列表、分页与通用组件
 
 - **表格分页与 URL 状态**：`src/hooks/useTableQuery.ts` 统一管理列表 URL 查询状态、分页、防过期响应和刷新。浏览器 URL 保持 `page` / `pageSize` 展示页码，发请求前由 Hook 内部自动换算为 `offset` / `limit`；列表 API 模块统一复用 `src/api/types.ts`（`PageQuery`、`PageData<T>`）与 `src/api/decoders.ts`（`buildPageParams`、`parsePageData`）。
-- **CRUD 组件**：`src/components/crud/` 提供防抖筛选栏（`CrudFilterBar`）与带二次确认、防重复点击的操作列按钮（`CrudRowActions`）。用户、操作日志、访问日志、请求日志和文件管理页已接入；新增普通业务页只需声明筛选字段、列和 API 契约，专有写操作保留在业务 Hook/Service。
+- **CRUD 组件**：`src/components/crud/` 提供防抖筛选栏（`CrudFilterBar`）与带二次确认、防重复点击的操作列按钮（`CrudRowActions`）。操作日志、访问日志、请求日志和文件管理页已接入；新增普通业务页只需声明筛选字段、列和 API 契约，专有写操作保留在业务 Hook/Service。
 - **文件选择弹窗**：`FilePickerModal` 使用局部列表状态（`useFileLibrary.ts` 内部换算 `offset` / `limit`），只读取可用文件（`status=active`），支持单选、多选、预览和现场上传，避免弹窗筛选占用页面 URL。文件管理页支持点击大小、上传时间表头排序并写入 URL，排序字段仅使用 `createdAt` / `size` 与 `asc` / `desc` 白名单。
 - **UI 与样式约定**：
   - 内容页最大宽度统一为 `1400px`。

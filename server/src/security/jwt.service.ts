@@ -4,7 +4,7 @@ import { ApiError } from '../api/api-error';
 import { ApiCode } from '../api/codes';
 
 export const JWT_EXPIRES_IN = 12 * 60 * 60;
-const ISSUER = 'nodebase-server';
+const ISSUER = 'mysite-server';
 const jwtPayloadSchema = z.object({
   sub: z.string().regex(/^\d+$/),
   ver: z.number().int().nonnegative(),

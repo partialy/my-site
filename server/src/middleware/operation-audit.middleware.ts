@@ -16,19 +16,6 @@ function describe(method: string, path: string): OperationDescriptor | null {
   if (method === 'PUT' && path === '/auth/password') {
     return { module: '管理员', action: 'update', targetType: 'admin', summary: '修改管理员密码' };
   }
-  if (method === 'POST' && path === '/users') {
-    return { module: '用户管理', action: 'create', targetType: 'user', summary: '管理员注册业务用户' };
-  }
-  const userProfile = /^\/users\/([0-9a-f]{32})\/profile$/.exec(path);
-  if (method === 'PUT' && userProfile) {
-    return { module: '用户管理', action: 'update', targetType: 'user',
-      targetId: userProfile[1], summary: '修改用户资料', changedFields: ['nickname', 'avatar'] };
-  }
-  const userStatus = /^\/users\/([0-9a-f]{32})\/status$/.exec(path);
-  if (method === 'PUT' && userStatus) {
-    return { module: '用户管理', action: 'update', targetType: 'user',
-      targetId: userStatus[1], summary: '修改用户状态', changedFields: ['status'] };
-  }
   if (method === 'POST' && path === '/backups/database') {
     return { module: '数据库备份', action: 'export', targetType: 'database', summary: '导出 SQLite 数据库备份' };
   }
@@ -39,11 +26,6 @@ function describe(method: string, path: string): OperationDescriptor | null {
   if (method === 'PUT' && path === '/upload-settings') {
     return { module: '上传设置', action: 'update', targetType: 'sys_config', summary: '修改上传策略与存储配置',
       changedFields: ['strategy', 'accessKey', 'secretKey', 'bucket', 'root', 'uploadUrl', 'domain'] };
-  }
-  if (method === 'PUT' && /^\/payment-settings\/(alipay|wechat)$/.test(path)) {
-    return { module: '支付设置', action: 'update', targetType: 'sys_config',
-      targetId: path.endsWith('/alipay') ? 'alipay_settings' : 'wechat_pay_settings',
-      summary: path.endsWith('/alipay') ? '修改支付宝支付设置' : '修改微信支付设置' };
   }
   const whitelist = /^\/system-config\/whitelist(?:\/([^/]+))?$/.exec(path);
   if (whitelist && ((method === 'POST' && !whitelist[1]) || (['PUT', 'DELETE'].includes(method) && whitelist[1]))) {

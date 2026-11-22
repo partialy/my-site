@@ -12,11 +12,10 @@
 
 当前提供以下框架无关的 TypeScript 模板（用法说明见 [client/README.md](README.md)）：
 
-- **[userAuth.ts](userAuth.ts)**：业务用户注册、登录及获取当前用户信息（`/api/v1/users/{register,login,me}`）。Token 存储方式由具体业务项目自行决定，用户 JWT 与管理端 JWT 互不通用。
 - **[uploadFile.ts](uploadFile.ts)**：通用浏览器文件上传入口，封装 `/api/v1/uploads/{prepare,local,complete}` 流程（本地直传 / 七牛云凭证直传），返回可直接保存到业务表的完整文件访问 `url`。
 - **[visitTracker.ts](visitTracker.ts)**：前台页面访问上报工具（`POST /api/v1/visits`），基于 `localStorage` 与 UTC 日期实现同一访客每日首次访问去重。
 
 ## 服务端接口对接约定
 
-- 前台仅调用公开接口或业务用户鉴权接口（`/api/v1/**`），禁止调用管理端 `/api/v1/admin/**` 接口。
+- 前台仅调用公开接口（`/api/v1/**`），禁止调用管理端 `/api/v1/admin/**` 接口。
 - 所有请求响应解析、分页列表查询与资源定位必须严格遵守根目录 `AGENTS.md` 中的 `{ code, msg, data, success }`、纯 `offset / limit` 分页与 32 位无连字符 `uuid` 规范；可用接口列表与参数细节以 [server/api-docs/index.md](../server/api-docs/index.md) 中的 `client/` 分类文档为准。

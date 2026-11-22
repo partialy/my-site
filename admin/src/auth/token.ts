@@ -1,4 +1,4 @@
-const TOKEN_KEY = 'nodebase_admin_token';
+const TOKEN_KEY = 'mysite_admin_token';
 
 /**
  * 获取当前 sessionStorage 中的 Token

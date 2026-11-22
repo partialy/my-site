@@ -19,8 +19,6 @@ export const SysConfigKey = {
   ClientIconVersion: 'client_icon_version',
   ClientIconFileId: 'client_icon_file_id',
   UploadSettings: 'upload_settings',
-  AlipaySettings: 'alipay_settings',
-  WechatPaySettings: 'wechat_pay_settings',
 } as const;
 
 const defaults = [
@@ -28,11 +26,11 @@ const defaults = [
   [SysConfigKey.RequestLogWhitelist, '日志白名单', []],
   [SysConfigKey.ConsoleLogEnabled, '日志输出', true],
   [SysConfigKey.ConsoleLogFormat, '日志输出格式', '[${time}][${method}] ${url}'],
-  [SysConfigKey.ProjectName, '项目名称', 'NodeBase'],
-  [SysConfigKey.AdminSiteTitle, '管理后台网站标签名称', 'NodeBase Admin'],
-  [SysConfigKey.AdminSystemName, '管理系统名称', 'NodeBase Admin'],
-  [SysConfigKey.ClientSiteTitle, '前台网站标签名称', 'NodeBase Client'],
-  [SysConfigKey.ClientSystemName, '前台系统名称', 'NodeBase Client'],
+  [SysConfigKey.ProjectName, '项目名称', 'MySite'],
+  [SysConfigKey.AdminSiteTitle, '管理后台网站标签名称', 'MySite Admin'],
+  [SysConfigKey.AdminSystemName, '管理系统名称', 'MySite Admin'],
+  [SysConfigKey.ClientSiteTitle, '前台网站标签名称', 'MySite'],
+  [SysConfigKey.ClientSystemName, '前台系统名称', 'MySite'],
 ] as const;
 
 function decode(value: string): unknown {

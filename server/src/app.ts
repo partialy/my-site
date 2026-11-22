@@ -18,9 +18,6 @@ import { FileService } from './services/file.service';
 import { MenuService } from './services/menu.service';
 import { VisitService } from './services/visit.service';
 import { DashboardService } from './services/dashboard.service';
-import { UserService } from './services/user.service';
-import { createUserRoutes } from './api/user-routes';
-import { createAdminUserRoutes } from './api/admin/user-routes';
 import { OperationLogService } from './services/operation-log.service';
 import { operationAuditMiddleware } from './middleware/operation-audit.middleware';
 import { DatabaseBackupService } from './services/database-backup.service';
@@ -31,8 +28,6 @@ import { createDictionaryRoutes } from './api/dictionary-routes';
 import { createAdminDictionaryRoutes } from './api/admin/dictionary-routes';
 import { UploadSettingsService } from './services/upload-settings.service';
 import { createUploadRoutes } from './api/upload-routes';
-import { PaymentSettingsService } from './services/payment-settings.service';
-import { createPaymentSettingsRoutes } from './api/admin/payment-settings.routes';
 import { ApiDocsService } from './services/api-docs.service';
 
 interface AppServices {
@@ -46,13 +41,11 @@ interface AppServices {
   menus: MenuService;
   visits: VisitService;
   dashboard: DashboardService;
-  users: UserService;
   operationLogs: OperationLogService;
   backups: DatabaseBackupService;
   status: SystemStatusService;
   dictionaries: DictionaryService;
   uploadSettings: UploadSettingsService;
-  paymentSettings: PaymentSettingsService;
   apiDocs: ApiDocsService;
 }
 
@@ -75,7 +68,7 @@ export function createApp(config: AppConfig, services: AppServices, db: Database
   });
   const publicCors = cors({ origin: '*' });
   app.use((req, res, next) => {
-    const publicPath = req.path === '/api/v1/visits' || req.path.startsWith('/api/v1/users/') ||
+    const publicPath = req.path === '/api/v1/visits' ||
       req.path.startsWith('/api/v1/uploads/') ||
       req.path === '/api/v1/site-settings' || req.path === '/api/v1/dictionaries' ||
       /^\/api\/v1\/files\/[^/]+\/content$/.test(req.path) ||
@@ -86,9 +79,7 @@ export function createApp(config: AppConfig, services: AppServices, db: Database
   app.use(express.json({ limit: '1mb' }));
   app.use('/api/v1/admin/auth/login', loginFailureLimit());
   app.use('/api/v1/admin/auth/reset-password', ipFailureLimit());
-  app.use('/api/v1/users/login', loginFailureLimit());
   app.use('/api/v1/admin/setup/admin', requestRateLimit(5, 15 * 60_000));
-  app.use('/api/v1/users/register', requestRateLimit(10, 60_000));
   app.use('/api/v1/visits', requestRateLimit(60, 60_000));
   app.use('/api/v1/admin', operationAuditMiddleware(services.operationLogs));
   app.use('/api/v1/admin', createAdminRoutes(
@@ -96,10 +87,7 @@ export function createApp(config: AppConfig, services: AppServices, db: Database
     services.siteSettings, services.requestLogs, services.files, services.menus, services.dashboard, services.visits,
     services.operationLogs, services.backups, services.status, services.uploadSettings, services.apiDocs,
   ));
-  app.use('/api/v1/admin/payment-settings', createPaymentSettingsRoutes(services.auth, services.paymentSettings));
-  app.use('/api/v1/admin/users', createAdminUserRoutes(services.auth, services.users));
   app.use('/api/v1/admin/dictionaries', createAdminDictionaryRoutes(services.auth, services.dictionaries));
-  app.use('/api/v1/users', createUserRoutes(services.users));
   app.use('/api/v1/dictionaries', createDictionaryRoutes(services.dictionaries));
   app.use('/api/v1/uploads', createUploadRoutes(services.files));
   app.use('/api/v1', createPublicRoutes(services.siteSettings, services.files, services.visits));

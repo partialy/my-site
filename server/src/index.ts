@@ -20,9 +20,6 @@ import { MenuService } from './services/menu.service';
 import { VisitRepository } from './repositories/visit.repository';
 import { VisitService } from './services/visit.service';
 import { DashboardService } from './services/dashboard.service';
-import { UserRepository } from './repositories/user.repository';
-import { UserJwtService } from './security/user-jwt.service';
-import { UserService } from './services/user.service';
 import { OperationLogRepository } from './repositories/operation-log.repository';
 import { OperationLogService } from './services/operation-log.service';
 import { DatabaseBackupService } from './services/database-backup.service';
@@ -30,7 +27,6 @@ import { SystemStatusService } from './services/system-status.service';
 import { DictionaryRepository } from './repositories/dictionary.repository';
 import { DictionaryService } from './services/dictionary.service';
 import { UploadSettingsService } from './services/upload-settings.service';
-import { PaymentSettingsService } from './services/payment-settings.service';
 import { ApiDocsService } from './services/api-docs.service';
 
 function main(): void {
@@ -43,22 +39,20 @@ function main(): void {
   const systemConfig = new SystemConfigService(configManager, db);
   const configs = new ConfigService(configManager);
   const uploadSettings = new UploadSettingsService(configManager);
-  const paymentSettings = new PaymentSettingsService(configManager);
   const files = new FileService(new FileRepository(db), configManager, uploadSettings);
   const siteSettings = new SiteSettingsService(configManager, files);
   const requestLogs = new RequestLogService(new RequestLogRepository(db));
   const menus = new MenuService(new MenuRepository(db));
   const visits = new VisitService(new VisitRepository(db));
-  const users = new UserService(new UserRepository(db), new UserJwtService(config.jwtSecret));
   const operationLogs = new OperationLogService(new OperationLogRepository(db));
   const backups = new DatabaseBackupService(db);
   const status = new SystemStatusService(db, config.sqlitePath);
   const dictionaries = new DictionaryService(new DictionaryRepository(db));
-  const dashboard = new DashboardService(visits, requestLogs, users);
+  const dashboard = new DashboardService(visits, requestLogs);
   const apiDocs = new ApiDocsService();
   const app = createApp(config, {
     setup, auth, systemConfig, configs, siteSettings, requestLogs, files, menus, visits, dashboard,
-    users, operationLogs, backups, status, dictionaries, uploadSettings, paymentSettings, apiDocs,
+    operationLogs, backups, status, dictionaries, uploadSettings, apiDocs,
   }, db);
   const server = app.listen(config.port, () => {
     console.log(`server 已启动，端口 ${config.port}`);
