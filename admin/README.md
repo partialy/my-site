@@ -43,11 +43,11 @@ admin/.env.example 给出开发代理配置。VITE_API_BASE_URL 默认 /api/v1/a
 | POST | /api/v1/admin/dictionaries/:id/items/batch | 批量新增字典子项，整批事务提交 |
 | PUT | /api/v1/admin/dictionaries/:id/items/:itemId | 修改字典子项 |
 | GET | /api/v1/dictionaries?codes=a,b | 批量读取公开字典选项 |
-| GET | /api/v1/admin/request-logs | 分页筛选请求日志，支持 page、pageSize、method、path、status |
+| GET | /api/v1/admin/request-logs | 分页筛选请求日志，支持 offset、limit、method、path、status |
 | DELETE | /api/v1/admin/request-logs | 按选中 ID、时间段、某时间前/后或保留最新 N 条清理请求日志 |
 | GET | /api/v1/admin/home | 访问统计、近 7 天请求日志聚合与真实用户数据 |
-| GET | /api/v1/admin/visits | 分页筛选访问日志，支持路径、访客 ID 与 UTC 日期范围 |
-| GET、POST | /api/v1/admin/files | 文件列表（支持 page、pageSize、search、mimeTypes、sortBy、sortOrder）与原始文件上传 |
+| GET | /api/v1/admin/visits | 分页筛选访问日志，支持 offset、limit、路径、访客 ID 与 UTC 日期范围 |
+| GET、POST | /api/v1/admin/files | 文件列表（支持 offset、limit、search、mimeTypes、sortBy、sortOrder）与原始文件上传 |
 | GET | /api/v1/files/:id/content | 公开访问文件内容，可直接用于图片和下载链接 |
 | DELETE | /api/v1/admin/files/:id | 从文件库归档文件，已分发的链接继续可用 |
 | PUT | /api/v1/admin/files/:id/restore | 恢复归档文件，使其重新出现在文件选择器 |
@@ -84,6 +84,6 @@ admin/.env.example 给出开发代理配置。VITE_API_BASE_URL 默认 /api/v1/a
 
 用户管理、操作日志、访问日志、请求日志和文件管理页已接入通用列表能力：`src/hooks/useTableQuery.ts` 从 URL 维护分页和已提交筛选条件，并处理刷新、请求取消与过期结果；`src/components/crud/CrudFilterBar.tsx` 提供文本防抖、下拉与日期筛选；`CrudRowActions.tsx` 负责单行操作的防重复点击与二次确认。新增普通业务列表时配置筛选项、列表 API 和表格列即可复用；用户禁用、文件归档和日志清理等专有写操作仍保留在页面业务逻辑。文件选择弹窗仍使用局部列表状态，避免弹窗筛选改动当前页面 URL。
 
-接口文档页位于 `/api-docs`，按管理端、用户端/公共接口及业务模块展示当前服务端路由，包含请求参数、响应数据、鉴权和业务码，并支持分类与搜索。参数和成功响应提供可复制的格式化 JSON 示例，二进制接口单独标注。接口描述与示例分别维护在 `src/pages/api-docs/apiCatalog.ts` 和 `apiExamples.ts`；新增或修改接口时同步维护。页面已登记在路由与页面清单，侧栏入口由管理员在菜单管理中手动添加。
+接口文档页位于 `/api-docs`，直接从服务端读取并解析 `server/api-docs/` 中的目录索引与 Markdown 文档，展示管理端、客户端/公开接口及业务模块，支持左侧目录导航、全文搜索、代码块复制与导出完整 Markdown 文档。页面已登记在路由与页面清单，侧栏入口由管理员在菜单管理中手动添加。
 
 外观设置页位于 `/appearance`，集中编辑原“网站信息”区块：项目名称、版权信息，以及管理后台和未来前台的标签名称、系统名称及图标。点击图标选择入口会打开文件选择弹窗，可复用已有图片或在弹窗中上传，支持 PNG、JPG、WebP、ICO，最多 2 MiB。页面还可设置后台登录页的纯色、指定方向的双色渐变或文件库图片背景，并调整登录卡片背景透明度；背景图支持 PNG、JPEG、WebP、GIF。登录页从公开站点设置读取外观，默认纯色。后台设置会同步到登录/初始化页、侧栏品牌和浏览器标签；前台项目可复用同一公开接口。后台内容页最大宽度统一为 1400px。页面已登记在路由与页面清单，侧栏菜单需管理员自行添加。
