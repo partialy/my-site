@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Alert, Button, Card, Col, Flex, Form, Image, Input, message, Row, Select, Space, Spin, Typography,
+  Alert, Button, Card, Col, Flex, Form, Image, Input, InputNumber, message, Row, Select, Space, Spin, Switch, Typography,
 } from 'antd';
 import { FolderOpen, Plus, Save, Trash2, UserRound } from 'lucide-react';
 import type { FileItem } from '../../api/files';
@@ -22,6 +22,7 @@ export function ProfileSettingsPage() {
 
   const ogImage = Form.useWatch(['site', 'ogImage'], form);
   const ogImageFileId = Form.useWatch(['site', 'ogImageFileId'], form);
+  const autoRotateEnabled = Form.useWatch(['showcase', 'autoRotateEnabled'], form);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -61,6 +62,10 @@ export function ProfileSettingsPage() {
         about: {
           ...values.about,
           principles: values.about.principles ?? [],
+        },
+        showcase: {
+          autoRotateEnabled: values.showcase?.autoRotateEnabled ?? true,
+          autoRotateIntervalSec: values.showcase?.autoRotateIntervalSec ?? 5,
         },
       });
       if (!res.success) throw new Error(res.msg);
@@ -170,6 +175,47 @@ export function ProfileSettingsPage() {
                   </div>
                 ) : null}
               </Form.Item>
+            </Card>
+
+            <Card title="首页自动轮播配置" style={{ borderRadius: 16 }}>
+              <Alert
+                type="info"
+                showIcon
+                style={{ marginBottom: 16 }}
+                message="访客位于首页第 1 屏且未搜索时，按设定间隔自动切换左侧轮盘作品；一旦手动操作轮盘或翻页，本次会话（sessionStorage）将不再自动切换。"
+              />
+              <Row gutter={16} align="middle">
+                <Col xs={24} md={8}>
+                  <Form.Item
+                    name={['showcase', 'autoRotateEnabled']}
+                    label="首页自动轮播"
+                    valuePropName="checked"
+                    style={{ marginBottom: 0 }}
+                  >
+                    <Switch checkedChildren="开启" unCheckedChildren="关闭" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={8}>
+                  <Form.Item
+                    name={['showcase', 'autoRotateIntervalSec']}
+                    label="轮播间隔（秒）"
+                    rules={[
+                      { required: true, message: '请输入轮播间隔' },
+                      { type: 'number', min: 1, max: 120, message: '间隔需在 1 ~ 120 秒之间' },
+                    ]}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <InputNumber
+                      min={1}
+                      max={120}
+                      precision={0}
+                      disabled={autoRotateEnabled === false}
+                      addonAfter="秒"
+                      style={{ width: 180 }}
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
             </Card>
 
             <Card title="关于作者与三条创作原则" style={{ borderRadius: 16 }}>

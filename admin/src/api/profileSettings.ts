@@ -36,6 +36,10 @@ export interface ProfileSettingsData {
     bio: string;
     principles: ProfilePrinciple[];
   };
+  showcase: {
+    autoRotateEnabled: boolean;
+    autoRotateIntervalSec: number;
+  };
 }
 
 function str(value: unknown, fallback = ''): string {
@@ -60,6 +64,11 @@ function parseProfileSettings(value: unknown): ProfileSettingsData {
       body: str(p.body),
     }))
     : [];
+
+  const rawShowcase = isRecord(value.showcase) ? value.showcase : null;
+  const rawInterval = rawShowcase && typeof rawShowcase.autoRotateIntervalSec === 'number' && Number.isInteger(rawShowcase.autoRotateIntervalSec)
+    ? Math.min(120, Math.max(1, rawShowcase.autoRotateIntervalSec))
+    : 5;
 
   return {
     site: {
@@ -88,6 +97,10 @@ function parseProfileSettings(value: unknown): ProfileSettingsData {
       email: str(about.email),
       bio: str(about.bio),
       principles,
+    },
+    showcase: {
+      autoRotateEnabled: rawShowcase && typeof rawShowcase.autoRotateEnabled === 'boolean' ? rawShowcase.autoRotateEnabled : true,
+      autoRotateIntervalSec: rawInterval,
     },
   };
 }
