@@ -7,6 +7,7 @@ const serverInternalUrl = (
 const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
+  agentRules: false,
   turbopack: {
     rules: {
       "*.css": {

@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { ImageResponse } from "next/og";
 import { getSiteProfile } from "@/services/siteService";
 
@@ -8,8 +10,37 @@ export const size = {
 };
 export const contentType = "image/png";
 
+type OgFontOption = NonNullable<
+  NonNullable<ConstructorParameters<typeof ImageResponse>[1]>["fonts"]
+>[number];
+
+let cachedFontsPromise: Promise<OgFontOption[]> | null = null;
+
+function loadLocalOgFonts(): Promise<OgFontOption[]> {
+  if (!cachedFontsPromise) {
+    const fontsDir = path.join(process.cwd(), "fonts");
+    cachedFontsPromise = Promise.all([
+      readFile(path.join(fontsDir, "plus-jakarta-sans-latin-400-normal.woff")),
+      readFile(path.join(fontsDir, "plus-jakarta-sans-latin-600-normal.woff")),
+      readFile(path.join(fontsDir, "plus-jakarta-sans-latin-700-normal.woff")),
+      readFile(path.join(fontsDir, "NotoSansSC-Regular.otf")),
+      readFile(path.join(fontsDir, "NotoSansSC-Bold.otf")),
+    ]).then(([pjs400, pjs600, pjs700, noto400, noto700]) => [
+      { name: "Plus Jakarta Sans", data: pjs400, weight: 400, style: "normal" },
+      { name: "Plus Jakarta Sans", data: pjs600, weight: 600, style: "normal" },
+      { name: "Plus Jakarta Sans", data: pjs700, weight: 700, style: "normal" },
+      { name: "Noto Sans SC", data: noto400, weight: 400, style: "normal" },
+      { name: "Noto Sans SC", data: noto700, weight: 700, style: "normal" },
+    ]);
+  }
+  return cachedFontsPromise;
+}
+
 export default async function Image() {
-  const site = await getSiteProfile();
+  const [site, fonts] = await Promise.all([
+    getSiteProfile(),
+    loadLocalOgFonts(),
+  ]);
 
   return new ImageResponse(
     (
@@ -24,6 +55,7 @@ export default async function Image() {
           background:
             "linear-gradient(135deg, #08090c 0%, #131722 55%, #08090c 100%)",
           color: "#f4f5f7",
+          fontFamily: '"Plus Jakarta Sans", "Noto Sans SC", sans-serif',
         }}
       >
         <div
@@ -85,6 +117,7 @@ export default async function Image() {
     ),
     {
       ...size,
+      fonts,
     }
   );
 }
