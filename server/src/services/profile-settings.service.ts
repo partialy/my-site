@@ -41,6 +41,13 @@ export const profileSettingsSchema = z.strictObject({
     bio: z.string().trim().min(1).max(500),
     principles: z.array(principleSchema).max(6),
   }),
+  showcase: z.strictObject({
+    autoRotateEnabled: z.boolean().default(true),
+    autoRotateIntervalSec: z.number().int().min(1).max(120).default(5),
+  }).default({
+    autoRotateEnabled: true,
+    autoRotateIntervalSec: 5,
+  }),
 });
 
 export type ProfileSettingsData = z.infer<typeof profileSettingsSchema>;
@@ -97,6 +104,10 @@ export const DEFAULT_PROFILE_SETTINGS: ProfileSettingsData = {
         body: '采用 Next.js App Router 服务端渲染与结构化数据标准，让每一件独立作品都能被搜索引擎与全球开发者顺畅发现。',
       },
     ],
+  },
+  showcase: {
+    autoRotateEnabled: true,
+    autoRotateIntervalSec: 5,
   },
 };
 

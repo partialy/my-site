@@ -1,6 +1,6 @@
 # 保存主页与关于页配置
 
-保存站点信息（SEO）、页脚版权备案及作者个人资料与创作原则；支持通过 `ogImageFileId` 绑定文件库图片。
+保存站点信息（SEO）、页脚版权备案、作者个人资料与创作原则，以及首页自动轮播配置（`showcase.autoRotateEnabled`、`showcase.autoRotateIntervalSec`，范围 1–120 秒）；支持通过 `ogImageFileId` 绑定文件库图片。
 
 ## 基本信息
 

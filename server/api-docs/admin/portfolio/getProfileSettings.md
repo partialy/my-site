@@ -1,6 +1,6 @@
 # 获取主页与关于页配置
 
-读取个人主页的站点信息、页脚备案及关于作者配置。
+读取个人主页的站点信息、页脚备案、关于作者及首页轮播配置（`showcase.autoRotateEnabled`、`showcase.autoRotateIntervalSec`）。
 
 ## 基本信息
 

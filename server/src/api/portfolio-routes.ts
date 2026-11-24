@@ -23,6 +23,7 @@ export function createPortfolioPublicRoutes(
         ...profile.about,
         worksCount: works.countPublished(),
       },
+      showcase: profile.showcase,
     }));
   });
 

@@ -16,3 +16,4 @@
 - `site`：站点名称、标题、SEO 描述、关键词、规范 URL 与 OG 图片。
 - `footer`：版权年份、所有者、域名、ICP 备案号及链接。
 - `about`：作者名、头衔、所在地、邮箱、简介、`principles` 三条创作原则及 `worksCount`（已发布作品数）。
+- `showcase`：首页展厅交互配置，包含 `autoRotateEnabled`（是否开启首页自动轮播）与 `autoRotateIntervalSec`（轮播间隔秒数，1–120 秒）。
