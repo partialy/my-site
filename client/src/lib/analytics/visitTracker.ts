@@ -44,7 +44,12 @@ export function trackVisit(options: TrackVisitOptions = {}): Promise<boolean> {
 
   pending = (async () => {
     try {
-      const response = await fetch(`${(options.apiBaseUrl ?? '/api/v1').replace(/\/+$/, '')}/visits`, {
+      const baseUrl = (
+        options.apiBaseUrl ??
+        process.env.NEXT_PUBLIC_API_BASE_URL ??
+        '/api/v1'
+      ).replace(/\/+$/, '');
+      const response = await fetch(`${baseUrl}/visits`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({

@@ -1,39 +1,33 @@
-# 前台访问记录接入
+# MySite 前台客户端（Next.js）
 
-`client/` 暂无具体项目。未来在前台应用首次加载时调用 `trackVisit()`，例如：
+面向个人主页、作品展示与资源提供的 SEO 友好型前台应用，基于 Next.js App Router + TypeScript + Tailwind CSS v4 + Motion 构建，复刻暗黑沉浸式展厅与全站页面，并通过独立 Service 层预留后端对接。
 
-```ts
-import { trackVisit } from './visitTracker';
+## 快速开始
 
-void trackVisit();
+```bash
+# 1. 复制环境变量配置（按需修改）
+cp .env.example .env.local
+
+# 2. 安装依赖
+npm install
+
+# 3. 启动开发服务器（默认端口 3001，自动代理 /api/v1 到 http://127.0.0.1:3000）
+npm run dev
 ```
 
-默认向同源 `/api/v1/visits` 上报当前路径、标题和来源，也可传入 `apiBaseUrl`。浏览器用 `localStorage` 保存访客 UUID 与最近一次上报的 UTC 日期；服务端再以 `(visitor_id, visit_day)` 唯一约束去重。清除浏览器存储、换浏览器或设备后会生成新的访客 ID，因此这是尽力去重，不是可靠的用户身份识别。每天只记录首次访问的页面，页面路径用于分析当日入口页。
+常用脚本：
 
-## 业务用户接口模板
+- `npm run dev`：启动 Next.js 开发服务器（`http://localhost:3001`）
+- `npm run build`：生产构建
+- `npm run start`：启动生产服务（端口 `3001`）
+- `npm run typecheck`：执行 TypeScript 类型检查
+- `npm run lint`：执行 ESLint 代码检查
 
-`userAuth.ts` 提供框架无关的注册、登录和 `me` 请求方法。具体项目决定如何保存用户 JWT，并将读取方法传给客户端：
+## 页面与数据分层
 
-```ts
-import { createUserAuthClient } from './userAuth';
+- `/`：全屏作品展厅（桌面端左弧时钟轮盘 + 4 页 PPT 垂直翻页 + 变形操作栏；移动端混合滚动 + 65% 宽度毛玻璃抽屉导航）。
+- `/works`：全部作品目录页（分类筛选 + 多字段搜索）。
+- `/works/[slug]`：作品完整档案详情页（性能指标、亮点、技术架构分层、快速安装命令、版本演进、上下作品翻页）。
+- `/about`：关于作者页（作者背景、三条创作原则、邮箱与作品目录入口）。
 
-const users = createUserAuthClient({ getToken: () => sessionStorage.getItem('user-token') });
-const result = await users.login({ account: 'demo_user', password: 'your-password' });
-sessionStorage.setItem('user-token', result.token);
-const profile = await users.me();
-```
-
-用户 JWT 与管理端 JWT 不通用；正式项目可按目标平台选择 Token 存储方式。
-
-## 通用文件上传
-
-`client/uploadFile.ts` 是独立的浏览器上传模板，可直接复制到具体业务前端，不依赖 React 或管理端 Token。管理端保留自己的 `admin/src/api/uploadFile.ts` 副本，不跨目录导入。上传接口位于公开的 `/api/v1/uploads/**`，默认同源；跨域部署时传入公共 API 根路径。返回值的 `url` 是完整访问地址，可直接保存到业务表。
-
-```ts
-import { uploadFile } from './uploadFile';
-
-const uploaded = await uploadFile(file, { apiBaseUrl: 'https://api.example.com/api/v1' });
-const imageUrl = uploaded.url; // 保存到业务表的 URL 字段
-```
-
-`uploadFile` 先用文件信息调用一次 `/api/v1/uploads/prepare`。本地策略直接传 server；七牛策略从同一响应取得 token 后直传七牛，再通知 server 核验登记。公开上传接口按 IP 限流，业务项目可按需要增加登录态或更严格的上传配额。
+所有页面数据统一通过 `src/services/`（`siteService`、`showcaseService`、`worksService`、`workDetailService`、`aboutService`）获取；当前由 `src/services/mockData.ts` 模拟返回，后续服务端就绪后直接替换为 `requestApi()` 调用即可。
