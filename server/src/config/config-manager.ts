@@ -19,6 +19,7 @@ export const SysConfigKey = {
   ClientIconVersion: 'client_icon_version',
   ClientIconFileId: 'client_icon_file_id',
   UploadSettings: 'upload_settings',
+  PortfolioProfileSettings: 'portfolio_profile_settings',
 } as const;
 
 const defaults = [
@@ -58,6 +59,21 @@ export class ConfigManager {
   reloadSysConfigs(): void {
     this.sysConfigs.clear();
     for (const row of this.repository.listSys()) this.sysConfigs.set(row.key, decode(row.value));
+    for (const [key, name, value] of defaults) {
+      if (!this.sysConfigs.has(key)) this.setSysConfig(key, name, value);
+    }
+  }
+
+  reloadConfigs(): void {
+    this.configs.clear();
+    for (const row of this.repository.list()) {
+      this.configs.set(row.key, { value: decode(row.value), enabled: row.enabled === 1 });
+    }
+  }
+
+  reloadAll(): void {
+    this.reloadConfigs();
+    this.reloadSysConfigs();
   }
 
   get<T>(key: string, defaultValue: T): T {

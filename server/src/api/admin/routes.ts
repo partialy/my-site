@@ -21,12 +21,13 @@ import { DashboardService } from '../../services/dashboard.service';
 import { VisitService, visitQuerySchema } from '../../services/visit.service';
 import { OperationLogService, operationLogQuerySchema } from '../../services/operation-log.service';
 import { DatabaseBackupService } from '../../services/database-backup.service';
+import { ConfigPackageService } from '../../services/config-package.service';
 import { SystemStatusService } from '../../services/system-status.service';
 import { requestRateLimit } from '../../middleware/rate-limit.middleware';
 import { UploadSettingsService, uploadSettingsSchema } from '../../services/upload-settings.service';
 import { ApiDocsService, apiDocDetailQuerySchema, apiDocsCatalogQuerySchema } from '../../services/api-docs.service';
 
-export function createAdminRoutes(setup: SetupService, auth: AuthService, systemConfig: SystemConfigService, configs: ConfigService, siteSettings: SiteSettingsService, requestLogs: RequestLogService, files: FileService, menus: MenuService, dashboard: DashboardService, visits: VisitService, operationLogs: OperationLogService, backups: DatabaseBackupService, status: SystemStatusService, uploadSettings: UploadSettingsService, apiDocs: ApiDocsService): Router {
+export function createAdminRoutes(setup: SetupService, auth: AuthService, systemConfig: SystemConfigService, configs: ConfigService, siteSettings: SiteSettingsService, requestLogs: RequestLogService, files: FileService, menus: MenuService, dashboard: DashboardService, visits: VisitService, operationLogs: OperationLogService, backups: DatabaseBackupService, configPackages: ConfigPackageService, status: SystemStatusService, uploadSettings: UploadSettingsService, apiDocs: ApiDocsService): Router {
   const routes = Router();
 
   routes.get('/setup/status', (_req, res) => {
@@ -172,6 +173,28 @@ export function createAdminRoutes(setup: SetupService, auth: AuthService, system
       if (error && !res.headersSent) next(error);
     });
   });
+
+  routes.get('/backups/config-package', requireAuth(auth), (_req, res) => {
+    const pkg = configPackages.exportZip();
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${pkg.fileName}"`);
+    res.setHeader('Cache-Control', 'no-store');
+    res.send(pkg.buffer);
+  });
+
+  routes.post(
+    '/backups/config-package/import',
+    requireAuth(auth),
+    raw({ type: ['application/zip', 'application/x-zip-compressed', 'application/octet-stream'], limit: '10mb' }),
+    (req, res) => {
+      if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+        throw new ApiError(400, ApiCode.ValidationError, '请上传有效的 ZIP 配置包文件', {
+          fieldErrors: { file: ['请上传非空 .zip 文件'] },
+        });
+      }
+      res.json(ok(configPackages.importZip(req.body), '配置包导入成功'));
+    },
+  );
 
   routes.delete('/request-logs', requireAuth(auth), (req, res) => {
     const input = parseInput(requestLogCleanupSchema, req.body);

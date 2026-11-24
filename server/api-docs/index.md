@@ -100,6 +100,8 @@
 | :--- | :--- | :--- | :--- | :--- |
 | 获取服务器状态 | `GET` | `/api/v1/admin/system-status` | 管理员 JWT | [getSystemStatus.md](admin/system-status/getSystemStatus.md) |
 | 下载 SQLite 数据库备份 | `POST` | `/api/v1/admin/backups/database` | 管理员 JWT | [downloadDatabaseBackup.md](admin/system-status/downloadDatabaseBackup.md) |
+| 导出配置与作品 ZIP 包 | `GET` | `/api/v1/admin/backups/config-package` | 管理员 JWT | [exportConfigPackage.md](admin/system-status/exportConfigPackage.md) |
+| 导入配置与作品 ZIP 包 | `POST` | `/api/v1/admin/backups/config-package/import` | 管理员 JWT | [importConfigPackage.md](admin/system-status/importConfigPackage.md) |
 
 ### 首页统计（`admin/dashboard`）
 
@@ -132,6 +134,19 @@
 | 获取接口文档目录 | `GET` | `/api/v1/admin/api-docs` | 管理员 JWT | [getApiDocsCatalog.md](admin/api-docs/getApiDocsCatalog.md) |
 | 获取单个接口文档详情 | `GET` | `/api/v1/admin/api-docs/detail` | 管理员 JWT | [getApiDocDetail.md](admin/api-docs/getApiDocDetail.md) |
 | 导出完整接口文档 | `GET` | `/api/v1/admin/api-docs/export` | 管理员 JWT | [exportApiDocs.md](admin/api-docs/exportApiDocs.md) |
+
+### 个人主页与作品管理（`admin/portfolio`）
+
+| 接口名称 | 方法 | 路径 | 鉴权 | 文档 |
+| :--- | :--- | :--- | :--- | :--- |
+| 分页查询作品列表 | `GET` | `/api/v1/admin/works` | 管理员 JWT | [getWorkList.md](admin/portfolio/getWorkList.md) |
+| 获取作品编辑详情 | `GET` | `/api/v1/admin/works/:uuid` | 管理员 JWT | [getWorkDetail.md](admin/portfolio/getWorkDetail.md) |
+| 新增作品 | `POST` | `/api/v1/admin/works` | 管理员 JWT | [createWork.md](admin/portfolio/createWork.md) |
+| 修改作品 | `PUT` | `/api/v1/admin/works/:uuid` | 管理员 JWT | [updateWork.md](admin/portfolio/updateWork.md) |
+| 删除作品 | `DELETE` | `/api/v1/admin/works/:uuid` | 管理员 JWT | [deleteWork.md](admin/portfolio/deleteWork.md) |
+| 批量调整作品排序 | `PUT` | `/api/v1/admin/works/reorder` | 管理员 JWT | [reorderWorks.md](admin/portfolio/reorderWorks.md) |
+| 获取主页与关于页配置 | `GET` | `/api/v1/admin/profile-settings` | 管理员 JWT | [getProfileSettings.md](admin/portfolio/getProfileSettings.md) |
+| 保存主页与关于页配置 | `PUT` | `/api/v1/admin/profile-settings` | 管理员 JWT | [updateProfileSettings.md](admin/portfolio/updateProfileSettings.md) |
 
 ---
 
@@ -169,6 +184,14 @@
 | 接口名称 | 方法 | 路径 | 鉴权 | 文档 |
 | :--- | :--- | :--- | :--- | :--- |
 | 上报页面访问 | `POST` | `/api/v1/visits` | 否 | [reportVisit.md](client/visit/reportVisit.md) |
+
+### 个人主页与作品展厅（`client/portfolio`）
+
+| 接口名称 | 方法 | 路径 | 鉴权 | 文档 |
+| :--- | :--- | :--- | :--- | :--- |
+| 获取个人主页与关于页配置 | `GET` | `/api/v1/portfolio/profile` | 否 | [getPublicProfile.md](client/portfolio/getPublicProfile.md) |
+| 分页获取公开作品列表 | `GET` | `/api/v1/works` | 否 | [getPublicWorks.md](client/portfolio/getPublicWorks.md) |
+| 获取公开作品详情 | `GET` | `/api/v1/works/:slugOrUuid` | 否 | [getPublicWorkDetail.md](client/portfolio/getPublicWorkDetail.md) |
 
 ### 健康检查（`client/health`）
 

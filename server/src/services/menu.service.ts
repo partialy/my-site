@@ -22,7 +22,7 @@ function invalid(message: string): never {
   throw new ApiError(400, ApiCode.ValidationError, message, { fieldErrors: { items: [message] } });
 }
 
-function validateStructure(items: MenuRecord[]): void {
+export function validateMenuStructure(items: MenuRecord[]): void {
   const byKey = new Map<string, MenuRecord>();
   const paths = new Set<string>();
   for (const item of items) {
@@ -58,8 +58,12 @@ export class MenuService {
     return this.items.map((item) => ({ ...item }));
   }
 
+  reload(): void {
+    this.items = this.repository.list();
+  }
+
   replace(input: MenuInput): MenuRecord[] {
-    validateStructure(input.items);
+    validateMenuStructure(input.items);
     this.repository.replace(input.items);
     this.items = this.repository.list();
     return this.list();

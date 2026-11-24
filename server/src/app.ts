@@ -21,6 +21,7 @@ import { DashboardService } from './services/dashboard.service';
 import { OperationLogService } from './services/operation-log.service';
 import { operationAuditMiddleware } from './middleware/operation-audit.middleware';
 import { DatabaseBackupService } from './services/database-backup.service';
+import { ConfigPackageService } from './services/config-package.service';
 import { SystemStatusService } from './services/system-status.service';
 import { ipFailureLimit, loginFailureLimit, requestRateLimit, setRateLimitEnabled } from './middleware/rate-limit.middleware';
 import { DictionaryService } from './services/dictionary.service';
@@ -29,6 +30,10 @@ import { createAdminDictionaryRoutes } from './api/admin/dictionary-routes';
 import { UploadSettingsService } from './services/upload-settings.service';
 import { createUploadRoutes } from './api/upload-routes';
 import { ApiDocsService } from './services/api-docs.service';
+import { WorkService } from './services/work.service';
+import { ProfileSettingsService } from './services/profile-settings.service';
+import { createPortfolioPublicRoutes } from './api/portfolio-routes';
+import { createAdminPortfolioRoutes } from './api/admin/portfolio-routes';
 
 interface AppServices {
   setup: SetupService;
@@ -43,10 +48,13 @@ interface AppServices {
   dashboard: DashboardService;
   operationLogs: OperationLogService;
   backups: DatabaseBackupService;
+  configPackages: ConfigPackageService;
   status: SystemStatusService;
   dictionaries: DictionaryService;
   uploadSettings: UploadSettingsService;
   apiDocs: ApiDocsService;
+  works: WorkService;
+  profileSettings: ProfileSettingsService;
 }
 
 export function createApp(config: AppConfig, services: AppServices, db: Database.Database) {
@@ -71,6 +79,8 @@ export function createApp(config: AppConfig, services: AppServices, db: Database
     const publicPath = req.path === '/api/v1/visits' ||
       req.path.startsWith('/api/v1/uploads/') ||
       req.path === '/api/v1/site-settings' || req.path === '/api/v1/dictionaries' ||
+      req.path === '/api/v1/portfolio/profile' || req.path === '/api/v1/works' ||
+      /^\/api\/v1\/works\/[^/]+$/.test(req.path) ||
       /^\/api\/v1\/files\/[^/]+\/content$/.test(req.path) ||
       /^\/api\/v1\/site-settings\/(admin|client)\/icon$/.test(req.path);
     if (publicPath && !req.path.startsWith('/api/v1/admin/')) return publicCors(req, res, next);
@@ -85,11 +95,13 @@ export function createApp(config: AppConfig, services: AppServices, db: Database
   app.use('/api/v1/admin', createAdminRoutes(
     services.setup, services.auth, services.systemConfig, services.configs,
     services.siteSettings, services.requestLogs, services.files, services.menus, services.dashboard, services.visits,
-    services.operationLogs, services.backups, services.status, services.uploadSettings, services.apiDocs,
+    services.operationLogs, services.backups, services.configPackages, services.status, services.uploadSettings, services.apiDocs,
   ));
   app.use('/api/v1/admin/dictionaries', createAdminDictionaryRoutes(services.auth, services.dictionaries));
+  app.use('/api/v1/admin', createAdminPortfolioRoutes(services.auth, services.works, services.profileSettings));
   app.use('/api/v1/dictionaries', createDictionaryRoutes(services.dictionaries));
   app.use('/api/v1/uploads', createUploadRoutes(services.files));
+  app.use('/api/v1', createPortfolioPublicRoutes(services.works, services.profileSettings));
   app.use('/api/v1', createPublicRoutes(services.siteSettings, services.files, services.visits));
   app.use('/api/v1', (_req, res) => {
     res.status(404).json({ code: ApiCode.NotFound, msg: '接口不存在', data: null, success: false });

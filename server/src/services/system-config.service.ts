@@ -45,6 +45,10 @@ export interface SystemConfigData {
 
 export class SystemConfigService {
   constructor(private readonly manager: ConfigManager, private readonly db: Database.Database) {
+    this.syncAfterImport();
+  }
+
+  syncAfterImport(): void {
     if (this.get().requestLogMode !== 'off') this.ensureLogTable();
   }
 
