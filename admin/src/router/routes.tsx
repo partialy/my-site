@@ -16,6 +16,8 @@ import { NotFoundPage } from '../pages/errors/NotFoundPage';
 import { DictionariesPage } from '../pages/dictionaries/DictionariesPage';
 import { AppearancePage } from '../pages/appearance/AppearancePage';
 import { UploadSettingsPage } from '../pages/upload-settings/UploadSettingsPage';
+import { WorksPage } from '../pages/works/WorksPage';
+import { ProfileSettingsPage } from '../pages/profile-settings/ProfileSettingsPage';
 
 export const router = createBrowserRouter([
   {
@@ -75,6 +77,14 @@ export const router = createBrowserRouter([
       {
         path: 'api-docs',
         element: <ApiDocsPage />,
+      },
+      {
+        path: 'works',
+        element: <WorksPage />,
+      },
+      {
+        path: 'profile-settings',
+        element: <ProfileSettingsPage />,
       },
     ],
   },

@@ -24,6 +24,8 @@ export const PAGE_REGISTRY: readonly PageRecord[] = [
   { path: '/upload-settings', name: '上传设置', defaultKey: 'upload-settings', defaultIcon: 'cloud', defaultMenu: false, menuSelectable: true },
   { path: '/menus', name: '菜单管理', defaultKey: 'menu-management', defaultIcon: 'menu', defaultMenu: true, menuSelectable: true },
   { path: '/api-docs', name: '接口文档', defaultKey: 'api-docs', defaultIcon: 'book', defaultMenu: false, menuSelectable: true },
+  { path: '/works', name: '作品管理', defaultKey: 'works', defaultIcon: 'package', defaultMenu: false, menuSelectable: true },
+  { path: '/profile-settings', name: '主页配置', defaultKey: 'profile-settings', defaultIcon: 'user', defaultMenu: false, menuSelectable: true },
   { path: '/login', name: '登录', defaultKey: 'login', defaultIcon: null, defaultMenu: false, menuSelectable: false },
   { path: '/setup', name: '初始化管理员', defaultKey: 'setup', defaultIcon: null, defaultMenu: false, menuSelectable: false },
   { path: '/404', name: '页面不存在', defaultKey: 'not-found', defaultIcon: null, defaultMenu: false, menuSelectable: false },

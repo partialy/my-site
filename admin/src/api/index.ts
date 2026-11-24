@@ -12,3 +12,5 @@ export * from './uploadSettings';
 export * from './menus';
 export * from './systemStatus';
 export * from './operationLogs';
+export * from './works';
+export * from './profileSettings';

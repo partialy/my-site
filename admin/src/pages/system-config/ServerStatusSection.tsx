@@ -1,7 +1,12 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Alert, Button, Card, Col, Flex, Popconfirm, Row, Skeleton, Space, Typography, message } from 'antd';
-import { Download, HardDrive, RefreshCw, Server } from 'lucide-react';
-import { createDatabaseBackup, getSystemStatus } from '../../api/systemStatus';
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { Alert, Button, Card, Col, Flex, Modal, Popconfirm, Row, Skeleton, Space, Typography, message } from 'antd';
+import { Archive, Download, HardDrive, RefreshCw, Server, Upload } from 'lucide-react';
+import {
+  createDatabaseBackup,
+  exportConfigPackage,
+  getSystemStatus,
+  importConfigPackage,
+} from '../../api/systemStatus';
 import type { SystemStatus } from '../../api/systemStatus';
 import { formatDateTime } from '../../utils/dateTime';
 
@@ -37,7 +42,10 @@ export function ServerStatusSection() {
   const [status, setStatus] = useState<SystemStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [backingUp, setBackingUp] = useState(false);
+  const [exportingPkg, setExportingPkg] = useState(false);
+  const [importingPkg, setImportingPkg] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const pkgInputRef = useRef<HTMLInputElement | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -73,6 +81,77 @@ export function ServerStatusSection() {
     } finally {
       setBackingUp(false);
     }
+  };
+
+  const handleExportPackage = async () => {
+    setExportingPkg(true);
+    try {
+      const file = await exportConfigPackage();
+      const url = URL.createObjectURL(file.blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = file.fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      message.success('配置与作品 ZIP 包已导出');
+    } catch (cause) {
+      message.error(cause instanceof Error ? cause.message : '导出配置包失败');
+    } finally {
+      setExportingPkg(false);
+    }
+  };
+
+  const executeImportPackage = async (file: File) => {
+    setImportingPkg(true);
+    try {
+      const res = await importConfigPackage(file);
+      if (!res.success) throw new Error(res.msg);
+      const result = res.data;
+      Modal.success({
+        title: '配置包导入成功',
+        content: (
+          <div style={{ lineHeight: 1.8 }}>
+            <div>已导入作品 {result.worksCount} 个、系统配置 {result.sysConfigsCount} 项、参数配置 {result.configsCount} 项、菜单 {result.menusCount} 条、字典 {result.dictionariesCount} 类。</div>
+            {result.unlinkedFileRefs > 0 ? (
+              <div style={{ marginTop: 8, color: '#d97706' }}>
+                提示：有 {result.unlinkedFileRefs} 处本地文件库引用在当前环境不存在，已自动解绑文件 ID 并保留原图片链接。
+              </div>
+            ) : null}
+          </div>
+        ),
+        okText: '刷新页面以应用菜单与站点设置',
+        onOk: () => window.location.reload(),
+      });
+    } catch (cause) {
+      message.error(cause instanceof Error ? cause.message : '导入配置包失败');
+    } finally {
+      setImportingPkg(false);
+    }
+  };
+
+  const handleSelectPackageFile = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.zip')) {
+      message.warning('请选择 .zip 格式的配置导出包');
+      return;
+    }
+    Modal.confirm({
+      title: '确认导入配置与作品包？',
+      content: (
+        <div>
+          <p style={{ marginBottom: 8 }}>将从 <strong>{file.name}</strong> 恢复作品数据、主页配置、系统配置、参数配置、菜单配置与数据字典，并覆盖当前对应配置。</p>
+          <p style={{ marginBottom: 0, color: '#64748b' }}>不会修改访问日志、请求日志、操作日志与管理员账号；建议导入前先导出一份当前 ZIP 包备份。</p>
+        </div>
+      ),
+      okText: '确认导入并覆盖',
+      okButtonProps: { danger: true },
+      cancelText: '取消',
+      onOk: () => executeImportPackage(file),
+    });
   };
 
   return (
@@ -114,6 +193,47 @@ export function ServerStatusSection() {
         <Popconfirm title="生成数据库备份？" description="备份仅包含 SQLite 数据库，不包含上传文件。" okText="生成并下载" cancelText="取消" onConfirm={() => void backup()}>
           <Button icon={<Download size={16} />} loading={backingUp}>备份数据库</Button>
         </Popconfirm>
+      </Flex>
+
+      <Flex className="system-config-subsection" justify="space-between" align="center" wrap="wrap" gap={16}>
+        <Space size={12} align="start">
+          <div className="system-config-small-icon"><Archive size={17} /></div>
+          <div>
+            <Text strong>配置与作品包导入导出（ZIP）</Text>
+            <div>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                包含作品数据、主页配置、系统配置、参数配置、菜单配置与数据字典；不包含访问日志、请求日志、操作日志及账号数据。
+              </Text>
+            </div>
+          </div>
+        </Space>
+        <Space wrap>
+          <input
+            ref={pkgInputRef}
+            type="file"
+            accept=".zip,application/zip"
+            style={{ display: 'none' }}
+            onChange={handleSelectPackageFile}
+          />
+          <Button
+            icon={<Download size={16} />}
+            loading={exportingPkg}
+            disabled={importingPkg}
+            onClick={() => void handleExportPackage()}
+          >
+            一键导出 ZIP
+          </Button>
+          <Button
+            type="primary"
+            ghost
+            icon={<Upload size={16} />}
+            loading={importingPkg}
+            disabled={exportingPkg}
+            onClick={() => pkgInputRef.current?.click()}
+          >
+            导入配置包
+          </Button>
+        </Space>
       </Flex>
     </Card>
   );

@@ -12,7 +12,7 @@
 
 ## 页面范围与路由/菜单注册
 
-- 仅包含单管理员后台通用流程：初始化向导（`/setup`）、登录（`/login`）、首页仪表盘、系统管理（`/system-config`）、外观设置（`/appearance`）、配置管理（`/configs`）、数据字典（`/dictionaries`）、上传设置（`/upload-settings`）、请求日志（`/request-logs`）、操作日志（`/operation-logs`）、访问日志（`/visit-logs`）、文件管理（`/files`）、菜单管理（`/menus`）、接口文档（`/api-docs`）、修改密码、退出登录和 404 兜底页。具体业务菜单与页面在此基础上扩展。
+- 仅包含单管理员后台通用流程：初始化向导（`/setup`）、登录（`/login`）、首页仪表盘、系统管理（`/system-config`）、外观设置（`/appearance`）、配置管理（`/configs`）、数据字典（`/dictionaries`）、上传设置（`/upload-settings`）、请求日志（`/request-logs`）、操作日志（`/operation-logs`）、访问日志（`/visit-logs`）、文件管理（`/files`）、菜单管理（`/menus`）、接口文档（`/api-docs`）、修改密码、退出登录和 404 兜底页；并扩展个人主页业务模块：**作品管理（`/works`）**与**主页配置（`/profile-settings`）**（均已在 `pageRegistry.ts` 登记，需在 `/menus` 手动加入导航）。
 - **页面登记**：已开发页面信息集中在 [src/router/pageRegistry.ts](src/router/pageRegistry.ts)，包含路径、名称、默认菜单标识与图标、是否属于初始菜单及是否可用于菜单；登录、初始化和 404 页面也需登记且设为不可选作菜单。新增页面时必须同时在 [src/router/routes.tsx](src/router/routes.tsx) 注册路由并在页面清单登记，随后由管理员在菜单管理页手动选用保存（页面清单不入库，也不自动创建菜单）。
 - **菜单管理（`/menus`）**：支持页面、分组两类菜单及调整同级排序，与侧栏共用菜单状态并即时更新；旧版操作菜单仅做兼容展示可删除，不再提供新增/编辑入口。图标键在 `src/menus/menuUtils.tsx` 统一映射，分类在 `src/menus/menuIconCategories.ts` 维护（未分类自动归入「其他」，已有键保持兼容）。隐藏或删除菜单管理入口后仍可直接访问 `/menus` 恢复。修改密码入口位于右上角账号下拉菜单。
 

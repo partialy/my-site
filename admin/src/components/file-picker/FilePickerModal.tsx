@@ -13,11 +13,12 @@ export interface FilePickerModalProps {
   open: boolean;
   multiple?: boolean;
   accept?: string[];
+  zIndex?: number;
   onCancel: () => void;
   onConfirm: (files: FileItem[]) => void;
 }
 
-export function FilePickerModal({ open, multiple = false, accept, onCancel, onConfirm }: FilePickerModalProps) {
+export function FilePickerModal({ open, multiple = false, accept, zIndex = 1200, onCancel, onConfirm }: FilePickerModalProps) {
   const mimeKey = accept?.join(',') ?? '';
   const [searchDraft, setSearchDraft] = useState('');
   const [query, setQuery] = useState<FileLibraryQuery>({ page: 1, pageSize: 20, mimeTypes: accept, status: 'active' });
@@ -79,7 +80,7 @@ export function FilePickerModal({ open, multiple = false, accept, onCancel, onCo
 
   return (
     <Modal title={multiple ? '选择文件（多选）' : '选择文件'} open={open} onCancel={onCancel}
-      width={920} destroyOnClose={false} okText={`确定${selected.size ? `（${selected.size}）` : ''}`}
+      width={920} zIndex={zIndex} destroyOnClose={false} okText={`确定${selected.size ? `（${selected.size}）` : ''}`}
       okButtonProps={{ disabled: selected.size === 0, loading: uploading }}
       onOk={() => onConfirm(Array.from(selected.values()))}>
       <Flex justify="space-between" align="center" wrap="wrap" gap={12} style={{ marginBottom: 16 }}>
