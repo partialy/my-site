@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 本地图片与脚手架默认图标资产（不纳入 Git）
+/public/images/
+/public/*.svg
+/src/app/favicon.ico
