@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState, type ChangeEvent } from 'react';
 import {
   Alert, Button, Card, Flex, Image, message, Space, Switch, Table, Tag, Typography,
 } from 'antd';
 import type { TableProps } from 'antd';
-import { ArrowDown, ArrowUp, FolderKanban, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, FileJson, FolderKanban, Pencil, Plus, Trash2 } from 'lucide-react';
 import {
   deleteAdminWork, reorderAdminWorks, updateAdminWork,
   type WorkItem, type WorkPayload,
@@ -13,7 +13,8 @@ import { CrudRowActions, type CrudRowAction } from '../../components/crud/CrudRo
 import { DictTag, useDictionary } from '../../dictionaries';
 import { formatDateTime } from '../../utils/dateTime';
 import { defaultWorkFilters, useWorksPage, type WorkFilters } from './useWorksPage';
-import { WorkEditorModal } from './WorkEditorModal';
+import { WorkEditorModal, type ImportedWorkSeed } from './WorkEditorModal';
+import { parseWorkJsonImport } from './workJsonImport';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -59,6 +60,30 @@ export function WorksPage() {
   const { items: categoryItems } = useDictionary('work_category');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingUuid, setEditingUuid] = useState<string | null>(null);
+  const [importedSeed, setImportedSeed] = useState<ImportedWorkSeed | null>(null);
+  const jsonImportRef = useRef<HTMLInputElement | null>(null);
+  const categoryValues = useMemo(() => categoryItems.map((item) => item.value), [categoryItems]);
+
+  const handleImportJsonFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const allowed = categoryValues.length > 0 ? new Set(categoryValues) : undefined;
+      const result = parseWorkJsonImport(text, allowed);
+      setEditingUuid(null);
+      setImportedSeed({
+        nonce: Date.now(),
+        fileName: file.name,
+        patch: result.patch,
+        warnings: result.warnings,
+      });
+      setDrawerOpen(true);
+    } catch (cause) {
+      message.error(cause instanceof Error ? cause.message : 'JSON 文件解析失败');
+    }
+  };
 
   const filterFields = useMemo<ReadonlyArray<CrudFilterField<WorkFilters>>>(() => [
     { key: 'search', kind: 'text', placeholder: '搜索名称、Slug、标语或技术栈', width: 280 },
@@ -140,6 +165,7 @@ export function WorksPage() {
       label: '编辑',
       icon: <Pencil size={14} />,
       onClick: (item) => {
+        setImportedSeed(null);
         setEditingUuid(item.uuid);
         setDrawerOpen(true);
       },
@@ -291,16 +317,32 @@ export function WorksPage() {
             管理个人主页展厅、作品目录与档案详情；封面图片支持通过文件库上传或七牛云直传。
           </Paragraph>
         </div>
-        <Button
-          type="primary"
-          icon={<Plus size={16} />}
-          onClick={() => {
-            setEditingUuid(null);
-            setDrawerOpen(true);
-          }}
-        >
-          新增作品
-        </Button>
+        <Space>
+          <input
+            ref={jsonImportRef}
+            type="file"
+            accept=".json,application/json"
+            style={{ display: 'none' }}
+            onChange={(e) => void handleImportJsonFile(e)}
+          />
+          <Button
+            icon={<FileJson size={16} />}
+            onClick={() => jsonImportRef.current?.click()}
+          >
+            导入 JSON 新建
+          </Button>
+          <Button
+            type="primary"
+            icon={<Plus size={16} />}
+            onClick={() => {
+              setImportedSeed(null);
+              setEditingUuid(null);
+              setDrawerOpen(true);
+            }}
+          >
+            新增作品
+          </Button>
+        </Space>
       </Flex>
 
       <CrudFilterBar
@@ -334,7 +376,12 @@ export function WorksPage() {
       <WorkEditorModal
         open={drawerOpen}
         editingUuid={editingUuid}
-        onClose={() => setDrawerOpen(false)}
+        categoryValues={categoryValues}
+        importedSeed={importedSeed}
+        onClose={() => {
+          setDrawerOpen(false);
+          setImportedSeed(null);
+        }}
         onSaved={reload}
       />
     </div>

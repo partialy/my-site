@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import {
-  Alert, Button, Checkbox, Col, ColorPicker, Form, Image, Input, InputNumber,
+  Alert, Button, Checkbox, Col, ColorPicker, Flex, Form, Image, Input, InputNumber,
   message, Modal, Row, Select, Space, Spin, Switch, Tabs, Typography,
 } from 'antd';
-import { FolderOpen, Plus, Trash2 } from 'lucide-react';
+import { Download, FileJson, FolderOpen, Plus, Trash2 } from 'lucide-react';
 import {
   createAdminWork, getAdminWorkDetail, updateAdminWork,
   type WorkIconKey, type WorkItem, type WorkPayload, type WorkPlatform,
@@ -11,6 +11,7 @@ import {
 import type { FileItem } from '../../api/files';
 import { FilePickerModal } from '../../components/file-picker/FilePickerModal';
 import { DictSelect } from '../../dictionaries';
+import { downloadWorkJsonTemplate, parseWorkJsonImport } from './workJsonImport';
 
 const { Text } = Typography;
 
@@ -27,9 +28,18 @@ const ACCENT_PRESETS = ['#E5A93C', '#D9B98B', '#4F8BFF', '#C7A969', '#38B287', '
 const PLATFORM_OPTIONS: WorkPlatform[] = ['PC', 'Web', 'Android'];
 const IMAGE_ACCEPT = ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/x-icon'];
 
+export interface ImportedWorkSeed {
+  nonce: number;
+  fileName: string;
+  patch: Partial<WorkPayload>;
+  warnings: string[];
+}
+
 interface WorkEditorModalProps {
   open: boolean;
   editingUuid: string | null;
+  categoryValues?: string[];
+  importedSeed?: ImportedWorkSeed | null;
   onClose: () => void;
   onSaved: () => void;
 }
@@ -108,22 +118,48 @@ function toFormValues(item: WorkItem): WorkPayload {
   };
 }
 
-export function WorkEditorModal({ open, editingUuid, onClose, onSaved }: WorkEditorModalProps) {
+export function WorkEditorModal({
+  open,
+  editingUuid,
+  categoryValues,
+  importedSeed,
+  onClose,
+  onSaved,
+}: WorkEditorModalProps) {
   const [form] = Form.useForm<WorkPayload>();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<'hero' | 'icon' | null>(null);
+  const [importNotice, setImportNotice] = useState<{ fileName: string; warnings: string[] } | null>(null);
+  const jsonInputRef = useRef<HTMLInputElement | null>(null);
   const heroImage = Form.useWatch('heroImage', form);
   const heroFileId = Form.useWatch('heroFileId', form);
   const iconImage = Form.useWatch('iconImage', form);
   const iconFileId = Form.useWatch('iconFileId', form);
+  const allowedCategorySet = useMemo(
+    () => (categoryValues && categoryValues.length > 0 ? new Set(categoryValues) : undefined),
+    [categoryValues],
+  );
 
   useEffect(() => {
-    if (!open) return;
-    if (!editingUuid) {
-      form.setFieldsValue(DEFAULT_FORM_VALUES);
+    if (!open) {
+      setImportNotice(null);
       return;
     }
+    if (!editingUuid) {
+      form.setFieldsValue(
+        importedSeed
+          ? { ...DEFAULT_FORM_VALUES, ...importedSeed.patch }
+          : DEFAULT_FORM_VALUES,
+      );
+      setImportNotice(
+        importedSeed
+          ? { fileName: importedSeed.fileName, warnings: importedSeed.warnings }
+          : null,
+      );
+      return;
+    }
+    setImportNotice(null);
     setLoading(true);
     void getAdminWorkDetail(editingUuid).then((res) => {
       if (!res.success) throw new Error(res.msg);
@@ -132,7 +168,23 @@ export function WorkEditorModal({ open, editingUuid, onClose, onSaved }: WorkEdi
       message.error(cause instanceof Error ? cause.message : '加载作品详情失败');
       onClose();
     }).finally(() => setLoading(false));
-  }, [open, editingUuid, form, onClose]);
+  }, [open, editingUuid, importedSeed, form, onClose]);
+
+  const handleJsonFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const result = parseWorkJsonImport(text, allowedCategorySet);
+      const current = form.getFieldsValue(true) as WorkPayload;
+      form.setFieldsValue({ ...current, ...result.patch });
+      setImportNotice({ fileName: file.name, warnings: result.warnings });
+      message.success(`已从 ${file.name} 填充 ${result.appliedCount} 项字段，请补充或确认图片与 Icon`);
+    } catch (cause) {
+      message.error(cause instanceof Error ? cause.message : 'JSON 导入失败');
+    }
+  };
 
   const handleSelectFile = (files: FileItem[]) => {
     const file = files[0];
@@ -211,6 +263,61 @@ export function WorkEditorModal({ open, editingUuid, onClose, onSaved }: WorkEdi
       >
         <Spin spinning={loading}>
           <div style={{ width: '100%', boxSizing: 'border-box', padding: '0 10px', overflowX: 'hidden' }}>
+            <input
+              ref={jsonInputRef}
+              type="file"
+              accept=".json,application/json"
+              style={{ display: 'none' }}
+              onChange={(e) => void handleJsonFileChange(e)}
+            />
+            <Flex
+              justify="space-between"
+              align="center"
+              wrap="wrap"
+              gap={8}
+              style={{
+                marginBottom: 12,
+                padding: '8px 12px',
+                borderRadius: 10,
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+              }}
+            >
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                支持传入符合 <Text code>WORK_JSON_RULE.md</Text> 的 JSON 文件自动填充文案与架构字段（保留当前图片、Icon 与排序）。
+              </Text>
+              <Space size={8}>
+                <Button size="small" icon={<Download size={14} />} onClick={downloadWorkJsonTemplate}>
+                  示例 JSON
+                </Button>
+                <Button
+                  size="small"
+                  type="primary"
+                  ghost
+                  icon={<FileJson size={14} />}
+                  onClick={() => jsonInputRef.current?.click()}
+                >
+                  导入 JSON 填充
+                </Button>
+              </Space>
+            </Flex>
+            {importNotice ? (
+              <Alert
+                type={importNotice.warnings.length > 0 ? 'warning' : 'success'}
+                showIcon
+                closable
+                onClose={() => setImportNotice(null)}
+                style={{ marginBottom: 12 }}
+                message={`已从 ${importNotice.fileName} 填入作品信息，请补充或确认封面图与轮盘 AppIcon 后保存`}
+                description={
+                  importNotice.warnings.length > 0 ? (
+                    <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>
+                      {importNotice.warnings.map((w, idx) => <li key={idx}>{w}</li>)}
+                    </ul>
+                  ) : undefined
+                }
+              />
+            ) : null}
             <Form form={form} layout="vertical" initialValues={DEFAULT_FORM_VALUES}>
             <Tabs
               items={[
