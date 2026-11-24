@@ -89,6 +89,30 @@ function describe(method: string, path: string): OperationDescriptor | null {
   if (method === 'DELETE' && permanentFile) {
     return { module: '文件管理', action: 'delete', targetType: 'file', targetId: permanentFile[1], summary: '永久删除文件' };
   }
+  if (method === 'PUT' && path === '/works/reorder') {
+    return { module: '作品管理', action: 'update', targetType: 'work', summary: '调整作品排序与首页展示', changedFields: ['sortOrder', 'featuredHome'] };
+  }
+  const work = /^\/works(?:\/([0-9a-f]{32}))?$/.exec(path);
+  if (work && ((method === 'POST' && !work[1]) || (['PUT', 'DELETE'].includes(method) && work[1]))) {
+    const action = method === 'POST' ? 'create' : method === 'PUT' ? 'update' : 'delete';
+    return {
+      module: '作品管理',
+      action,
+      targetType: 'work',
+      targetId: work[1],
+      summary: `${method === 'POST' ? '新增' : method === 'PUT' ? '修改' : '删除'}作品`,
+      changedFields: method === 'DELETE' ? [] : ['name', 'slug', 'category', 'version', 'status', 'featuredHome'],
+    };
+  }
+  if (method === 'PUT' && path === '/profile-settings') {
+    return {
+      module: '主页配置',
+      action: 'update',
+      targetType: 'sys_config',
+      summary: '修改个人主页与关于页配置',
+      changedFields: ['site', 'footer', 'about'],
+    };
+  }
   return null;
 }
 

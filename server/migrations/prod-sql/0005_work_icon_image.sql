@@ -1,0 +1,2 @@
+ALTER TABLE work ADD COLUMN icon_image TEXT NOT NULL DEFAULT '';
+ALTER TABLE work ADD COLUMN icon_file_id TEXT;

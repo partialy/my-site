@@ -70,9 +70,14 @@ function toItem(record: FileRecord, localDomain: string): FileItem {
 
 export class FileService {
   private readonly directory = path.resolve(__dirname, '../../data/uploads');
+  private readonly referenceCheckers: Array<(fileId: string) => string | null> = [];
 
   constructor(private readonly repository: FileRepository, private readonly configManager: ConfigManager,
     private readonly uploadSettings: UploadSettingsService) { }
+
+  registerReferenceChecker(checker: (fileId: string) => string | null): void {
+    this.referenceCheckers.push(checker);
+  }
 
   uploadStrategy() { return { strategy: this.uploadSettings.getStrategy() }; }
 
@@ -199,6 +204,10 @@ export class FileService {
     if (typeof loginAppearance === 'object' && loginAppearance !== null &&
       'backgroundFileId' in loginAppearance && loginAppearance.backgroundFileId === id) {
       throw new ApiError(409, ApiCode.FileInUse, '文件正在用作登录背景，请先更换或移除背景图片');
+    }
+    for (const check of this.referenceCheckers) {
+      const reason = check(id);
+      if (reason) throw new ApiError(409, ApiCode.FileInUse, reason);
     }
 
     if (record.storage_provider === 'qiniu') {

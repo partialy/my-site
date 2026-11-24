@@ -23,7 +23,7 @@
   - `prod-sql/` 在所有环境每次启动时扫描并执行未执行的升级脚本。
   - `dev-sql/` 只在非生产环境自动执行，正式上线前可清理。
   - 新库将当前升级脚本记为基线，避免重复修改最新结构；已有库的每个升级脚本与执行记录同事务提交，已执行脚本内容变化会阻止启动，需新增后续脚本而非改动旧脚本。迁移 SQL 由 `.gitattributes` 固定为 LF 换行，避免跨平台校验值不同。
-- 生产部署需在 `.env` 设置 `NODE_ENV=production`。管理员可下载 SQLite 在线备份，备份不包含 `server/data/uploads/` 与 `server/data/site-icons/`，临时备份文件下载后清理。
+- 生产部署需在 `.env` 设置 `NODE_ENV=production`。管理员可下载 SQLite 在线备份，备份不包含 `server/data/uploads/` 与 `server/data/site-icons/`，临时备份文件下载后清理；也可通过 `/api/v1/admin/backups/config-package` 一键导出/导入仅包含作品档案、主页配置、系统配置、参数配置、菜单配置与数据字典的轻量 ZIP 包（不含访问日志、请求日志、操作日志及账号数据）。
 
 ## 核心模块与安全规则
 
@@ -36,6 +36,10 @@
 - **文件库与上传**：`file` 表保存元数据与存储来源，本地文件存于 `server/data/uploads/`，七牛文件由浏览器直传；上传策略与七牛配置存于 `sys_config.upload_settings`，Secret Key 不经读取接口返回。公开 `POST /api/v1/uploads/prepare`、`POST /api/v1/uploads/local`、`POST /api/v1/uploads/complete` 按 IP 限流，不要求登录；返回的完整 `url` 直接存入业务表，不经 server 代理。切换策略不迁移旧文件。文件列表默认只返回可用文件（管理页显式传 `status=all`），归档后选择器不可见但旧链接仍可访问；永久删除会同时删除元数据及存储文件，当前站点图标或登录背景引用会阻止永久删除。
 - **菜单与站点设置**：`MenuService` 启动加载缓存，`PUT /api/v1/admin/menus` 事务替换并刷新缓存，菜单仅控制导航不做权限控制。站点设置存于 `sys_config`（项目名称、版权信息、后台/前台标识与图标元数据、登录外观），图标仅支持 PNG、JPEG、WebP、ICO（最大 2 MiB，拒绝 SVG）。
 - **访问统计**：公开 `POST /api/v1/visits` 以 `(visitor_id, visit_day)` 唯一约束按 UTC 日尽力去重；`GET /api/v1/admin/home` 聚合真实访问记录与近 7 天请求日志数据。
+- **作品与主页配置（`portfolio`）**：
+  - `work` 表存放作品档案（含 32 位 `uuid` 对外主键、唯一 `slug` 语义别名、`category` 关联字典 `work_category`、可选 `hero_file_id` 与 `icon_file_id` 关联文件库），`FileService.deletePermanently` 通过参考检查钩子阻止删除被作品封面、轮盘图标或 OG 图引用的文件。
+  - `sys_config.portfolio_profile_settings` 保存前台站点 SEO、作者档案、创作原则与页脚备案；公开接口 `/api/v1/portfolio/profile`、`/api/v1/works`、`/api/v1/works/:slugOrUuid` 已加入 `publicCors`，管理端接口位于 `/api/v1/admin/works*` 与 `/api/v1/admin/profile-settings`。
+  - 迁移脚本 `sql/0005_portfolio.sql`、`prod-sql/0004_portfolio.sql` 与 `prod-sql/0005_work_icon_image.sql` 维护作品表及 `work_category` 字典和初始作品数据。
 
 ## 接口文档维护规范（`server/api-docs/`）
 
