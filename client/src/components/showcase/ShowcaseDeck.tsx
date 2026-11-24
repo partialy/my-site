@@ -16,7 +16,6 @@ import {
   ArrowRight,
   ArrowUp,
   ArrowUpRight,
-  Compass,
   Globe,
   Menu,
   Monitor,
@@ -25,7 +24,12 @@ import {
   Smartphone,
   X,
 } from "lucide-react";
-import type { SiteFooterConfig, WorkItem, WorkPlatform } from "@/services/types";
+import type {
+  ShowcaseAutoRotateConfig,
+  SiteFooterConfig,
+  WorkItem,
+  WorkPlatform,
+} from "@/services/types";
 import {
   clampSlideIndex,
   computeRotationForSlot,
@@ -50,6 +54,7 @@ import {
   MorphingActionBar,
 } from "@/components/showcase/MorphingActionBar";
 import { PillSearchInput } from "@/components/showcase/PillSearchInput";
+import { SiteBrandMark } from "@/components/showcase/SiteBrandMark";
 import { SiteFooter } from "@/components/showcase/SiteFooter";
 import { TopEntranceProgressBar } from "@/components/showcase/TopEntranceProgressBar";
 import { WorkIcon } from "@/components/showcase/WorkIcon";
@@ -57,8 +62,10 @@ import { WorkIcon } from "@/components/showcase/WorkIcon";
 interface ShowcaseDeckProps {
   works: WorkItem[];
   brandName: string;
+  siteIconUrl?: string | null;
   domainLabel: string;
   footer: SiteFooterConfig;
+  showcaseConfig?: ShowcaseAutoRotateConfig;
   initialWorkIndex?: number;
 }
 
@@ -129,6 +136,42 @@ const MOBILE_SEARCH_YIELD_OFFSET_PX = -(
 );
 const SEARCH_YIELD_DURATION = 0.84;
 const DESKTOP_MEDIA_QUERY = "(min-width: 1024px)";
+const AUTO_ROTATE_STOP_KEY = "mysite:showcase-auto-rotate-stopped";
+const AUTO_ROTATE_STOP_EVENT = "mysite:auto-rotate-stop";
+
+function subscribeAutoRotateStop(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener(AUTO_ROTATE_STOP_EVENT, callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(AUTO_ROTATE_STOP_EVENT, callback);
+  };
+}
+
+function getAutoRotateStopSnapshot(): boolean {
+  try {
+    return window.sessionStorage.getItem(AUTO_ROTATE_STOP_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function getAutoRotateStopServerSnapshot(): boolean {
+  return true;
+}
+
+function subscribePageVisibility(callback: () => void) {
+  document.addEventListener("visibilitychange", callback);
+  return () => document.removeEventListener("visibilitychange", callback);
+}
+
+function getPageVisibilitySnapshot(): boolean {
+  return document.visibilityState === "visible";
+}
+
+function getPageVisibilityServerSnapshot(): boolean {
+  return false;
+}
 
 function subscribeDesktopMedia(callback: () => void) {
   const mql = window.matchMedia(DESKTOP_MEDIA_QUERY);
@@ -170,8 +213,10 @@ function FadeInBlock({
 export function ShowcaseDeck({
   works,
   brandName,
+  siteIconUrl,
   domainLabel,
   footer,
+  showcaseConfig,
   initialWorkIndex = 0,
 }: ShowcaseDeckProps) {
   const router = useRouter();
@@ -181,6 +226,16 @@ export function ShowcaseDeck({
     subscribeDesktopMedia,
     getDesktopSnapshot,
     getDesktopServerSnapshot
+  );
+  const autoRotateStopped = useSyncExternalStore(
+    subscribeAutoRotateStop,
+    getAutoRotateStopSnapshot,
+    getAutoRotateStopServerSnapshot
+  );
+  const isPageVisible = useSyncExternalStore(
+    subscribePageVisibility,
+    getPageVisibilitySnapshot,
+    getPageVisibilityServerSnapshot
   );
 
   const [rotationDeg, setRotationDeg] = useState<number>(
@@ -294,13 +349,27 @@ export function ShowcaseDeck({
     };
   }, [mobileSearchOpen]);
 
-  const handleSelectSlot = useCallback((slotBaseAngleDeg: number) => {
-    setRotationDeg((prev) => computeRotationForSlot(prev, slotBaseAngleDeg));
-    setSlideIndex(0);
+  const stopAutoRotateForSession = useCallback(() => {
+    try {
+      window.sessionStorage.setItem(AUTO_ROTATE_STOP_KEY, "1");
+    } catch {
+      // 忽略隐私模式下 sessionStorage 写入限制
+    }
+    window.dispatchEvent(new Event(AUTO_ROTATE_STOP_EVENT));
   }, []);
+
+  const handleSelectSlot = useCallback(
+    (slotBaseAngleDeg: number) => {
+      stopAutoRotateForSession();
+      setRotationDeg((prev) => computeRotationForSlot(prev, slotBaseAngleDeg));
+      setSlideIndex(0);
+    },
+    [stopAutoRotateForSession]
+  );
 
   const handleSelectWork = useCallback(
     (workIndex: number) => {
+      stopAutoRotateForSession();
       setRotationDeg((prev) =>
         computeRotationForWorkIndex(prev, workIndex, works.length)
       );
@@ -312,11 +381,12 @@ export function ShowcaseDeck({
         setMobileSearchOpen(false);
       }
     },
-    [works.length, isDesktop, cancelMobileSnap]
+    [works.length, isDesktop, cancelMobileSnap, stopAutoRotateForSession]
   );
 
   const handleStepWork = useCallback(
     (direction: 1 | -1) => {
+      stopAutoRotateForSession();
       setRotationDeg((prev) => computeStepRotation(prev, direction));
       setSlideIndex(0);
       if (!isDesktop && mobileScrollRef.current) {
@@ -326,11 +396,12 @@ export function ShowcaseDeck({
         setMobileSearchOpen(false);
       }
     },
-    [isDesktop, cancelMobileSnap]
+    [isDesktop, cancelMobileSnap, stopAutoRotateForSession]
   );
 
   const goToSlide = useCallback(
     (nextIndex: number) => {
+      stopAutoRotateForSession();
       if (!isDesktop) {
         animateMobileScrollTo(nextIndex === 0 ? "hero" : "content");
         return;
@@ -339,12 +410,42 @@ export function ShowcaseDeck({
         (prev) => clampSlideIndex(nextIndex, 0, TOTAL_SLIDES) ?? prev
       );
     },
-    [isDesktop, animateMobileScrollTo]
+    [isDesktop, animateMobileScrollTo, stopAutoRotateForSession]
   );
 
-  const stepSlide = useCallback((delta: -1 | 1) => {
-    setSlideIndex((prev) => clampSlideIndex(prev, delta, TOTAL_SLIDES));
-  }, []);
+  const stepSlide = useCallback(
+    (delta: -1 | 1) => {
+      const next = clampSlideIndex(slideIndex, delta, TOTAL_SLIDES);
+      if (next !== slideIndex) {
+        stopAutoRotateForSession();
+        setSlideIndex(next);
+      }
+    },
+    [slideIndex, stopAutoRotateForSession]
+  );
+
+  const autoRotateEnabled = showcaseConfig?.autoRotateEnabled ?? true;
+  const autoRotateIntervalMs =
+    Math.max(1, showcaseConfig?.autoRotateIntervalSec ?? 5) * 1000;
+  const isOnFirstSlide = isDesktop ? slideIndex === 0 : !mobilePastHero;
+  const isSearching =
+    searchQuery.trim().length > 0 || (!isDesktop && mobileSearchOpen);
+  const shouldAutoRotate =
+    !autoRotateStopped &&
+    autoRotateEnabled &&
+    works.length > 1 &&
+    isOnFirstSlide &&
+    !isSearching &&
+    !mobileDrawerOpen &&
+    isPageVisible;
+
+  useEffect(() => {
+    if (!shouldAutoRotate) return;
+    const timer = window.setInterval(() => {
+      setRotationDeg((prev) => computeStepRotation(prev, 1));
+    }, autoRotateIntervalMs);
+    return () => window.clearInterval(timer);
+  }, [shouldAutoRotate, autoRotateIntervalMs]);
 
   useEffect(() => {
     if (!isDesktop) return;
@@ -449,7 +550,9 @@ export function ShowcaseDeck({
         heroHeight
       );
       setMobilePastHero(pastHero);
-      if (!pastHero) {
+      if (pastHero) {
+        stopAutoRotateForSession();
+      } else {
         setMobileSearchOpen(false);
       }
     };
@@ -465,7 +568,7 @@ export function ShowcaseDeck({
       container.removeEventListener("touchend", onTouchEnd);
       container.removeEventListener("scroll", onScroll);
     };
-  }, [isDesktop, mobileDrawerOpen, animateMobileScrollTo]);
+  }, [isDesktop, mobileDrawerOpen, animateMobileScrollTo, stopAutoRotateForSession]);
 
   const handleDesktopWheel = (event: React.WheelEvent<HTMLDivElement>) => {
     if (!isDesktop) return;
@@ -556,12 +659,13 @@ export function ShowcaseDeck({
             href="/"
             className="group inline-flex items-center gap-2.5 text-[15px] font-semibold tracking-tight whitespace-nowrap text-[#f4f5f7] transition-opacity hover:opacity-90 lg:text-[17px]"
           >
-            <span
-              aria-hidden="true"
-              className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border border-white/14 bg-gradient-to-br from-white/12 to-white/[0.03] text-[#e5a93c] shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] transition-colors group-hover:border-white/25 lg:flex"
-            >
-              <Compass className="h-[17px] w-[17px]" strokeWidth={1.85} />
-            </span>
+            <SiteBrandMark
+              iconUrl={siteIconUrl}
+              alt={brandName}
+              className={`${
+                siteIconUrl ? "flex h-7 w-7 lg:h-8 lg:w-8" : "hidden h-8 w-8 lg:flex"
+              } shrink-0 items-center justify-center rounded-[10px] border border-white/14 bg-gradient-to-br from-white/12 to-white/[0.03] text-[#e5a93c] shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] transition-colors group-hover:border-white/25`}
+            />
             <span>{brandName}</span>
           </Link>
 
@@ -595,6 +699,7 @@ export function ShowcaseDeck({
         isOpen={mobileDrawerOpen}
         onClose={() => setMobileDrawerOpen(false)}
         brandName={brandName}
+        siteIconUrl={siteIconUrl}
         domainLabel={domainLabel}
         works={works}
         activeWorkIndex={activeWorkIndex}

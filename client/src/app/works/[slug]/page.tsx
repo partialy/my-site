@@ -94,6 +94,7 @@ export default async function WorkDetailPage({ params }: WorkDetailPageProps) {
 
       <SubpageHeader
         brandName={site.brandName}
+        siteIconUrl={site.siteIconUrl}
         activePath="detail"
         backHref={`/?work=${work.slug}`}
         backLabel="回到展厅定位"

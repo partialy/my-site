@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { ArrowLeft, Compass } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { SiteBrandMark } from "@/components/showcase/SiteBrandMark";
 
 interface SubpageHeaderProps {
   brandName: string;
+  siteIconUrl?: string | null;
   activePath: "works" | "about" | "detail";
   backHref?: string;
   backLabel?: string;
@@ -11,6 +13,7 @@ interface SubpageHeaderProps {
 
 export function SubpageHeader({
   brandName,
+  siteIconUrl,
   activePath,
   backHref = "/",
   backLabel = "返回展厅",
@@ -24,12 +27,13 @@ export function SubpageHeader({
             href="/"
             className="group inline-flex items-center gap-2.5 text-base font-semibold tracking-tight whitespace-nowrap text-[#f4f5f7] transition-opacity hover:opacity-90 lg:text-[17px]"
           >
-            <span
-              aria-hidden="true"
-              className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border border-white/14 bg-gradient-to-br from-white/12 to-white/[0.03] text-[#e5a93c] shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] transition-colors group-hover:border-white/25 lg:flex"
-            >
-              <Compass className="h-[17px] w-[17px]" strokeWidth={1.85} />
-            </span>
+            <SiteBrandMark
+              iconUrl={siteIconUrl}
+              alt={brandName}
+              className={`${
+                siteIconUrl ? "flex h-7 w-7 lg:h-8 lg:w-8" : "hidden h-8 w-8 lg:flex"
+              } shrink-0 items-center justify-center rounded-[10px] border border-white/14 bg-gradient-to-br from-white/12 to-white/[0.03] text-[#e5a93c] shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] transition-colors group-hover:border-white/25`}
+            />
             <span>{brandName}</span>
           </Link>
 

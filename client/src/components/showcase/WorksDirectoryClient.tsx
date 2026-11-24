@@ -15,6 +15,7 @@ import { WorkIcon } from "@/components/showcase/WorkIcon";
 
 interface WorksDirectoryClientProps {
   brandName: string;
+  siteIconUrl?: string | null;
   footer: SiteFooterConfig;
   works: WorkItem[];
   categories: string[];
@@ -23,6 +24,7 @@ interface WorksDirectoryClientProps {
 
 export function WorksDirectoryClient({
   brandName,
+  siteIconUrl,
   footer,
   works,
   categories,
@@ -61,6 +63,7 @@ export function WorksDirectoryClient({
     <div className="relative z-10 flex min-h-dvh flex-col text-[#f4f5f7]">
       <SubpageHeader
         brandName={brandName}
+        siteIconUrl={siteIconUrl}
         activePath="works"
         rightSlot={
           <PillSearchInput

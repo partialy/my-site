@@ -29,6 +29,7 @@ export default async function AboutPage() {
     <div className="relative z-10 flex min-h-dvh flex-col text-[#f4f5f7]">
       <SubpageHeader
         brandName={site.brandName}
+        siteIconUrl={site.siteIconUrl}
         activePath="about"
         backHref="/"
         backLabel="返回轮盘展厅"

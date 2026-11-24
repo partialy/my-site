@@ -57,6 +57,15 @@ export async function generateMetadata(): Promise<Metadata> {
       description: site.description,
       images: [site.ogImage],
     },
+    ...(site.siteIconUrl
+      ? {
+          icons: {
+            icon: site.siteIconUrl,
+            shortcut: site.siteIconUrl,
+            apple: site.siteIconUrl,
+          },
+        }
+      : {}),
     robots: {
       index: true,
       follow: true,

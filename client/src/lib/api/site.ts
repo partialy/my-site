@@ -17,17 +17,24 @@ export const DEFAULT_SITE_SETTINGS: PublicSiteSettings = {
 };
 
 /**
+ * 从服务端实时拉取公开站点设置（GET /api/v1/site-settings）；不可用时返回 null。
+ */
+export async function fetchPublicSiteSettings(): Promise<PublicSiteSettings | null> {
+  try {
+    return await requestApi<PublicSiteSettings>("/site-settings", {
+      cache: "no-store",
+    });
+  } catch {
+    return null;
+  }
+}
+
+/**
  * 获取公开站点设置（GET /api/v1/site-settings）。
  * 服务端不可用时自动降级返回默认配置，保证 SSR 首屏与构建不中断。
  */
 export async function getPublicSiteSettings(): Promise<PublicSiteSettings> {
-  try {
-    return await requestApi<PublicSiteSettings>("/site-settings", {
-      next: { revalidate: 60 },
-    });
-  } catch {
-    return DEFAULT_SITE_SETTINGS;
-  }
+  return (await fetchPublicSiteSettings()) ?? DEFAULT_SITE_SETTINGS;
 }
 
 /**

@@ -3,14 +3,16 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Compass, FolderKanban, Home, User, X } from "lucide-react";
+import { FolderKanban, Home, User, X } from "lucide-react";
 import type { WorkItem } from "@/services/types";
+import { SiteBrandMark } from "@/components/showcase/SiteBrandMark";
 import { WorkIcon } from "@/components/showcase/WorkIcon";
 
 interface MobileNavDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   brandName: string;
+  siteIconUrl?: string | null;
   domainLabel: string;
   works: WorkItem[];
   activeWorkIndex: number;
@@ -23,6 +25,7 @@ export function MobileNavDrawer({
   isOpen,
   onClose,
   brandName,
+  siteIconUrl,
   domainLabel,
   works,
   activeWorkIndex,
@@ -80,13 +83,12 @@ export function MobileNavDrawer({
                 onClick={onClose}
                 className="flex min-w-0 items-center gap-2.5 focus-visible:outline-none"
               >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/14 bg-gradient-to-br from-white/12 to-white/[0.03] text-[#e5a93c] shadow-[inset_0_1px_0_rgba(255,255,255,0.16)]">
-                  <Compass
-                    className="h-[18px] w-[18px]"
-                    strokeWidth={1.85}
-                    aria-hidden="true"
-                  />
-                </span>
+                <SiteBrandMark
+                  iconUrl={siteIconUrl}
+                  alt={brandName}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/14 bg-gradient-to-br from-white/12 to-white/[0.03] text-[#e5a93c] shadow-[inset_0_1px_0_rgba(255,255,255,0.16)]"
+                  iconClassName="h-[18px] w-[18px]"
+                />
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold tracking-tight text-[#f4f5f7]">
                     {brandName}

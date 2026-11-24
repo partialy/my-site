@@ -83,6 +83,7 @@ export interface SiteProfile {
   keywords: string[];
   url: string;
   ogImage: string;
+  siteIconUrl?: string | null;
   authorName: string;
   authorRole: string;
 }
@@ -97,6 +98,14 @@ export interface SiteFooterConfig {
   domainHref: string;
   icpNumber: string;
   icpHref: string;
+}
+
+/**
+ * 首页展厅交互配置（由后台主页配置控制）。
+ */
+export interface ShowcaseAutoRotateConfig {
+  autoRotateEnabled: boolean;
+  autoRotateIntervalSec: number;
 }
 
 export interface AboutPrinciple {

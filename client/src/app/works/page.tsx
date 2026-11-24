@@ -34,6 +34,7 @@ export default async function WorksIndexPage({
   return (
     <WorksDirectoryClient
       brandName={site.brandName}
+      siteIconUrl={site.siteIconUrl}
       footer={footer}
       works={directory.list}
       categories={directory.categories}

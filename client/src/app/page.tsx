@@ -5,18 +5,23 @@ import {
   getHomeShowcaseWorks,
   resolveInitialWorkIndex,
 } from "@/services/showcaseService";
-import { getSiteFooterConfig, getSiteProfile } from "@/services/siteService";
+import {
+  getShowcaseConfig,
+  getSiteFooterConfig,
+  getSiteProfile,
+} from "@/services/siteService";
 
 interface HomePageProps {
   searchParams?: Promise<{ work?: string }>;
 }
 
 export default async function HomePage({ searchParams }: HomePageProps) {
-  const [resolvedParams, works, site, footer] = await Promise.all([
+  const [resolvedParams, works, site, footer, showcase] = await Promise.all([
     searchParams ?? Promise.resolve(undefined),
     getHomeShowcaseWorks(),
     getSiteProfile(),
     getSiteFooterConfig(),
+    getShowcaseConfig(),
   ]);
 
   const initialWorkIndex = resolveInitialWorkIndex(works, resolvedParams?.work);
@@ -68,8 +73,10 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       <ShowcaseDeck
         works={works}
         brandName={site.brandName}
+        siteIconUrl={site.siteIconUrl}
         domainLabel={site.domainLabel}
         footer={footer}
+        showcaseConfig={showcase}
         initialWorkIndex={initialWorkIndex}
       />
       {/* 服务端渲染语义化索引链接，保障搜索引擎收录全部作品页 */}
