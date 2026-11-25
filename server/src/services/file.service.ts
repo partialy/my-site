@@ -30,6 +30,9 @@ export const fileListQuerySchema = z.strictObject({
   status: z.enum(['active', 'archived', 'all']).default('active'),
 });
 export const fileIdSchema = z.uuid();
+export const fileBatchDeleteSchema = z.strictObject({
+  ids: z.array(fileIdSchema).min(1, '请至少选择一个文件').max(100, '单次最多批量删除 100 个文件'),
+});
 export const selectIconFileSchema = z.strictObject({ fileId: fileIdSchema });
 export const prepareUploadSchema = z.strictObject({
   name: z.string().trim().min(1).max(255), mimeType: z.enum(fileMimeTypes),
@@ -233,5 +236,32 @@ export class FileService {
       if (hasContent) renameSync(temporary, original);
       throw error;
     }
+  }
+
+  async deleteBatchPermanently(ids: string[]): Promise<{
+    deletedCount: number;
+    deletedIds: string[];
+    failed: Array<{ id: string; name: string | null; reason: string }>;
+  }> {
+    const uniqueIds = Array.from(new Set(ids));
+    const deletedIds: string[] = [];
+    const failed: Array<{ id: string; name: string | null; reason: string }> = [];
+
+    for (const id of uniqueIds) {
+      const record = this.repository.find(id);
+      try {
+        await this.deletePermanently(id);
+        deletedIds.push(id);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : '删除失败';
+        failed.push({ id, name: record?.name ?? null, reason });
+      }
+    }
+
+    return {
+      deletedCount: deletedIds.length,
+      deletedIds,
+      failed,
+    };
   }
 }

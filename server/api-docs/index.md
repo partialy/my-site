@@ -126,6 +126,7 @@
 | 归档文件 | `DELETE` | `/api/v1/admin/files/:id` | 管理员 JWT | [archiveFile.md](admin/file/archiveFile.md) |
 | 恢复归档文件 | `PUT` | `/api/v1/admin/files/:id/restore` | 管理员 JWT | [restoreFile.md](admin/file/restoreFile.md) |
 | 永久删除文件 | `DELETE` | `/api/v1/admin/files/:id/permanent` | 管理员 JWT | [deleteFilePermanently.md](admin/file/deleteFilePermanently.md) |
+| 批量永久删除文件 | `POST` | `/api/v1/admin/files/batch-delete` | 管理员 JWT | [batchDeleteFiles.md](admin/file/batchDeleteFiles.md) |
 
 ### 接口文档（`admin/api-docs`）
 

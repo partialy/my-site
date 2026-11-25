@@ -14,7 +14,7 @@ import {
 import { ApiError } from '../api-error';
 import { ApiCode } from '../codes';
 import { RequestLogService, requestLogCleanupSchema, requestLogQuerySchema } from '../../services/request-log.service';
-import { FileService, fileIdSchema, fileListQuerySchema, fileMimeTypes, maxFileBytes, selectIconFileSchema,
+import { FileService, fileBatchDeleteSchema, fileIdSchema, fileListQuerySchema, fileMimeTypes, maxFileBytes, selectIconFileSchema,
   type FileMimeType } from '../../services/file.service';
 import { MenuService, menuInputSchema } from '../../services/menu.service';
 import { DashboardService } from '../../services/dashboard.service';
@@ -221,7 +221,7 @@ export function createAdminRoutes(setup: SetupService, auth: AuthService, system
     res.json(ok(uploadSettings.update(parseInput(uploadSettingsSchema, req.body)), '上传设置已保存'));
   });
 
-  routes.post('/files', requireAuth(auth), requestRateLimit(20, 60_000), raw({ type: () => true, limit: maxFileBytes }), async (req, res) => {
+  routes.post('/files', requireAuth(auth), requestRateLimit(60, 60_000), raw({ type: () => true, limit: maxFileBytes }), async (req, res) => {
     const mime = req.get('content-type')?.split(';', 1)[0]?.trim().toLowerCase();
     if (!fileMimeTypes.includes(mime as FileMimeType) || !Buffer.isBuffer(req.body)) {
       throw new ApiError(415, ApiCode.ValidationError, '不支持的文件类型', { fieldErrors: { file: ['只支持 PNG、JPEG、WebP、ICO、GIF、PDF'] } });
@@ -248,6 +248,15 @@ export function createAdminRoutes(setup: SetupService, auth: AuthService, system
   routes.delete('/files/:id/permanent', requireAuth(auth), async (req, res) => {
     await files.deletePermanently(parseInput(fileIdSchema, req.params.id));
     res.json(ok(null, '文件已永久删除'));
+  });
+
+  routes.post('/files/batch-delete', requireAuth(auth), async (req, res) => {
+    const { ids } = parseInput(fileBatchDeleteSchema, req.body);
+    const result = await files.deleteBatchPermanently(ids);
+    res.locals.operationTargetId = result.deletedIds.join(',');
+    res.json(ok(result, result.failed.length > 0
+      ? `已删除 ${result.deletedCount} 个文件，${result.failed.length} 个跳过`
+      : `已永久删除 ${result.deletedCount} 个文件`));
   });
 
   routes.get('/api-docs', requireAuth(auth), (req, res) => {
