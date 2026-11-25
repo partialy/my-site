@@ -18,7 +18,7 @@ const siteIdentitySchema = z.strictObject({
 
 export const siteSettingsInputSchema = z.strictObject({
   projectName: z.string().trim().min(1).max(100).optional(),
-  copyright: z.string().trim().min(1).max(200),
+  copyright: z.string().trim().min(1).max(200).optional(),
   admin: siteIdentitySchema,
   client: siteIdentitySchema,
 });
@@ -114,7 +114,7 @@ export class SiteSettingsService {
   update(input: SiteSettingsInput): SiteSettingsData {
     this.manager.setSysConfigs([
       ...(input.projectName === undefined ? [] : [{ key: SysConfigKey.ProjectName, name: '项目名称', value: input.projectName }]),
-      { key: SysConfigKey.AdminCopyright, name: '版权信息', value: input.copyright },
+      ...(input.copyright === undefined ? [] : [{ key: SysConfigKey.AdminCopyright, name: '版权信息', value: input.copyright }]),
       { key: SysConfigKey.AdminSiteTitle, name: '管理后台网站标签名称', value: input.admin.siteTitle },
       { key: SysConfigKey.AdminSystemName, name: '管理系统名称', value: input.admin.systemName },
       { key: SysConfigKey.ClientSiteTitle, name: '前台网站标签名称', value: input.client.siteTitle },

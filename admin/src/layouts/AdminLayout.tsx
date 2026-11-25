@@ -292,7 +292,7 @@ export const AdminLayout: React.FC = () => {
             padding: '14px 24px',
           }}
         >
-          {settings.copyright}
+          {`${settings.admin.systemName} © ${new Date().getFullYear()}`}
         </Footer>
       </Layout>
 

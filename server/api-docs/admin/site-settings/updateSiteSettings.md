@@ -17,7 +17,7 @@
 | 字段 | 类型 | 必填 | 校验规则 |
 | :--- | :--- | :--- | :--- |
 | `projectName` | `string` | 否 | 1–100 位 |
-| `copyright` | `string` | 是 | 1–200 位 |
+| `copyright` | `string` | 否 | 1–200 位（不传则保留原值） |
 | `admin.siteTitle` | `string` | 是 | 1–100 位 |
 | `admin.systemName` | `string` | 是 | 1–100 位 |
 | `client.siteTitle` | `string` | 是 | 1–100 位 |

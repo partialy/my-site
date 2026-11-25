@@ -33,7 +33,7 @@ export interface LoginAppearance extends LoginAppearanceInput {
 
 export interface SiteSettingsInput {
   projectName?: string;
-  copyright: string;
+  copyright?: string;
   admin: Pick<SiteIdentity, 'siteTitle' | 'systemName'>;
   client: Pick<SiteIdentity, 'siteTitle' | 'systemName'>;
 }

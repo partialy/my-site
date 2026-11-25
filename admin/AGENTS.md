@@ -29,7 +29,7 @@
 
 ## 专项能力与在线接口文档同步
 
-- **站点外观**：`SiteSettingsProvider` 集中获取公开站点信息并同步浏览器标题和标签图标；`/appearance` 并排编辑后台与前台站点信息，并单独保存登录外观。
+- **站点外观**：`SiteSettingsProvider` 集中获取公开站点信息并同步浏览器标题和标签图标；`/appearance` 专注维护后台登录界面外观，前后台网站名称与图标已合并至 `/profile-settings`（「主页配置」）统一保存。
 - **数据字典**：`src/dictionaries/` 提供 `DictSelect`、`DictTag` 与共享请求缓存；`/dictionaries` 支持动态多组新增、单条编辑及 TypeScript/Java 代码导出（含停用子项以保留历史值）。
 - **上传能力**：`src/api/uploadFile.ts` 为管理端独立浏览器上传入口（不跨目录导入 `client/`）。
 - **白名单与在线接口文档（`/api-docs`）**：

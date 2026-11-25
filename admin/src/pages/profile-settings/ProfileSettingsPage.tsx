@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
-  Alert, Button, Card, Col, Flex, Form, Image, Input, InputNumber, message, Row, Select, Space, Spin, Switch, Typography,
+  Alert, Button, Card, Col, Divider, Flex, Form, Image, Input, InputNumber,
+  message, Row, Select, Space, Spin, Switch, Typography,
 } from 'antd';
 import { FolderOpen, Plus, Save, Trash2, UserRound } from 'lucide-react';
 import type { FileItem } from '../../api/files';
@@ -8,13 +9,24 @@ import {
   getProfileSettings, updateProfileSettings,
   type ProfileSettingsData,
 } from '../../api/profileSettings';
+import { getSiteSettings, updateSiteSettings } from '../../api/siteSettings';
 import { FilePickerModal } from '../../components/file-picker/FilePickerModal';
+import { useSiteSettings } from '../../site-settings/SiteSettingsContext';
+import { SiteIconsFieldGroup } from './SiteIconsFieldGroup';
 
 const { Title, Text, Paragraph } = Typography;
 const OG_ACCEPT = ['image/png', 'image/jpeg', 'image/webp'];
 
+interface UnifiedProfileForm extends ProfileSettingsData {
+  adminIdentity: {
+    siteTitle: string;
+    systemName: string;
+  };
+}
+
 export function ProfileSettingsPage() {
-  const [form] = Form.useForm<ProfileSettingsData>();
+  const [form] = Form.useForm<UnifiedProfileForm>();
+  const { setSettings } = useSiteSettings();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,9 +39,31 @@ export function ProfileSettingsPage() {
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
-    void getProfileSettings(controller.signal).then((res) => {
-      if (!res.success) throw new Error(res.msg);
-      form.setFieldsValue(res.data);
+    void Promise.all([
+      getProfileSettings(controller.signal),
+      getSiteSettings(),
+    ]).then(([profileRes, siteRes]) => {
+      if (!profileRes.success) throw new Error(profileRes.msg);
+      if (!siteRes.success) throw new Error(siteRes.msg);
+      setSettings(siteRes.data);
+      const clientSystemName = siteRes.data.client.systemName.trim();
+      const clientSiteTitle = siteRes.data.client.siteTitle.trim();
+      form.setFieldsValue({
+        ...profileRes.data,
+        site: {
+          ...profileRes.data.site,
+          brandName: clientSystemName && clientSystemName !== 'MySite'
+            ? clientSystemName
+            : profileRes.data.site.brandName,
+          title: clientSiteTitle && clientSiteTitle !== 'MySite'
+            ? clientSiteTitle
+            : profileRes.data.site.title,
+        },
+        adminIdentity: {
+          siteTitle: siteRes.data.admin.siteTitle,
+          systemName: siteRes.data.admin.systemName,
+        },
+      });
       setError(null);
     }).catch((cause: unknown) => {
       if (controller.signal.aborted) return;
@@ -38,7 +72,7 @@ export function ProfileSettingsPage() {
       if (!controller.signal.aborted) setLoading(false);
     });
     return () => controller.abort();
-  }, [form]);
+  }, [form, setSettings]);
 
   const handleSelectOgImage = (files: FileItem[]) => {
     const file = files[0];
@@ -52,13 +86,13 @@ export function ProfileSettingsPage() {
     try {
       const values = await form.validateFields();
       setSaving(true);
-      const res = await updateProfileSettings({
-        ...values,
+      const profilePayload: ProfileSettingsData = {
         site: {
           ...values.site,
           ogImageFileId: values.site.ogImageFileId ?? null,
           keywords: values.site.keywords ?? [],
         },
+        footer: values.footer,
         about: {
           ...values.about,
           principles: values.about.principles ?? [],
@@ -67,10 +101,33 @@ export function ProfileSettingsPage() {
           autoRotateEnabled: values.showcase?.autoRotateEnabled ?? true,
           autoRotateIntervalSec: values.showcase?.autoRotateIntervalSec ?? 5,
         },
+      };
+
+      const [profileRes, siteRes] = await Promise.all([
+        updateProfileSettings(profilePayload),
+        updateSiteSettings({
+          admin: {
+            siteTitle: values.adminIdentity.siteTitle.trim(),
+            systemName: values.adminIdentity.systemName.trim(),
+          },
+          client: {
+            siteTitle: values.site.title.trim(),
+            systemName: values.site.brandName.trim(),
+          },
+        }),
+      ]);
+      if (!profileRes.success) throw new Error(profileRes.msg);
+      if (!siteRes.success) throw new Error(siteRes.msg);
+
+      setSettings(siteRes.data);
+      form.setFieldsValue({
+        ...profileRes.data,
+        adminIdentity: {
+          siteTitle: siteRes.data.admin.siteTitle,
+          systemName: siteRes.data.admin.systemName,
+        },
       });
-      if (!res.success) throw new Error(res.msg);
-      form.setFieldsValue(res.data);
-      message.success('主页配置已保存');
+      message.success('主页与站点配置已保存');
     } catch (cause) {
       if (cause && typeof cause === 'object' && 'errorFields' in cause) {
         message.warning('请检查必填字段格式');
@@ -88,11 +145,11 @@ export function ProfileSettingsPage() {
         <div>
           <Space size={10} style={{ color: '#2563eb', marginBottom: 8 }}>
             <UserRound size={17} />
-            <Text style={{ color: '#2563eb', fontWeight: 600 }}>个人主页内容</Text>
+            <Text style={{ color: '#2563eb', fontWeight: 600 }}>个人主页与站点标识</Text>
           </Space>
           <Title level={2} style={{ margin: 0 }}>主页配置</Title>
           <Paragraph type="secondary" style={{ margin: '8px 0 0' }}>
-            统一配置前台个人主页的品牌 SEO 信息、关于作者档案、创作原则与底部版权备案。
+            统一管理前台网站名称、图标、SEO 信息、自动轮播、作者档案、管理端标识与页脚版权备案。
           </Paragraph>
         </div>
         <Button type="primary" icon={<Save size={16} />} loading={saving} disabled={loading} onClick={handleSave}>
@@ -105,11 +162,17 @@ export function ProfileSettingsPage() {
       <Spin spinning={loading}>
         <Form form={form} layout="vertical">
           <Space direction="vertical" size={18} style={{ width: '100%' }}>
-            <Card title="站点品牌与 SEO 信息" style={{ borderRadius: 16 }}>
+            <Card title="网站信息、图标与 SEO" style={{ borderRadius: 16 }}>
+              <SiteIconsFieldGroup />
+
               <Row gutter={16}>
                 <Col xs={24} md={8}>
-                  <Form.Item name={['site', 'brandName']} label="品牌展示名" rules={[{ required: true }]}>
-                    <Input maxLength={60} />
+                  <Form.Item
+                    name={['site', 'brandName']}
+                    label="前台网站名称（左上角展示）"
+                    rules={[{ required: true, message: '请输入前台网站名称' }]}
+                  >
+                    <Input maxLength={60} placeholder="如：MySite" />
                   </Form.Item>
                 </Col>
                 <Col xs={24} md={8}>
@@ -126,8 +189,12 @@ export function ProfileSettingsPage() {
 
               <Row gutter={16}>
                 <Col xs={24} md={14}>
-                  <Form.Item name={['site', 'title']} label="浏览器首页标题（SEO Title）" rules={[{ required: true }]}>
-                    <Input maxLength={150} showCount />
+                  <Form.Item
+                    name={['site', 'title']}
+                    label="前台标签页标题 / SEO Title"
+                    rules={[{ required: true, message: '请输入标签页标题' }]}
+                  >
+                    <Input maxLength={100} showCount />
                   </Form.Item>
                 </Col>
                 <Col xs={24} md={10}>
@@ -175,6 +242,31 @@ export function ProfileSettingsPage() {
                   </div>
                 ) : null}
               </Form.Item>
+
+              <Divider style={{ margin: '12px 0 16px' }} />
+              <Text strong style={{ display: 'block', marginBottom: 12 }}>管理后台基础标识</Text>
+              <Row gutter={16}>
+                <Col xs={24} md={12}>
+                  <Form.Item
+                    name={['adminIdentity', 'siteTitle']}
+                    label="管理后台标签页名称"
+                    rules={[{ required: true, message: '请输入后台标签页名称' }]}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <Input maxLength={100} placeholder="显示在管理端浏览器标签上" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Form.Item
+                    name={['adminIdentity', 'systemName']}
+                    label="管理后台系统名称"
+                    rules={[{ required: true, message: '请输入后台系统名称' }]}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <Input maxLength={100} placeholder="显示在后台侧栏、登录页与页脚" />
+                  </Form.Item>
+                </Col>
+              </Row>
             </Card>
 
             <Card title="首页自动轮播配置" style={{ borderRadius: 16 }}>
