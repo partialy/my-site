@@ -3,7 +3,7 @@ import { ApiError } from '../api/api-error';
 import { ApiCode } from '../api/codes';
 import { WorkRepository, type WorkRow } from '../repositories/work.repository';
 import { mapPageResult, paginationQueryShape, type PageResult } from '../shared/pagination';
-import { createPublicId, publicIdSchema } from '../shared/public-id';
+import { createPublicId } from '../shared/public-id';
 import { DictionaryService } from './dictionary.service';
 import { FileService } from './file.service';
 
@@ -38,7 +38,8 @@ const releaseSchema = z.strictObject({
 const optionalUrlOrPathSchema = z.string().trim().max(500).default('')
   .refine((val) => !val || val.startsWith('/') || /^https?:\/\//i.test(val), '请填写有效的 http(s) 链接或站内相对路径');
 
-export const workUuidSchema = publicIdSchema;
+// 兼容预置种子作品的 32 位小写十六进制 UUID（不强制 UUIDv4 变体位校验）
+export const workUuidSchema = z.string().regex(/^[0-9a-f]{32}$/, '作品 UUID 格式无效');
 export const workSlugOrUuidSchema = z.string().trim().min(1).max(100)
   .regex(/^[a-z0-9][a-z0-9-]*$/, '作品标识格式无效');
 
