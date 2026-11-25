@@ -16,6 +16,12 @@
 - 管理端模块规范：[admin/AGENTS.md](admin/AGENTS.md)
 - 前台客户端规范：[client/AGENTS.md](client/AGENTS.md)
 
+## 统一打包与发布目录
+
+- 根目录提供 `npm run build:all`（脚本位于 [scripts/build-all.mjs](scripts/build-all.mjs)），依次打包 `server`、`admin`、`client` 并组装至根目录 `release/`（该目录已加入 `.gitignore`）。
+- `release/` 根目录平铺 `server` 运行产物（`dist/`、`migrations/`、`api-docs/`、`package.json`、`package-lock.json`、`.env.example`，其中 `scripts.start` 启动 `server`，`scripts.start:web` 启动 `web`），不包含 `node_modules`（目标环境需执行 `npm ci --omit=dev`）。
+- 同级目录包含：`release/web/`（`client` 的 Next.js `standalone` 产物，含 `.next/static`、`public` 与 `fonts`）、`release/web-admin/`（`admin` 静态构建产物）以及 `release/nginx.conf`（独立域名用的 Nginx 反向代理与静态资源配置片段）。
+
 ## 全局跨模块契约
 
 ### 接口前缀与响应结构
