@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Flex, Input, message, Modal, Pagination, Space, Spin, Typography, Upload } from 'antd';
 import { Search, UploadCloud } from 'lucide-react';
 import type { FileItem } from '../../api/files';
-import { uploadFile } from '../../api/files';
+import { batchUploadFiles } from '../../api/files';
 import { acceptsMime } from './fileUtils';
 import { FileGrid } from './FileGrid';
 import { useFileLibrary, type FileLibraryQuery } from './useFileLibrary';
@@ -23,9 +23,9 @@ export function FilePickerModal({ open, multiple = false, accept, zIndex = 1200,
   const [searchDraft, setSearchDraft] = useState('');
   const [query, setQuery] = useState<FileLibraryQuery>({ page: 1, pageSize: 20, mimeTypes: accept, status: 'active' });
   const [selected, setSelected] = useState<Map<string, FileItem>>(new Map());
-  const [uploading, setUploading] = useState(false);
-  const pendingUploads = useRef(0);
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
   const { result, loading, error, reload } = useFileLibrary(query, open);
+  const uploading = uploadProgress !== null;
   const visibleItems = useMemo(() => result.list.filter((item) => acceptsMime(item.mimeType, accept)), [result.list, accept]);
 
   useEffect(() => {
@@ -49,30 +49,46 @@ export function FilePickerModal({ open, multiple = false, accept, zIndex = 1200,
     });
   };
 
-  const handleUpload = async (file: File) => {
-    const mimeType = file.name.toLowerCase().endsWith('.ico') ? 'image/x-icon' : file.type;
-    if (!acceptsMime(mimeType, accept)) {
-      message.error('文件类型不符合当前选择要求');
-      return;
-    }
-    pendingUploads.current += 1;
-    setUploading(true);
+  const handleBatchUpload = async (files: File[]) => {
+    if (files.length === 0) return;
+    setUploadProgress({ done: 0, total: files.length });
     try {
-      const response = await uploadFile(file);
-      if (!response.success) throw new Error(response.msg);
-      setSelected((current) => multiple ? new Map(current).set(response.data.id, response.data)
-        : new Map([[response.data.id, response.data]]));
-      message.success('上传成功，已选中该文件');
-      if (query.page === 1 && !query.search) void reload();
-      else {
-        setSearchDraft('');
-        setQuery({ page: 1, pageSize: 20, mimeTypes: accept, status: 'active' });
+      const { uploaded, failed } = await batchUploadFiles(files, {
+        validateFile: (file) => {
+          const mimeType = file.name.toLowerCase().endsWith('.ico') ? 'image/x-icon' : file.type;
+          return acceptsMime(mimeType, accept) ? null : '文件类型不符合当前选择要求';
+        },
+        onProgress: (done, total) => setUploadProgress({ done, total }),
+      });
+
+      if (uploaded.length > 0) {
+        setSelected((current) => {
+          if (!multiple) {
+            const picked = uploaded[uploaded.length - 1]!;
+            return new Map([[picked.id, picked]]);
+          }
+          const next = new Map(current);
+          uploaded.forEach((item) => next.set(item.id, item));
+          return next;
+        });
+        message.success(
+          uploaded.length === 1
+            ? '上传成功，已选中该文件'
+            : multiple
+              ? `已批量上传并选中 ${uploaded.length} 个文件`
+              : `已批量上传 ${uploaded.length} 个文件，并自动选中最新文件`,
+        );
+        if (query.page === 1 && !query.search) void reload();
+        else {
+          setSearchDraft('');
+          setQuery({ page: 1, pageSize: 20, mimeTypes: accept, status: 'active' });
+        }
       }
-    } catch (cause) {
-      message.error(cause instanceof Error ? cause.message : '上传失败');
+      if (failed.length > 0) {
+        message.warning(`${failed.length} 个文件上传跳过或失败（如 ${failed[0]!.name}：${failed[0]!.reason}）`);
+      }
     } finally {
-      pendingUploads.current -= 1;
-      if (pendingUploads.current === 0) setUploading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -89,10 +105,18 @@ export function FilePickerModal({ open, multiple = false, accept, zIndex = 1200,
             onPressEnter={search} allowClear />
           <Button icon={<Search size={16} />} onClick={search}>搜索</Button>
         </Space.Compact>
-        <Upload showUploadList={false} multiple={multiple}
+        <Upload
+          showUploadList={false}
+          multiple
           accept={accept?.includes('image/x-icon') ? `${accept.join(',')},.ico` : accept?.join(',')}
-          beforeUpload={(file) => { void handleUpload(file); return false; }}>
-          <Button type="primary" icon={<UploadCloud size={16} />} loading={uploading} disabled={uploading}>上传新文件</Button>
+          beforeUpload={(file, fileList) => {
+            if (file === fileList[0]) void handleBatchUpload(fileList);
+            return false;
+          }}
+        >
+          <Button type="primary" icon={<UploadCloud size={16} />} loading={uploading} disabled={uploading}>
+            {uploadProgress ? `上传中 (${uploadProgress.done}/${uploadProgress.total})` : '批量上传文件'}
+          </Button>
         </Upload>
       </Flex>
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 12 }} />}
