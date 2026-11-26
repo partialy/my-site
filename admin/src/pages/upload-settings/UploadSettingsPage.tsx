@@ -27,10 +27,22 @@ export function UploadSettingsPage() {
     setSaving(true);
     setError(null);
     try {
-      const response = await saveUploadSettings(values);
+      const merged = { ...form.getFieldsValue(true), ...values };
+      const payload: UploadSettingsInput = {
+        strategy: merged.strategy ?? 'local',
+        localDomain: merged.localDomain ?? '',
+        accessKey: merged.accessKey ?? '',
+        secretKey: merged.secretKey ?? '',
+        bucket: merged.bucket ?? '',
+        root: merged.root ?? '',
+        uploadUrl: merged.uploadUrl || 'https://upload.qiniup.com',
+        domain: merged.domain ?? '',
+      };
+      const response = await saveUploadSettings(payload);
       if (!response.success) throw new Error(response.msg);
-      setSecretConfigured(response.data.secretKeyConfigured);
-      form.setFieldValue('secretKey', '');
+      const { secretKeyConfigured, ...nextSettings } = response.data;
+      setSecretConfigured(secretKeyConfigured);
+      form.setFieldsValue({ ...nextSettings, secretKey: '' });
       message.success('上传设置已保存');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '保存失败');
