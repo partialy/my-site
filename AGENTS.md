@@ -26,6 +26,7 @@
 - **Docker 部署包（`npm run build:docker`，[scripts/build-docker.mjs](scripts/build-docker.mjs)）**：打包 `admin` 静态产物并整理 `server`/`client` 镜像构建上下文，输出至 `release/docker/`。
   - `release/docker/server/` 与 `release/docker/client/` 包含各自源码、`Dockerfile` 与 `.dockerignore`（供服务器 `docker compose up -d --build` 编译 Linux 镜像）；`release/docker/web-admin/` 存放 `admin` 静态文件由宿主机 Nginx 托管。
   - 同级包含 `release/docker/docker-compose.yml`（仅编排 `server` 与 `client` 容器，端口绑定 `127.0.0.1` 并挂载 `./data:/app/data`）、`.env.example`、`nginx.conf` 与 `DEPLOY.md`。
+- **GitHub Actions 自动镜像构建**：[.github/workflows/docker-server.yml](.github/workflows/docker-server.yml) 与 [.github/workflows/docker-client.yml](.github/workflows/docker-client.yml) 分别监听 `main` 分支下 `server/**` 与 `client/**` 变更（使用 GitHub Environment `build`），构建 `linux/amd64` 镜像并以 `server-latest` / `server-<sha>`、`client-latest` / `client-<sha>` 推送至阿里云 ACR 单仓库；服务器拉取部署模板见 [deploy/docker-compose.acr.yml](deploy/docker-compose.acr.yml)。
 
 ## 全局跨模块契约
 
