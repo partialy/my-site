@@ -1,0 +1,195 @@
+name: Release Versioned Images
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - 'server-v*'
+      - 'client-v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '发布版本号（如 v1.0.0）'
+        required: true
+        type: string
+      target:
+        description: '构建目标'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - server
+          - client
+
+concurrency:
+  group: docker-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Parse Release Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.parse.outputs.version }}
+      run_server: ${{ steps.parse.outputs.run_server }}
+      run_client: ${{ steps.parse.outputs.run_client }}
+    steps:
+      - name: Determine release version and targets
+        id: parse
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_TARGET: ${{ inputs.target }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            VERSION=$(printf '%s' "$INPUT_VERSION" | xargs)
+            if [ -z "$VERSION" ]; then
+              echo "::error::版本号不能为空"
+              exit 1
+            fi
+            RUN_SERVER="false"
+            RUN_CLIENT="false"
+            if [ "$INPUT_TARGET" = "all" ] || [ "$INPUT_TARGET" = "server" ]; then RUN_SERVER="true"; fi
+            if [ "$INPUT_TARGET" = "all" ] || [ "$INPUT_TARGET" = "client" ]; then RUN_CLIENT="true"; fi
+          else
+            case "$REF_NAME" in
+              server-v*)
+                VERSION="${REF_NAME#server-}"
+                RUN_SERVER="true"
+                RUN_CLIENT="false"
+                ;;
+              client-v*)
+                VERSION="${REF_NAME#client-}"
+                RUN_SERVER="false"
+                RUN_CLIENT="true"
+                ;;
+              v*)
+                VERSION="$REF_NAME"
+                RUN_SERVER="true"
+                RUN_CLIENT="true"
+                ;;
+              *)
+                echo "::error::不支持的 Tag 格式: $REF_NAME（请使用 v1.0.0、server-v1.0.0 或 client-v1.0.0）"
+                exit 1
+                ;;
+            esac
+          fi
+
+          if ! printf '%s' "$VERSION" | grep -Eq '^[A-Za-z0-9._-]+$'; then
+            echo "::error::版本号格式非法: $VERSION"
+            exit 1
+          fi
+
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "run_server=${RUN_SERVER}" >> "$GITHUB_OUTPUT"
+          echo "run_client=${RUN_CLIENT}" >> "$GITHUB_OUTPUT"
+
+  build-server:
+    name: Release Server (${{ needs.prepare.outputs.version }})
+    needs: prepare
+    if: needs.prepare.outputs.run_server == 'true'
+    runs-on: ubuntu-latest
+    environment: build
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare image metadata
+        id: meta
+        env:
+          ACR_REGISTRY: ${{ secrets.ACR_REGISTRY }}
+          ACR_NAMESPACE: ${{ secrets.ACR_NAMESPACE }}
+          ACR_RPO_NAME: ${{ secrets.ACR_RPO_NAME }}
+        run: |
+          if [ -z "$ACR_REGISTRY" ] || [ -z "$ACR_NAMESPACE" ] || [ -z "$ACR_RPO_NAME" ]; then
+            echo "::error::Missing ACR_REGISTRY, ACR_NAMESPACE or ACR_RPO_NAME in environment 'build' secrets."
+            exit 1
+          fi
+          IMAGE_REPO=$(printf '%s/%s/%s' "$ACR_REGISTRY" "$ACR_NAMESPACE" "$ACR_RPO_NAME" | tr '[:upper:]' '[:lower:]')
+          echo "image=${IMAGE_REPO}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Aliyun ACR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.ACR_REGISTRY }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and push versioned server image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./server
+          file: ./server/Dockerfile
+          platforms: linux/amd64
+          push: true
+          provenance: false
+          sbom: false
+          tags: |
+            ${{ steps.meta.outputs.image }}:server-${{ needs.prepare.outputs.version }}
+            ${{ steps.meta.outputs.image }}:server-latest
+          cache-from: type=gha,scope=server
+          cache-to: type=gha,scope=server,mode=max
+
+  build-client:
+    name: Release Client (${{ needs.prepare.outputs.version }})
+    needs: prepare
+    if: needs.prepare.outputs.run_client == 'true'
+    runs-on: ubuntu-latest
+    environment: build
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare image metadata
+        id: meta
+        env:
+          ACR_REGISTRY: ${{ secrets.ACR_REGISTRY }}
+          ACR_NAMESPACE: ${{ secrets.ACR_NAMESPACE }}
+          ACR_RPO_NAME: ${{ secrets.ACR_RPO_NAME }}
+          NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+        run: |
+          if [ -z "$ACR_REGISTRY" ] || [ -z "$ACR_NAMESPACE" ] || [ -z "$ACR_RPO_NAME" ]; then
+            echo "::error::Missing ACR_REGISTRY, ACR_NAMESPACE or ACR_RPO_NAME in environment 'build' secrets."
+            exit 1
+          fi
+          if [ -z "$NEXT_PUBLIC_SITE_URL" ]; then
+            echo "::error::Missing NEXT_PUBLIC_SITE_URL in environment 'build' variables."
+            exit 1
+          fi
+          IMAGE_REPO=$(printf '%s/%s/%s' "$ACR_REGISTRY" "$ACR_NAMESPACE" "$ACR_RPO_NAME" | tr '[:upper:]' '[:lower:]')
+          echo "image=${IMAGE_REPO}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Aliyun ACR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.ACR_REGISTRY }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and push versioned client image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./client
+          file: ./client/Dockerfile
+          platforms: linux/amd64
+          push: true
+          provenance: false
+          sbom: false
+          build-args: |
+            NEXT_PUBLIC_SITE_URL=${{ vars.NEXT_PUBLIC_SITE_URL }}
+            NEXT_PUBLIC_API_BASE_URL=/api/v1
+          tags: |
+            ${{ steps.meta.outputs.image }}:client-${{ needs.prepare.outputs.version }}
+            ${{ steps.meta.outputs.image }}:client-latest
+          cache-from: type=gha,scope=client
+          cache-to: type=gha,scope=client,mode=max
