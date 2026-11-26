@@ -18,9 +18,14 @@
 
 ## 统一打包与发布目录
 
-- 根目录提供 `npm run build:all`（脚本位于 [scripts/build-all.mjs](scripts/build-all.mjs)），依次打包 `server`、`admin`、`client` 并组装至根目录 `release/`（该目录已加入 `.gitignore`）。
-- `release/` 根目录平铺 `server` 运行产物（`dist/`、`migrations/`、`api-docs/`、`package.json`、`package-lock.json`、`.env.example`，其中 `scripts.start` 启动 `server`，`scripts.start:web` 启动 `web`），不包含 `node_modules`（目标环境需执行 `npm ci --omit=dev`）。
-- 同级目录包含：`release/web/`（`client` 的 Next.js `standalone` 产物，含 `.next/static`、`public` 与 `fonts`）、`release/web-admin/`（`admin` 静态构建产物）以及 `release/nginx.conf`（独立域名用的 Nginx 反向代理与静态资源配置片段）。
+根目录产物统一输出至 `release/`（该目录已加入 `.gitignore`），按部署方式拆分为 `release/native/` 与 `release/docker/` 两个同级目录：
+
+- **原生部署包（`npm run build:all`，[scripts/build-all.mjs](scripts/build-all.mjs)）**：依次打包 `server`、`admin`、`client` 并输出至 `release/native/`。
+  - `release/native/` 根目录平铺 `server` 运行产物（`dist/`、`migrations/`、`api-docs/`、`package.json`、`package-lock.json`、`.env.example`，其中 `scripts.start` 启动 `server`，`scripts.start:web` 启动 `web`），不包含 `node_modules`（目标环境需执行 `npm ci --omit=dev`）。
+  - 同级包含 `release/native/web/`（`client` 的 Next.js `standalone` 产物，含 `.next/static`、`public` 与 `fonts`）、`release/native/web-admin/`（`admin` 静态构建产物）以及 `release/native/nginx.conf`。
+- **Docker 部署包（`npm run build:docker`，[scripts/build-docker.mjs](scripts/build-docker.mjs)）**：打包 `admin` 静态产物并整理 `server`/`client` 镜像构建上下文，输出至 `release/docker/`。
+  - `release/docker/server/` 与 `release/docker/client/` 包含各自源码、`Dockerfile` 与 `.dockerignore`（供服务器 `docker compose up -d --build` 编译 Linux 镜像）；`release/docker/web-admin/` 存放 `admin` 静态文件由宿主机 Nginx 托管。
+  - 同级包含 `release/docker/docker-compose.yml`（仅编排 `server` 与 `client` 容器，端口绑定 `127.0.0.1` 并挂载 `./data:/app/data`）、`.env.example`、`nginx.conf` 与 `DEPLOY.md`。
 
 ## 全局跨模块契约
 

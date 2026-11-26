@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build:all": "node scripts/build-all.mjs"
+    "build:all": "node scripts/build-all.mjs",
+    "build:docker": "node scripts/build-docker.mjs"
   }
 }
