@@ -30,9 +30,7 @@ export function SubpageHeader({
             <SiteBrandMark
               iconUrl={siteIconUrl}
               alt={brandName}
-              className={`${
-                siteIconUrl ? "flex h-7 w-7 lg:h-8 lg:w-8" : "hidden h-8 w-8 lg:flex"
-              } shrink-0 items-center justify-center rounded-[10px] border border-white/14 bg-gradient-to-br from-white/12 to-white/[0.03] text-[#e5a93c] shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] transition-colors group-hover:border-white/25`}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[10px] border border-white/14 bg-gradient-to-br from-white/12 to-white/[0.03] text-[#e5a93c] shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] transition-colors group-hover:border-white/25 lg:h-8 lg:w-8"
             />
             <span>{brandName}</span>
           </Link>

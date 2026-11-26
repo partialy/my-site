@@ -57,15 +57,28 @@ export async function generateMetadata(): Promise<Metadata> {
       description: site.description,
       images: [site.ogImage],
     },
-    ...(site.siteIconUrl
+    icons: site.siteIconUrl
       ? {
-          icons: {
-            icon: site.siteIconUrl,
-            shortcut: site.siteIconUrl,
-            apple: site.siteIconUrl,
-          },
+          icon: site.siteIconUrl,
+          shortcut: site.siteIconUrl,
+          apple: site.siteIconUrl,
         }
-      : {}),
+      : {
+          icon: [
+            { url: "/mysite-icon-dark_round.ico", sizes: "any" },
+            { url: "/mysite-icon-dark_round_16x16.webp", sizes: "16x16", type: "image/webp" },
+            { url: "/mysite-icon-dark_round_24x24.webp", sizes: "24x24", type: "image/webp" },
+            { url: "/mysite-icon-dark_round_32x32.webp", sizes: "32x32", type: "image/webp" },
+            { url: "/mysite-icon-dark_round_48x48.webp", sizes: "48x48", type: "image/webp" },
+            { url: "/mysite-icon-dark_round_64x64.webp", sizes: "64x64", type: "image/webp" },
+            { url: "/mysite-icon-dark_round_128x128.webp", sizes: "128x128", type: "image/webp" },
+            { url: "/mysite-icon-dark_round_256x256.webp", sizes: "256x256", type: "image/webp" },
+            { url: "/mysite-icon-dark_round_512x512.webp", sizes: "512x512", type: "image/webp" },
+            { url: "/mysite-icon-dark_round_1024x1024.webp", sizes: "1024x1024", type: "image/webp" },
+          ],
+          shortcut: "/mysite-icon-dark_round.ico",
+          apple: "/mysite-icon-dark_round_256x256.webp",
+        },
     robots: {
       index: true,
       follow: true,
