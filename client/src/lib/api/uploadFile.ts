@@ -79,7 +79,14 @@ export async function uploadFile(file: File, options: UploadOptions = {}): Promi
   let response: Response;
   try { response = await fetch(prepared.uploadUrl, { method: 'POST', body: form }); }
   catch { throw new Error('连接七牛云上传域名失败'); }
-  if (!response.ok) throw new Error(`七牛云上传失败（HTTP ${response.status}）`);
+  if (!response.ok) {
+    let detail = '';
+    try {
+      const errBody: unknown = await response.json();
+      if (isRecord(errBody) && typeof errBody.error === 'string') detail = errBody.error;
+    } catch { /* 忽略非 JSON 错误响应 */ }
+    throw new Error(`七牛云上传失败（HTTP ${response.status}${detail ? `：${detail}` : ''}）`);
+  }
   let result: unknown;
   try { result = await response.json(); }
   catch { throw new Error('七牛云上传响应无效'); }

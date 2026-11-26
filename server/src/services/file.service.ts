@@ -50,6 +50,20 @@ export interface FileItem {
   archivedAt: string | null;
 }
 
+function mimeTopLevelType(mime: string): string {
+  return mime.trim().toLowerCase().split('/', 1)[0] ?? '';
+}
+
+function isCompatibleMimeType(expected: FileMimeType, actual: string): boolean {
+  const normalizedActual = actual.trim().toLowerCase();
+  if (!normalizedActual) return false;
+  // 图片类（如 image/png 与 image/jpeg、image/x-icon 与 image/vnd.microsoft.icon）放行同主类
+  if (mimeTopLevelType(expected) === 'image') {
+    return mimeTopLevelType(normalizedActual) === 'image';
+  }
+  return normalizedActual === expected;
+}
+
 function hasValidSignature(bytes: Buffer, mime: FileMimeType): boolean {
   switch (mime) {
     case 'image/png': return bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
@@ -96,9 +110,10 @@ export class FileService {
     const day = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const key = [root, day, `${id}${extensions[input.mimeType]}`].filter(Boolean).join('/');
     const mac = new qiniu.auth.digest.Mac(settings.accessKey, settings.secretKey);
+    const mimeLimit = mimeTopLevelType(input.mimeType) === 'image' ? 'image/*' : input.mimeType;
     const token = new qiniu.rs.PutPolicy({
       scope: `${settings.bucket}:${key}`, expires: 3600,
-      insertOnly: 1, fsizeLimit: maxFileBytes, mimeLimit: input.mimeType
+      insertOnly: 1, fsizeLimit: maxFileBytes, mimeLimit, detectMime: 1,
     }).uploadToken(mac);
     return { strategy: 'qiniu' as const, id, key, token, uploadUrl: settings.uploadUrl };
   }
@@ -114,7 +129,7 @@ export class FileService {
     let remote: Awaited<ReturnType<typeof manager.stat>>;
     try { remote = await manager.stat(settings.bucket, input.key); }
     catch { throw new ApiError(400, ApiCode.ValidationError, '七牛云文件不存在或无法校验', { fieldErrors: { key: ['上传未完成'] } }); }
-    if (remote.data.fsize !== input.size || remote.data.mimeType !== input.mimeType) {
+    if (remote.data.fsize !== input.size || !isCompatibleMimeType(input.mimeType, String(remote.data.mimeType ?? ''))) {
       throw new ApiError(400, ApiCode.ValidationError, '七牛云文件信息与上传请求不一致', { fieldErrors: { file: ['大小或类型不一致'] } });
     }
     const record = {
